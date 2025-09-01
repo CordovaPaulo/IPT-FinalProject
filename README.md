@@ -1,6 +1,6 @@
 Team Binary
 
-CCSPals 
+Project Name: MindMates 
 
 Backend Developer: Cordova, Paulo P. 
 
