@@ -6,10 +6,13 @@ require('dotenv').config();
 
 const connectDB = require('./config/mongodb'); 
 
+//router initialization
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const authRouter = require('./routes/auth');
 const testRouter = require('./routes/test');
+const learnerRoute = require('./routes/learner');
+const mentorRoute = require('./routes/mentor');
 
 const app = express();
 
@@ -26,6 +29,8 @@ app.use('/api', indexRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/test', testRouter);
+app.use('/api/learner', learnerRoute);
+app.use('/api/mentor', mentorRoute);
 
 // 404 handler
 app.use((req, res, next) => {
