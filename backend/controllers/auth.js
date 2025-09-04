@@ -17,13 +17,13 @@ exports.learnerSignup = async (req, res) => {
     return res.status(403).json({ message: 'Invalid token', code: 403 });
   }
 
-  const { age, phoneNumber, bio, address, modality, subjects, availability, style, sessionDur, image } = req.body;
+  const { age, program, yearLevel, phoneNumber, bio, address, modality, subjects, availability, style, sessionDur, image } = req.body;
 
   const existingLearner = await Learner.findOne({ id: decoded.id });
   if (existingLearner) {
     return res.status(400).json({ message: 'Learner ID already exists', code: 400 });
   }
-  if (!decoded.id || !decoded.username || !decoded.email || !age || !phoneNumber || !bio || !address || !modality || !subjects || !availability || !style || !sessionDur) {
+  if (!decoded.id || !decoded.username || !decoded.email || !age || !program || !yearLevel || !phoneNumber || !bio || !address || !modality || !subjects || !availability || !style || !sessionDur) {
     return res.status(400).json({ message: 'All fields are required', code: 400 });
   }
   let learnerImage = image === null ? "null" : image;
@@ -48,11 +48,19 @@ exports.learnerSignup = async (req, res) => {
   if (!sessionDur.includes(sessionDur)) {
     return res.status(400).json({ message: 'Invalid session duration', code: 400 });
   }
+  if (!program.includes(program)) {
+    return res.status(400).json({ message: 'Invalid program', code: 400 });
+  }
+  if (!yearLevel.includes(yearLevel)) {
+    return res.status(400).json({ message: 'Invalid year level', code: 400 });
+  }
   const learner = new Learner({
     userId: decoded.id,
     name: decoded.username,
     email: decoded.email,
     age,
+    program,
+    yearLevel,
     phoneNumber,
     bio,
     address,
@@ -82,13 +90,13 @@ exports.mentorSignup = async (req, res) => {
     return res.status(403).json({ message: 'Invalid token', code: 403 });
   }
 
-  const { age, phoneNumber, bio, address, modality, subjects, availability, style, sessionDur, image } = req.body;
+  const { age, program, yearLevel, phoneNumber, bio, address, modality, subjects, availability, style, sessionDur, image } = req.body;
 
   const existingLearner = await Mentor.findOne({ id: decoded.id });
   if (existingLearner) {
     return res.status(400).json({ message: 'Mentor ID already exists', code: 400 });
   }
-  if (!decoded.id || !decoded.username || !decoded.email || !age || !phoneNumber || !bio || !address || !modality || !subjects || !availability || !style || !sessionDur) {
+  if (!decoded.id || !decoded.username || !decoded.email || !age || !program || !yearLevel || !phoneNumber || !bio || !address || !modality || !subjects || !availability || !style || !sessionDur) {
     return res.status(400).json({ message: 'All fields are required', code: 400 });
   }
   let mentorImage = image === null ? "null" : image;
@@ -113,11 +121,19 @@ exports.mentorSignup = async (req, res) => {
   if (!sessionDur.includes(sessionDur)) {
     return res.status(400).json({ message: 'Invalid session duration', code: 400 });
   }
-  const learner = new Learner({
-    userId: decoded.id,
+  if (!program.includes(program)) {
+    return res.status(400).json({ message: 'Invalid program', code: 400 });
+  }
+  if (!yearLevel.includes(yearLevel)) {
+    return res.status(400).json({ message: 'Invalid year level', code: 400 });
+  }
+  const mentor = new Mentor({
+    MentorId: decoded.id,
     name: decoded.username,
     email: decoded.email,
     age,
+    program,
+    yearLevel,
     phoneNumber,
     bio,
     address,
@@ -126,7 +142,7 @@ exports.mentorSignup = async (req, res) => {
     availability,
     style,
     sessionDur,
-    image: learnerImage
+    image: mentorImage
   });
 
   await User.updateOne({ _id: decoded.id }, { role: 'mentor' });

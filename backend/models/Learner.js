@@ -5,6 +5,8 @@ const learnerSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
     age: { type: Number, required: true },
+    program: { type: String, required: true, enum: ['BSIT', 'BSCS', 'BSEMC']},
+    yearLevel: { type: String, required: true, enum: ['1st year', '2nd year', '3rd year', '4th year', 'graduate'] },
     phoneNumber: { type: String, required: true, length: 11 },
     bio: { type: String, required: true },
     address: { type: String, required: true },

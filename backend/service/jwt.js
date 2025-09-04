@@ -15,7 +15,9 @@ function authenticateToken(requiredRole) {
             }
             // Check for required role if specified
             if (requiredRole && user.role !== requiredRole) {
-                return res.status(403).json({ error: 'Insufficient role (service/jwt.js)' });
+                return res.status(403).json({ 
+                    error: `Insufficient role (service/jwt.js). Required: ${requiredRole}, Received: ${user.role}` 
+                });
             }
             req.user = user; // Attach decoded user info to request
             next();
