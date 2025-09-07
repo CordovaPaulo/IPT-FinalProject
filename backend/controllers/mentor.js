@@ -1,21 +1,30 @@
 const Learner = require('../models/Learner');
 const Mentor = require('../models/Mentor');
 const User = require('../models/User');
+const Schedule = require('../models/Schedule');
+const Feedback = require('../models/feedback');
 const { getValuesFromToken } = require('../service/jwt');
 
 exports.getAllLearners = async (req, res) => {
   try {
     const learners = await Learner.find();
-    res.status(200).json(learners);
+    if (learners.length === 0) {
+      return res.status(404).json({ message: 'No learners found', code: 404 });
+    }
+    res.status(200).json(learners.map(learner => ({
+      name: learner.name,
+      program: learner.program,
+      yearLevel: learner.yearLevel,
+    })));
   } catch (error) {
     res.status(500).json({ message: 'Server error', code: 500 });
   }
 };
 
 exports.getLearnerById = async (req, res) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
-    const learner = await Learner.findOne({ userId: id });
+    const learner = await Learner.findOne({ _id: id });
     if (!learner) {
       return res.status(404).json({ message: 'Learner not found', code: 404 });
     }
@@ -30,6 +39,12 @@ exports.setSchedule = async (req, res) => {
     const { date, time, location, subject } = req.body;
 
     const decoded = getValuesFromToken(req);
+
+    const learner = await Learner.findById(id);
+
+    if(!learner){
+      return res.status(404).json({message: 'Learner not found', code: 404})
+    }
     if (!decoded || !decoded.id) {
       return res.status(403).json({ message: 'Invalid token', code: 403 });
     }
@@ -48,7 +63,7 @@ exports.setSchedule = async (req, res) => {
 
     try {
         const schedule = new Schedule({
-            learner: id,
+            learner: learner.userId,
             mentor: decoded.id,
             date,
             time,
@@ -61,3 +76,9 @@ exports.setSchedule = async (req, res) => {
         res.status(500).json({ message: 'Server error', code: 500 });
     }
 };
+
+exports.getFeetbacks = async (req, res) => {
+    const decoded = getValuesFromToken(req);
+
+    
+}

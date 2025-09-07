@@ -16,6 +16,9 @@ const mentorSchema = new mongoose.Schema({
     style: { type: [String], required: true, enum: ['lecture-based', 'interactive-discussion', 'q-and-a-discussion', 'demonstrations', 'project-based', 'step-by-step-discussion'] },
     sessionDur: { type: String, required: true, enum: ['1hr', '2hrs', '3hrs'] },
     status: { type: String, default: 'active', enum: ['active', 'pending', 'suspended', 'banned'] },
+    image: { type:string, default:null },
+    credentials: { type: [String], default: []  },
+    credentialsFolderUrl: { type: String, default: null },
 }, { collection: 'mentors' });
 
 const Mentor = mongoose.model('Mentors', mentorSchema);

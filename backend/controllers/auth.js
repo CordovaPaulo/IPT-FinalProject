@@ -4,29 +4,75 @@ const User = require('../models/User');
 const Learner = require('../models/Learner');
 const Mentor = require('../models/Mentor');
 const { getValuesFromToken } = require('../service/jwt');
+const uploadController = require('./upload');
+const cloudinary = require('../service/cloudinary');
+
 
 exports.learnerSignup = async (req, res) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ message: 'No token provided', code: 401 });
-  }
 
   const decoded = getValuesFromToken(req);
   if (!decoded) {
     return res.status(403).json({ message: 'Invalid token', code: 403 });
   }
 
-  const { age, program, yearLevel, phoneNumber, bio, address, modality, subjects, availability, style, sessionDur, image } = req.body;
+  // Handle profile picture upload if file is present
+  let learnerImage = null;
+  if (req.file) {
+    try {
+      const result = await uploadController.upToCloudinary(req, {
+        status: () => ({ json: () => {} }),
+        json: () => {},
+      });
+      // upToCloudinary sends the response, so instead call the upload logic directly or refactor to return the result
+      // For now, let's call the upload logic directly:
+      const streamUpload = (buffer) => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+            (error, result) => {
+              if (result) resolve(result);
+              else reject(error);
+            }
+          );
+          require('streamifier').createReadStream(buffer).pipe(stream);
+        });
+      };
+      const uploadResult = await streamUpload(req.file.buffer);
+      learnerImage = uploadResult.secure_url;
+    } catch (err) {
+      return res.status(500).json({ message: 'Image upload failed', code: 500 });
+    }
+  } else {
+    learnerImage = req.body.image === null ? "null" : req.body.image;
+  }
+
+  // Parse fields from req.body (FormData sends all as strings)
+  const {
+    age,
+    program,
+    yearLevel,
+    phoneNumber,
+    bio,
+    address,
+    modality,
+    subjects,
+    availability,
+    style,
+    sessionDur
+  } = req.body;
+
+  // Parse arrays if sent as JSON strings
+  const parsedSubjects = typeof subjects === 'string' ? JSON.parse(subjects) : subjects;
+  const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
+  const parsedStyle = typeof style === 'string' ? JSON.parse(style) : style;
 
   const existingLearner = await Learner.findOne({ id: decoded.id });
   if (existingLearner) {
     return res.status(400).json({ message: 'Learner ID already exists', code: 400 });
   }
-  if (!decoded.id || !decoded.username || !decoded.email || !age || !program || !yearLevel || !phoneNumber || !bio || !address || !modality || !subjects || !availability || !style || !sessionDur) {
-    return res.status(400).json({ message: 'All fields are required', code: 400 });
+  if (!decoded.id || !decoded.username || !decoded.email || !age || !program || !yearLevel || !phoneNumber || !bio || !address || !modality || !parsedSubjects || !parsedAvailability || !parsedStyle || !sessionDur) {
+    return res.status(400).json({ message: 'All fields are required', code: 400, missing: {decoded, age, program, yearLevel, phoneNumber, bio, address, modality, parsedSubjects, parsedAvailability, parsedStyle, sessionDur} });
   }
-  let learnerImage = image === null ? "null" : image;
   if (phoneNumber.length !== 11) {
     return res.status(400).json({ message: 'Phone number must be 11 digits', code: 400 });
   }
@@ -36,13 +82,13 @@ exports.learnerSignup = async (req, res) => {
   if (!modality.includes(modality)) {
     return res.status(400).json({ message: 'Invalid modality', code: 400 });
   }
-  if (!Array.isArray(subjects) || subjects.length === 0) {
+  if (!Array.isArray(parsedSubjects) || parsedSubjects.length === 0) {
     return res.status(400).json({ message: 'Subjects must be a non-empty array', code: 400 });
   }
-  if (!Array.isArray(availability) || availability.length === 0) {
+  if (!Array.isArray(parsedAvailability) || parsedAvailability.length === 0) {
     return res.status(400).json({ message: 'Availability must be a non-empty array', code: 400 });
   }
-  if (!Array.isArray(style) || style.length === 0) {
+  if (!Array.isArray(parsedStyle) || parsedStyle.length === 0) {
     return res.status(400).json({ message: 'Style must be a non-empty array', code: 400 });
   }
   if (!sessionDur.includes(sessionDur)) {
@@ -65,9 +111,9 @@ exports.learnerSignup = async (req, res) => {
     bio,
     address,
     modality,
-    subjects,
-    availability,
-    style,
+    subjects: parsedSubjects,
+    availability: parsedAvailability,
+    style: parsedStyle,
     sessionDur,
     image: learnerImage
   });
@@ -79,27 +125,109 @@ exports.learnerSignup = async (req, res) => {
 };
 
 exports.mentorSignup = async (req, res) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ message: 'No token provided', code: 401 });
-  }
 
   const decoded = getValuesFromToken(req);
   if (!decoded) {
     return res.status(403).json({ message: 'Invalid token', code: 403 });
   }
 
-  const { age, program, yearLevel, phoneNumber, bio, address, modality, subjects, availability, style, sessionDur, image } = req.body;
+  // Handle profile picture upload if file is present
+  let mentorImage = null;
+  if (req.file) {
+    try {
+      const streamUpload = (buffer) => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+            (error, result) => {
+              if (result) resolve(result);
+              else reject(error);
+            }
+          );
+          require('streamifier').createReadStream(buffer).pipe(stream);
+        });
+      };
+      const uploadResult = await streamUpload(req.file.buffer);
+      mentorImage = uploadResult.secure_url;
+    } catch (err) {
+      return res.status(500).json({ message: 'Image upload failed', code: 500 });
+    }
+  } else {
+    mentorImage = req.body.image === null ? "null" : req.body.image;
+  }
 
-  const existingLearner = await Mentor.findOne({ id: decoded.id });
-  if (existingLearner) {
+  // Handle credentials upload if files are present
+  let credentialsFolderUrl = null;
+  let credentialsUrls = []; // Add this to store individual file URLs
+
+  if (req.files && req.files.credentials && req.files.credentials.length > 0) {
+    try {
+      // Create a request object with the credential files AND headers
+      const credsReq = { 
+        ...req, 
+        files: req.files.credentials,
+        headers: req.headers // Forward the authorization header
+      };
+      
+      // Create a response object that captures the data
+      const credsRes = {
+        data: null,
+        status: function(code) { 
+          return this; 
+        },
+        json: function(data) { 
+          this.data = data; 
+          return this; 
+        }
+      };
+      
+      // Upload the files and capture the response
+      await uploadController.uploadMentorCredentials(credsReq, credsRes);
+      
+      // Extract URLs from the response
+      if (credsRes.data) {
+        credentialsFolderUrl = credsRes.data.folderUrl || credsRes.data.folderWebViewLink;
+        
+        // Store individual file URLs if available
+        if (credsRes.data.files && Array.isArray(credsRes.data.files)) {
+          credentialsUrls = credsRes.data.files.map(file => 
+            file.webViewLink || file.webContentLink || file.url
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Error uploading mentor credentials:', err);
+      return res.status(500).json({ message: 'Credentials upload failed', code: 500 });
+    }
+  }
+
+  // Parse fields from req.body (FormData sends all as strings)
+  const {
+    age,
+    program,
+    yearLevel,
+    phoneNumber,
+    bio,
+    address,
+    modality,
+    subjects,
+    availability,
+    style,
+    sessionDur
+  } = req.body;
+
+  // Parse arrays if sent as JSON strings
+  const parsedSubjects = typeof subjects === 'string' ? JSON.parse(subjects) : subjects;
+  const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
+  const parsedStyle = typeof style === 'string' ? JSON.parse(style) : style;
+
+  const existingMentor = await Mentor.findOne({ id: decoded.id });
+  if (existingMentor) {
     return res.status(400).json({ message: 'Mentor ID already exists', code: 400 });
   }
-  if (!decoded.id || !decoded.username || !decoded.email || !age || !program || !yearLevel || !phoneNumber || !bio || !address || !modality || !subjects || !availability || !style || !sessionDur) {
+  if (!decoded.id || !decoded.username || !decoded.email || !age || !program || !yearLevel || !phoneNumber || !bio || !address || !modality || !parsedSubjects || !parsedAvailability || !parsedStyle || !sessionDur) {
     return res.status(400).json({ message: 'All fields are required', code: 400 });
   }
-  let mentorImage = image === null ? "null" : image;
   if (phoneNumber.length !== 11) {
     return res.status(400).json({ message: 'Phone number must be 11 digits', code: 400 });
   }
@@ -109,13 +237,13 @@ exports.mentorSignup = async (req, res) => {
   if (!modality.includes(modality)) {
     return res.status(400).json({ message: 'Invalid modality', code: 400 });
   }
-  if (!Array.isArray(subjects) || subjects.length === 0) {
+  if (!Array.isArray(parsedSubjects) || parsedSubjects.length === 0) {
     return res.status(400).json({ message: 'Subjects must be a non-empty array', code: 400 });
   }
-  if (!Array.isArray(availability) || availability.length === 0) {
+  if (!Array.isArray(parsedAvailability) || parsedAvailability.length === 0) {
     return res.status(400).json({ message: 'Availability must be a non-empty array', code: 400 });
   }
-  if (!Array.isArray(style) || style.length === 0) {
+  if (!Array.isArray(parsedStyle) || parsedStyle.length === 0) {
     return res.status(400).json({ message: 'Style must be a non-empty array', code: 400 });
   }
   if (!sessionDur.includes(sessionDur)) {
@@ -138,11 +266,13 @@ exports.mentorSignup = async (req, res) => {
     bio,
     address,
     modality,
-    subjects,
-    availability,
-    style,
+    subjects: parsedSubjects,
+    availability: parsedAvailability,
+    style: parsedStyle,
     sessionDur,
-    image: mentorImage
+    image: mentorImage,
+    credentials: credentialsUrls, // Add this line to set the required field
+    credentialsFolderUrl: credentialsFolderUrl
   });
 
   await User.updateOne({ _id: decoded.id }, { role: 'mentor' });
@@ -152,9 +282,20 @@ exports.mentorSignup = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { username, password } = req.body;
+  const { iniCred, password } = req.body;
   try {
-    const user = await User.findOne({ username });
+    let query = [
+      { username: iniCred },
+      { email: iniCred }
+    ];
+
+    // If iniCred is 9 digits, add regex for email starting with those digits
+    if (/^\d{9}$/.test(iniCred)) {
+      query.push({ email: { $regex: `^${iniCred}` } });
+    }
+
+    const user = await User.findOne({ $or: query });
+
     if (!user) {
       return res.status(400).json({ error: 'User not found' });
     }
