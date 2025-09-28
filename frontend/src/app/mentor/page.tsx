@@ -8,6 +8,7 @@ import ReviewsComponent from '@/components/mentorpage/reviews/page';
 import FilesComponent from '@/components/mentorpage/files/page';
 import FileManagerComponent from '@/components/mentorpage/filemanager/page';
 import EditInformationComponent from '@/components/mentorpage/information/page';
+import LogoutComponent from '@/components/mentorpage/logout/page';
 import './mentor.css';
 
 interface User {
@@ -80,7 +81,6 @@ export default function MentorPage() {
   const [upcomingSchedule, setUpcomingSchedule] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
-  const [confirmLogout, setConfirmLogout] = useState(false);
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showOffer, setShowOffer] = useState(false);
@@ -88,7 +88,7 @@ export default function MentorPage() {
   const [activeComponent, setActiveComponent] = useState("main");
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
-  const [showEditInformation, setShowEditInformation] = useState(false); // New state for popup
+  const [showEditInformation, setShowEditInformation] = useState(false);
 
   // Computed properties
   const displayedCourses = userData.ment.subjects.slice(0, 5);
@@ -227,7 +227,7 @@ export default function MentorPage() {
     setShowAllCourses(!showAllCourses);
   };
 
-  // Edit Information functions - Updated for popup
+  // Edit Information functions
   const openEditInformation = () => {
     setShowEditInformation(true);
   };
@@ -241,15 +241,7 @@ export default function MentorPage() {
     setShowEditInformation(false);
   };
 
-  const openLogoutDialog = () => {
-    setConfirmLogout(true);
-  };
-
-  const handleLogout = () => {
-    setConfirmLogout(false);
-    router.push('/login');
-  };
-
+  // UPDATED LOGOUT FUNCTIONS
   const handleOfferConfirm = () => {
     setShowOffer(false);
   };
@@ -299,40 +291,70 @@ export default function MentorPage() {
     </div>
   );
 
-  // Updated renderComponent function - removed editInformation case since it's now a popup
+  // UPDATED renderComponent function - logout as overlay
   const renderComponent = () => {
-    switch (activeComponent) {
-      case 'main':
-        return (
-          <MainComponent 
-            users={users}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            setUserId={setUserId}
-            mentorData={userData}
+    const mainContent = (() => {
+      switch (activeComponent) {
+        case 'main':
+          return (
+            <MainComponent 
+              users={users}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              setUserId={setUserId}
+              mentorData={userData}
+            />
+          );
+        case 'session':
+          return <SessionComponent schedule={todaySchedule} upcomingSchedule={upcomingSchedule} />;
+        case 'reviews':
+          return <ReviewsComponent feedbacks={feedbacks} />;
+        case 'files':
+          return <FilesComponent files={files} setFiles={setFiles} />;
+        case 'records':
+          return <RecordsComponent />;
+        case 'fileManage':
+          return <FileManagerComponent files={files} setFiles={setFiles} />;
+        case 'logout': 
+          // For logout, we still show the main component in background
+          return (
+            <MainComponent 
+              users={users}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              setUserId={setUserId}
+              mentorData={userData}
+            />
+          );
+        default:
+          return (
+            <MainComponent 
+              users={users}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              setUserId={setUserId}
+              mentorData={userData}
+            />
+          );
+      }
+    })();
+
+    return (
+      <>
+        {mainContent}
+        
+        {/* Render LogoutComponent as overlay when active */}
+        {activeComponent === 'logout' && (
+          <LogoutComponent 
+            onCancel={() => switchComponent('main')} 
+            onLogout={() => {
+              // Handle any additional logout logic here
+              console.log('User logged out');
+            }}
           />
-        );
-      case 'session':
-        return <SessionComponent schedule={todaySchedule} upcomingSchedule={upcomingSchedule} />;
-      case 'reviews':
-        return <ReviewsComponent feedbacks={feedbacks} />;
-      case 'files':
-        return <FilesComponent files={files} setFiles={setFiles} />;
-      case 'records':
-        return <RecordsComponent />;
-      case 'fileManage':
-        return <FileManagerComponent files={files} setFiles={setFiles} />;
-      default:
-        return (
-          <MainComponent 
-            users={users}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            setUserId={setUserId}
-            mentorData={userData}
-          />
-        );
-    }
+        )}
+      </>
+    );
   };
 
   useEffect(() => {
@@ -526,7 +548,7 @@ export default function MentorPage() {
                 <a onClick={switchRole}>
                   <img src="/switch.svg" alt="Switch" /> Switch Account Role
                 </a>
-                <a onClick={openLogoutDialog}>
+                <a onClick={() => switchComponent('logout')}>
                   <img src="/logout.svg" alt="Logout" /> Logout
                 </a>
               </div>
@@ -604,23 +626,10 @@ export default function MentorPage() {
         className={`main-content ${
           isMobileView && !isSidebarVisible ? 'content-expanded' : ''
         }`}
+        style={{ position: 'relative' }}
       >
         {renderComponent()}
       </div>
-
-      {/* Modals */}
-      {confirmLogout && (
-        <div className="logout-popup">
-          <div className="popup-container">
-            <h3>Confirm Logout</h3>
-            <p>Are you sure you want to logout?</p>
-            <div className="form-actions">
-              <button onClick={() => setConfirmLogout(false)}>Cancel</button>
-              <button onClick={handleLogout}>Logout</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showOffer && (
         <div className="offer-popup">
