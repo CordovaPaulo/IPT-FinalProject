@@ -66,9 +66,6 @@ exports.uploadMentorCredentials = async (req, res) => {
         // Parent folder: "mentor_credentials", subfolder: username
         const { results, folderPath, folderWebViewLink } = await uploadFilesToDriveWithParent(req.files, 'mentor_credentials', username);
 
-        // If you want to construct a Google Drive folder URL, you need the folderId.
-        // If your uploadFile returns folderId or webViewLink, use it. Otherwise, you may need to enhance uploadFile to return it.
-        // For now, try to get the folder link from the first file's parents if available:
         let folderUrl = null;
         if (results.length > 0 && results[0].parentFolderId) {
             folderUrl = `https://drive.google.com/drive/folders/${results[0].parentFolderId}`;

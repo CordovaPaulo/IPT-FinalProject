@@ -6,6 +6,7 @@ const Mentor = require('../models/Mentor');
 const { getValuesFromToken } = require('../service/jwt');
 const uploadController = require('./upload');
 const cloudinary = require('../service/cloudinary');
+const streamifier = require('streamifier');
 
 
 exports.learnerSignup = async (req, res) => {
@@ -34,7 +35,7 @@ exports.learnerSignup = async (req, res) => {
               else reject(error);
             }
           );
-          require('streamifier').createReadStream(buffer).pipe(stream);
+          streamifier.createReadStream(buffer).pipe(stream);
         });
       };
       const uploadResult = await streamUpload(req.file.buffer);
@@ -131,9 +132,13 @@ exports.mentorSignup = async (req, res) => {
     return res.status(403).json({ message: 'Invalid token', code: 403 });
   }
 
-  // Handle profile picture upload if file is present
+  // Handle profile picture upload when using multer.fields
   let mentorImage = null;
-  if (req.file) {
+  const imageFile =
+    req.file // in case a different middleware calls .single('image')
+    || (req.files && Array.isArray(req.files.image) && req.files.image[0]);
+
+  if (imageFile) {
     try {
       const streamUpload = (buffer) => {
         return new Promise((resolve, reject) => {
@@ -144,10 +149,10 @@ exports.mentorSignup = async (req, res) => {
               else reject(error);
             }
           );
-          require('streamifier').createReadStream(buffer).pipe(stream);
+          streamifier.createReadStream(buffer).pipe(stream);
         });
       };
-      const uploadResult = await streamUpload(req.file.buffer);
+      const uploadResult = await streamUpload(imageFile.buffer);
       mentorImage = uploadResult.secure_url;
     } catch (err) {
       return res.status(500).json({ message: 'Image upload failed', code: 500 });
@@ -158,41 +163,26 @@ exports.mentorSignup = async (req, res) => {
 
   // Handle credentials upload if files are present
   let credentialsFolderUrl = null;
-  let credentialsUrls = []; // Add this to store individual file URLs
+  let credentialsUrls = [];
 
-  if (req.files && req.files.credentials && req.files.credentials.length > 0) {
+  if (req.files && Array.isArray(req.files.credentials) && req.files.credentials.length > 0) {
     try {
-      // Create a request object with the credential files AND headers
-      const credsReq = { 
-        ...req, 
+      const credsReq = {
+        ...req,
         files: req.files.credentials,
-        headers: req.headers // Forward the authorization header
+        headers: req.headers
       };
-      
-      // Create a response object that captures the data
       const credsRes = {
         data: null,
-        status: function(code) { 
-          return this; 
-        },
-        json: function(data) { 
-          this.data = data; 
-          return this; 
-        }
+        status: function () { return this; },
+        json: function (data) { this.data = data; return this; }
       };
-      
-      // Upload the files and capture the response
       await uploadController.uploadMentorCredentials(credsReq, credsRes);
-      
-      // Extract URLs from the response
+
       if (credsRes.data) {
-        credentialsFolderUrl = credsRes.data.folderUrl || credsRes.data.folderWebViewLink;
-        
-        // Store individual file URLs if available
+        credentialsFolderUrl = credsRes.data.folderUrl || credsRes.data.folderWebViewLink || null;
         if (credsRes.data.files && Array.isArray(credsRes.data.files)) {
-          credentialsUrls = credsRes.data.files.map(file => 
-            file.webViewLink || file.webContentLink || file.url
-          );
+          credentialsUrls = credsRes.data.files.map(f => f.webViewLink || f.webContentLink || f.url).filter(Boolean);
         }
       }
     } catch (err) {
@@ -203,17 +193,8 @@ exports.mentorSignup = async (req, res) => {
 
   // Parse fields from req.body (FormData sends all as strings)
   const {
-    age,
-    program,
-    yearLevel,
-    phoneNumber,
-    bio,
-    address,
-    modality,
-    subjects,
-    availability,
-    style,
-    sessionDur
+    age, program, yearLevel, phoneNumber, bio, address, modality,
+    subjects, availability, style, sessionDur
   } = req.body;
 
   // Parse arrays if sent as JSON strings
@@ -271,12 +252,11 @@ exports.mentorSignup = async (req, res) => {
     style: parsedStyle,
     sessionDur,
     image: mentorImage,
-    credentials: credentialsUrls, // Add this line to set the required field
+    credentials: credentialsUrls,
     credentialsFolderUrl: credentialsFolderUrl
   });
 
   await User.updateOne({ _id: decoded.id }, { role: 'mentor' });
-
   await mentor.save();
   return res.status(201).json(mentor);
 };
@@ -297,11 +277,11 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ $or: query });
 
     if (!user) {
-      return res.status(400).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User not found', code: 404 });
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid password' });
+      return res.status(400).json({ error: 'Invalid credentials', code: 400 });
     }
 
     const token = jwt.sign(
