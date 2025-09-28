@@ -1,0 +1,370 @@
+/* src/app/page.module.css */
+.homeContainer {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.introSection {
+  width: 100%;
+  min-height: 100vh;
+  background: url("/bg.png") no-repeat center center;
+  background-size: cover;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: left;
+}
+
+.introContent {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+  max-width: 1200px;
+  padding: 0 5%;
+}
+
+.introLogo {
+  width: 500px;
+  height: auto;
+}
+
+.introText h1 {
+  font-size: 6rem;
+  color: #116275;
+  font-family: "Anton", sans-serif;
+  letter-spacing: 0.1em;
+}
+
+.highlightEd {
+  color: #0097b2;
+  font-family: "Anton", sans-serif;
+  letter-spacing: 0.1em;
+}
+
+.introText p {
+  font-size: 3rem;
+  color: #116275;
+}
+
+.contentSection {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 40px 5% 0;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.learnersSection,
+.mentorsSection {
+  flex: 1;
+  min-height: 320px;
+}
+
+.learnersSection {
+  background-color: #02475e;
+  transition: all 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.learnersSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+}
+
+.learnersSection:hover::before {
+  left: 100%;
+}
+
+.learnersSection:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.learnersHeading {
+  color: #ffffff; 
+}
+
+.learnersImage {
+  width: 320px;
+  height: auto;
+  margin-left: -10px;
+  transition: all 0.5s ease;
+}
+
+.learnersSection:hover .learnersImage {
+  transform: scale(1.08) rotate(5deg);
+}
+
+.learnerText {
+  transition: all 0.3s ease;
+}
+
+.learnersSection:hover .learnerText {
+  color: #a8dadc;
+}
+
+.mentorsSection {
+  background-color: white;
+  transition: all 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mentorsSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(1, 71, 97, 0.1), transparent);
+  transition: 0.5s;
+}
+
+.mentorsSection:hover::before {
+  left: 100%;
+}
+
+.mentorsSection:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.mentorsHeading {
+  color: #02475e;
+}
+
+.mentorsImage {
+  width: 290px;
+  height: auto;
+  margin-left: 40px;
+  transition: all 0.5s ease;
+}
+
+.mentorsSection:hover .mentorsImage {
+  transform: scale(1.05) rotate(-5deg);
+}
+
+.mentorsSection .contentBox p {
+  color: #02475e;
+  transition: all 0.3s ease;
+}
+
+.mentorsSection:hover .contentBox p {
+  color: #116275;
+}
+
+.contentBox {
+  max-width: 750px;
+  padding: 20px 0;
+}
+
+.mentorContentBox {
+  max-width: 750px;
+  padding: 40px 0;
+  margin-right: 40px;
+  margin-bottom: 30px;
+}
+
+.learnersContentBox {
+  max-width: 750px;
+  padding: 40px 0;
+  margin-left: 20px;
+  margin-bottom: 30px;
+}
+
+.contentBox h2 {
+  font-size: 3.5rem;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.1em;
+}
+
+.contentBox p {
+  font-size: 1.2rem;
+  color: rgb(73, 25, 25);
+  text-align: justify;
+}
+
+.howItWorks {
+  text-align: center;
+  padding: 40px 5%;
+  background: #d9d9d9;
+  color: #02475e;
+}
+
+.howItWorks h2 {
+  font-size: 3rem;
+  margin-top: 50px;
+  color: #02475e;
+  font-family: "Montserrat", sans-serif;
+}
+
+.howItWorksGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-top: 50px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+.step {
+  width: 30%;
+  text-align: center;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.step:hover {
+  transform: scale(1.05);
+  color: #0097b2;
+}
+
+.step img {
+  width: 85px;
+  height: auto;
+  transition: transform 0.3s ease;
+}
+
+.step:hover img {
+  transform: scale(1.1);
+}
+
+.step h3 {
+  font-size: 1.3rem;
+  margin-top: 10px;
+  color: #02475e;
+}
+
+.step p {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.learnMoreBtn {
+  margin-top: 65px;
+  padding: 10px 30px;
+  font-size: 1.2rem;
+  background-color: #02475e;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 25px;
+  transition: background-color 0.3s ease;
+}
+
+.learnMoreBtn:hover {
+  background-color: #15191b;
+}
+
+.joinSection {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: url('/school_bg.png') no-repeat center center;
+  background-size: cover;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 5%;
+}
+
+.joinSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.561);
+  backdrop-filter: blur(5px);
+  z-index: 1;
+}
+
+.getStartedCard {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(135deg, #0b2b31, #2b737e);
+  border-radius: 30px;
+  padding: 2.5rem;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  color: white;
+  text-align: center;
+  backdrop-filter: blur(3px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 2rem 0;
+  top: 2rem;
+}
+
+.getStartedTitle {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  margin-bottom: 1.5rem;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.benefitsList {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 2rem;
+  max-width: 500px;
+  text-align: left;
+  padding-left: 5rem;
+}
+
+.benefitsList li {
+  padding: 0.6rem 0;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  display: flex;
+  align-items: center;
+  line-height: 1.5;
+}
+
+.benefitIcon {
+  margin-right: 10px;
+  color: #a5d6a7;
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
+  min-width: 24px;
+  font-weight: bold;
+}
+
+.signupBtn {
+  background-color: white;
+  color: #233e59;
+  border: none;
+  padding: clamp(0.8rem, 3vw, 1rem) clamp(1.5rem, 5vw, 2.25rem);
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  margin-top: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 80%;
+  max-width: 250px;
+}
+
+.signupBtn:hover {
+  background-color: #f1f8fe;
+  transform: translateY(-3px);
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
