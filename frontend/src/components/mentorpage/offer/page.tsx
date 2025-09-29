@@ -519,15 +519,15 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
           border-bottom-width: 4px;
           width: 1000px;
           max-width: 900px;
-          margin-left: 10rem;
-          margin-right: -10rem;
-          top: 1rem;
+          position: fixed;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
           max-height: 85vh;
           display: flex;
           flex-direction: column;
           overflow: hidden;
           box-shadow: 0 8px 24px rgba(26, 79, 159, 0.5);
-          position: fixed;
           z-index: 999;
           background: white;
           border-radius: 1.5rem;
@@ -1083,13 +1083,13 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
 
         @media (max-width: 576px) {
           .booking {
-            margin-top: 0;
+            margin: 0;
             top: 0;
+            left: 0;
+            transform: none;
             border-radius: 0;
             max-height: 100vh;
             width: 100%;
-            margin-left: 0;
-            margin-right: 0;
           }
         }
       `}</style>

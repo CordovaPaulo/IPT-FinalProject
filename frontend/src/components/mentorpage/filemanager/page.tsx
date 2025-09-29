@@ -665,7 +665,7 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
         .modal-header {
           padding: 1.5rem;
           background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-          color: white;
+          color: #0b2548;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -682,7 +682,7 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
         .close-btn {
           background: none;
           border: none;
-          color: white;
+          color: #0b2548;
           font-size: 1.25rem;
           cursor: pointer;
           padding: 0.5rem;

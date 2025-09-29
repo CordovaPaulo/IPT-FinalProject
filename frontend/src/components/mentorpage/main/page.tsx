@@ -19,17 +19,13 @@ interface MainComponentProps {
   users: User[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  setUserId: (id: number) => void;
-  setShowOffer: (show: boolean) => void;
   mentorData?: MentorData;
 }
 
 export default function MainComponent({ 
   users, 
   searchQuery, 
-  setSearchQuery, 
-  setUserId, 
-  setShowOffer,
+  setSearchQuery,
   mentorData = {} 
 }: MainComponentProps) {
   const [filteredUsers, setFilteredUsers] = useState<User[]>(users);
@@ -125,15 +121,6 @@ export default function MainComponent({
                   onClick={() => openView(user.id)}
                 >
                   See More
-                </button>
-                <button 
-                  className="offer-btn"
-                  onClick={() => {
-                    setUserId(user.id);
-                    setShowOffer(true);
-                  }}
-                >
-                  Make Offer
                 </button>
               </div>
             </div>
@@ -233,22 +220,6 @@ export default function MainComponent({
           box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
         }
 
-        .user-card:hover::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(
-            135deg,
-            rgba(138, 43, 226, 0.2) 0%,
-            rgba(75, 0, 130, 0.3) 100%
-          );
-          z-index: -1;
-          border-radius: 10px;
-        }
-
         .upper-element {
           padding: 1.25rem;
           display: flex;
@@ -309,13 +280,11 @@ export default function MainComponent({
 
         .button-group {
           display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          width: 100%;
+          width: 70%;
           margin-top: 1rem;
         }
 
-        .see-more-btn, .offer-btn {
+        .see-more-btn {
           background: linear-gradient(135deg, #0c434d, #3b9aa9);
           color: white;
           border: none;
@@ -329,17 +298,9 @@ export default function MainComponent({
           width: 100%;
         }
 
-        .see-more-btn:hover, .offer-btn:hover {
+        .see-more-btn:hover {
           background: linear-gradient(135deg, #3b9aa9, #0c434d);
           box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .see-more-btn {
-          background: linear-gradient(135deg, #6c757d, #adb5bd);
-        }
-
-        .see-more-btn:hover {
-          background: linear-gradient(135deg, #5a6268, #6c757d);
         }
 
         .view-popup-overlay {
@@ -418,7 +379,7 @@ export default function MainComponent({
             font-size: 0.75rem;
           }
 
-          .see-more-btn, .offer-btn {
+          .see-more-btn {
             padding: 0.4rem 1rem;
             font-size: 0.75rem;
           }
@@ -462,7 +423,7 @@ export default function MainComponent({
             font-size: 1.2rem;
           }
 
-          .see-more-btn, .offer-btn {
+          .see-more-btn {
             margin-top: 0.75rem;
           }
 
