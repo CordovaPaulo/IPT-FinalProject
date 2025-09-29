@@ -316,7 +316,6 @@ export default function MentorPage() {
         case 'fileManage':
           return <FileManagerComponent files={files} setFiles={setFiles} />;
         case 'logout': 
-          // For logout, we still show the main component in background
           return (
             <MainComponent 
               users={users}

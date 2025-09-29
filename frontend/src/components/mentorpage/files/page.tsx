@@ -291,14 +291,13 @@ export default function FilesComponent() {
           overflow-y: auto;
         }
 
-        /* Hide scrollbar but keep functionality */
         .files-wrapper::-webkit-scrollbar {
           display: none;
         }
         
         .files-wrapper {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
+          -ms-overflow-style: none; 
+          scrollbar-width: none;  
         }
 
         .table-header {
@@ -361,7 +360,7 @@ export default function FilesComponent() {
         .drop-zone {
           border: 3px dashed #a6a6a6;
           width: 90%;
-          height: 250px; /* Reduced height for the drop zone only */
+          height: 250px; 
           display: flex;
           justify-content: center;
           align-items: center;
@@ -477,7 +476,6 @@ export default function FilesComponent() {
           padding-right: 5px;
         }
 
-        /* Hide scrollbar for displayed container */
         .displayed-container::-webkit-scrollbar {
           display: none;
         }
