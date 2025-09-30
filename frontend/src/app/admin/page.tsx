@@ -1,0 +1,452 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
+import Dashboard from '@/components/adminpage/dashboard/page';
+import Applications from '@/components/adminpage/applications/page';
+import Users from '@/components/adminpage/users/page'; 
+import './admin.css';
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  gender?: string;
+  course?: string;
+  program?: string;
+  role: string;
+  secondary_role?: string;
+}
+
+interface Applicant {
+  id: number;
+  name: string;
+  email: string;
+}
+
+interface Stats {
+  learners: number;
+  mentors: number;
+  applicants: number;
+}
+
+interface ChartData {
+  userCounts: any | null;
+  courseBreakdown: any | null;
+  yearBreakdown: any | null;
+}
+
+const AdminProfile: React.FC = () => {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(false);
+  const [isMobileView, setIsMobileView] = useState<boolean>(false);
+  const [adminNameValue, setAdminNameValue] = useState<string>('');
+  const [currentDate, setCurrentDate] = useState<string>('');
+  const [stats, setStats] = useState<Stats>({
+    learners: 0,
+    mentors: 0,
+    applicants: 0,
+  });
+  const [chartData, setChartData] = useState<ChartData>({
+    userCounts: null,
+    courseBreakdown: null,
+    yearBreakdown: null,
+  });
+  const [usersFetch, setUsersFetch] = useState<User[]>([]);
+  const [applicantsList, setApplicantsList] = useState<Applicant[]>([]);
+  const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
+
+  // API configuration
+  const api = axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
+    withCredentials: true,
+  });
+
+  // Loading Overlay Component
+  const LoadingOverlay: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
+    if (!isLoading) return null;
+    return (
+      <div className="loading-overlay">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  };
+
+  // Check mobile view
+  const checkMobileView = () => {
+    const mobile = window.innerWidth <= 768;
+    setIsMobileView(mobile);
+    if (!mobile) {
+      setIsSidebarVisible(true);
+    }
+  };
+
+  // Toggle sidebar
+  const toggleSidebar = () => {
+    setIsSidebarVisible(!isSidebarVisible);
+  };
+
+  // Fetch admin profile
+  const fetchAdminName = async (): Promise<void> => {
+    try {
+      const response = await api.get('/api/admin/profile', {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
+      if (response.status === 200) {
+        setAdminNameValue(response.data.name || 'Admin');
+      }
+    } catch (error) {
+      console.error('Error fetching admin name:', error);
+    }
+  };
+
+  // Fetch all data
+  const fetchAll = async (): Promise<void> => {
+    try {
+      const response = await api.get('/api/admin', {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
+
+      console.log('Response data:', response.data);
+
+      // Map users data
+      const usersData: User[] = response.data.users.map((user: any) => ({
+        ...user,
+        gender: user.gender || 'N/A',
+        program: user.course || 'N/A',
+        role: user.role.toLowerCase(),
+        secondary_role: user.secondary_role?.toLowerCase() || 'N/A',
+      }));
+
+      setUsersFetch(usersData);
+
+      // Update stats
+      setStats({
+        learners: response.data.counts.learners || 0,
+        mentors: response.data.counts.approved_mentors || 0,
+        applicants: response.data.counts.pending_mentors || 0,
+      });
+
+      // Update chart data
+      setChartData({
+        userCounts: response.data.counts || null,
+        courseBreakdown: response.data.course_breakdown || null,
+        yearBreakdown: response.data.year_breakdown || null,
+      });
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setChartData({
+        userCounts: null,
+        courseBreakdown: null,
+        yearBreakdown: null,
+      });
+    }
+  };
+
+  // Fetch applicants
+  const fetchApplicants = async (): Promise<void> => {
+    try {
+      const response = await api.get<Applicant[]>('/api/admin/applicants', {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
+      setApplicantsList(response.data);
+    } catch (error) {
+      console.error('Error fetching applicants:', error);
+    }
+  };
+
+  // Logout handler
+  const handleLogout = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      const response = await api.post('/api/logout', {}, {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
+
+      if (response.status === 200) {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setIsLoading(false);
+      setShowLogoutModal(false);
+    }
+  };
+
+  // Initialize on component mount
+  useEffect(() => {
+    const initializeData = async (): Promise<void> => {
+      setIsLoading(true);
+      
+      // Check screen size
+      checkMobileView();
+      window.addEventListener('resize', checkMobileView);
+
+      // Set current date
+      setCurrentDate(new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }));
+
+      // Fetch all data
+      try {
+        await Promise.all([fetchAll(), fetchApplicants(), fetchAdminName()]);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeData();
+
+    return () => {
+      window.removeEventListener('resize', checkMobileView);
+    };
+  }, []);
+
+  return (
+    <>
+      <div className="profile-page">
+        {/* Loading Overlay */}
+        <LoadingOverlay isLoading={isLoading} />
+
+        {/* Mobile Sidebar Toggle Button */}
+        {isMobileView && (
+          <button className="sidebar-toggle" onClick={toggleSidebar}>
+            <svg className="toggle-icon" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"
+              />
+            </svg>
+          </button>
+        )}
+
+        {/* Overlay to close sidebar on mobile */}
+        {isMobileView && isSidebarVisible && (
+          <div className="sidebar-overlay" onClick={toggleSidebar}></div>
+        )}
+
+        {/* App Header */}
+        <header className={`app-header ${isMobileView && !isSidebarVisible ? 'header-expanded' : ''}`}>
+          <div className="profile-section">
+            <div className="avatar-container">
+              <img
+                alt="Profile image"
+                className="avatar"
+                src="https://gordoncollegeccs.edu.ph/ccs/students/lamp/assets/profile.jpg"
+              />
+            </div>
+            <div className="profile-meta">
+              <h1 className="profile-name">{adminNameValue}</h1>
+              <p className="profile-title">
+                College of Computer Studies | Program Coordinator
+              </p>
+            </div>
+          </div>
+          <div className="topbar-date">
+            <svg className="date-icon" width="16" height="16" viewBox="0 0 24 24" fill="#066678">
+              <path d="M19,3H18V1H16V3H8V1H6V3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19M7,10H12V15H7V10Z"/>
+            </svg>
+            {currentDate}
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <div className="main-container">
+          {/* Sidebar Navigation */}
+          <aside className={`sidebar ${isMobileView ? 'sidebar-mobile' : ''} ${isSidebarVisible ? 'sidebar-mobile-visible' : ''}`}>
+            <nav className="app-navigation">
+              <button
+                className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setActiveTab('dashboard')}
+              >
+                <svg className="nav-icon" viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M13,3V9H21V3M13,21H21V11H13M3,21H11V15H3M3,13H11V3H3V13Z"
+                  />
+                </svg>
+                Dashboard
+              </button>
+              <button
+                className={`nav-btn ${activeTab === 'application' ? 'active' : ''}`}
+                onClick={() => setActiveTab('application')}
+              >
+                <svg className="nav-icon" viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+                  />
+                </svg>
+                Applications
+              </button>
+              <button
+                className={`nav-btn ${activeTab === 'users' ? 'active' : ''}`}
+                onClick={() => setActiveTab('users')}
+              >
+                <svg className="nav-icon" viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                  />
+                </svg>
+                Users
+              </button>
+
+              {/* Logout button */}
+              <div className="nav-bottom">
+                <button 
+                  className="nav-btn logout-btn" 
+                  onClick={() => setShowLogoutModal(true)}
+                >
+                  <svg className="nav-icon" viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"
+                    />
+                  </svg>
+                  <span>Logout</span>
+                </button>
+              </div>
+            </nav>
+          </aside>
+
+          {/* Content Area */}
+          <main className={`content-area ${isMobileView && !isSidebarVisible ? 'content-expanded' : ''}`}>
+            {/* Dashboard shown by default */}
+            {activeTab === 'dashboard' && (
+              <Dashboard stats={stats} chartData={chartData} />
+            )}
+
+            {/* Applications component */}
+            {activeTab === 'application' && (
+              <Applications 
+                applicants={applicantsList}
+                onUpdateApplicants={fetchApplicants} // Pass refresh function
+              />
+            )}
+
+            {/* Users component */}
+            {activeTab === 'users' && (
+              <Users 
+                users={usersFetch}
+                onUpdateUsers={fetchAll} // Pass refresh function to update users list
+              />
+            )}
+          </main>
+        </div>
+
+        {/* Add Logout Modal */}
+        {showLogoutModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h2>Confirm Logout</h2>
+              <p>Are you sure you want to logout?</p>
+              <div className="modal-buttons">
+                <button onClick={handleLogout} className="confirm-btn">
+                  Logout
+                </button>
+                <button onClick={() => setShowLogoutModal(false)} className="cancel-btn">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Modal Styles */}
+        <style jsx>{`
+          .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+          }
+
+          .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+
+          .modal-content h2 {
+            margin: 0 0 1rem 0;
+            color: #1e293b;
+            font-size: 1.5rem;
+          }
+
+          .modal-content p {
+            color: #475569;
+            margin-bottom: 1.5rem;
+          }
+
+          .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+          }
+
+          .modal-buttons button {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+
+          .confirm-btn {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+          }
+
+          .confirm-btn:hover {
+            background-color: #dc2626;
+          }
+
+          .cancel-btn {
+            background-color: #e5e7eb;
+            color: #4b5563;
+            border: none;
+          }
+
+          .cancel-btn:hover {
+            background-color: #d1d5db;
+          }
+        `}</style>
+      </div>
+    </>
+  );
+};
+
+export default AdminProfile;
