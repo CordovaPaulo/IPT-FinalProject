@@ -4,7 +4,6 @@ const mentorSchema = new mongoose.Schema({
     MentorId: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, unique: true },
     name: { type: String, required: true },
     email: { type: String, required: true },
-    age: { type: Number, required: true },
     sex: { type: String, required: true, enum: ['male', 'female'] },
     program: { type: String, required: true, enum: ['BSIT', 'BSCS', 'BSEMC']},
     yearLevel: { type: String, required: true, enum: ['1st year', '2nd year', '3rd year', '4th year', 'graduate'] },
@@ -20,6 +19,7 @@ const mentorSchema = new mongoose.Schema({
     sessionDur: { type: String, required: true, enum: ['1hr', '2hrs', '3hrs'] },
     status: { type: String, default: 'active', enum: ['active', 'pending', 'suspended', 'banned'] },
     image: { type: String, default:null },
+    aveRating: { type: Number, default: 0 },
     credentials: { type: [String], default: []  },
     credentialsFolderUrl: { type: String, default: null },
 }, { collection: 'mentors' });

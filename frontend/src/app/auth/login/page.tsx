@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
+import api, { setAuthToken } from "@/lib/axios";
 import "./login.css";
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [iniCred, setIniCred] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,15 +33,31 @@ export default function Login() {
 
     try {
       const loginData = {
-        login: email,
+        iniCred: iniCred,
         password: password,
       };
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // ensure leading slash so baseURL + path is correct
+      const response = await api.post("/api/auth/login", loginData);
+      const { token, userRole, user } = response.data;
 
-      const userRole = "learner";
+      // store token for future requests (axios interceptor reads localStorage token)
+      if (token) {
+        setAuthToken(token);
+      }
 
-      switch (userRole) {
+      // Check if user has a role, if not redirect to signup
+      const role = userRole || user?.role;
+
+      if (!role || role === "user" || role === "") {
+        // User exists but has no specific role - redirect to signup
+        console.log("User has no role, redirecting to signup");
+        router.push("/auth/signup");
+        return;
+      }
+
+      // Navigate based on user role
+      switch (role) {
         case "learner":
           router.push("/learner");
           break;
@@ -51,9 +68,13 @@ export default function Login() {
           router.push("/admin");
           break;
         default:
+          // Unknown role - redirect to signup
           router.push("/signup");
       }
+
+      console.log("Login successful:", { role, user: user?.username });
     } catch (error) {
+      // Log the error (no navigation)
       console.error("Login failed:", error);
     } finally {
       setIsLoading(false);
@@ -79,13 +100,13 @@ export default function Login() {
           <h1>Login</h1>
           <form onSubmit={login}>
             <div className="input-field">
-              <label>DOMAIN EMAIL</label>
+              <label>DOMAIN LOGIN</label>
               <div className="input-with-icon">
                 <input
                   type="text"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  value={iniCred}
+                  onChange={(e) => setIniCred(e.target.value)}
+                  placeholder="Enter your email, username, or Student ID"
                   disabled={isLoading}
                   required
                 />

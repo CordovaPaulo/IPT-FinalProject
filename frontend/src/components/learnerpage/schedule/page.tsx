@@ -1,9 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import api from '@/lib/axios';
+
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
 
 interface ScheduleProps {
-  info: any[];
+  info: any; // Change this to accept an object instead of array
   onClose: () => void;
   onConfirm: (data: any) => void;
 }
@@ -34,9 +42,9 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
   const [days, setDays] = useState<Day[]>([]);
   const [showYearSelection, setShowYearSelection] = useState(false);
 
-  // Destructure props
-  const [
-    mentorNo,
+  // Destructure from object instead of array
+  const {
+    mentorId,
     mentorName,
     mentorYear,
     mentorCourse,
@@ -44,16 +52,55 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
     mentorModality,
     mentorTeachStyle,
     mentorAvailability,
-    mentorLearnModality,
     mentorProfilePic,
     mentorSubjects,
-  ] = info || [];
+  } = info || {};
 
-  // Parse subjects
+  // Add useEffect to log the received data for debugging
+  useEffect(() => {
+    console.log("Schedule component received info:", info);
+    console.log("Mentor details:", {
+      mentorId,
+      mentorName,
+      mentorYear,
+      mentorCourse,
+      mentorSessionDur,
+      mentorModality,
+      mentorTeachStyle,
+      mentorAvailability,
+      mentorProfilePic,
+      mentorSubjects,
+    });
+  }, [info]);
+
+  // Parse subjects with better error handling
   const subjectOptions = () => {
     try {
-      return JSON.parse(mentorSubjects || "[]");
+      if (Array.isArray(mentorSubjects)) {
+        return mentorSubjects;
+      }
+      if (typeof mentorSubjects === 'string') {
+        return JSON.parse(mentorSubjects);
+      }
+      return [];
     } catch (e) {
+      console.error("Error parsing subjects:", e);
+      return [];
+    }
+  };
+
+  // Get available days with better error handling
+  const availableDays = () => {
+    try {
+      if (Array.isArray(mentorAvailability)) {
+        return mentorAvailability.map((day: string) => day.toLowerCase());
+      }
+      if (typeof mentorAvailability === 'string') {
+        return JSON.parse(mentorAvailability).map((day: string) => day.toLowerCase());
+      }
+      return [];
+    } catch (e) {
+      console.error("Error parsing availability:", e);
       return [];
     }
   };
@@ -84,15 +131,6 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return date < today;
-  };
-
-  // Get available days
-  const availableDays = () => {
-    try {
-      return JSON.parse(mentorAvailability || "[]").map((day: string) => day.toLowerCase());
-    } catch (e) {
-      return [];
-    }
   };
 
   // Check if date is available
@@ -228,14 +266,7 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
     try {
       setIsSubmitting(true);
 
-      // Format date to MM/DD/YYYY
-      const formattedDate = new Date(selectedDate).toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-      });
-
-      // Format time to HH:MM
+      // Format time to 24-hour format for backend
       const timeMatch = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
       if (!timeMatch) {
         throw new Error("Invalid time format");
@@ -250,21 +281,34 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
 
       const formattedTime = `${String(hours).padStart(2, "0")}:${minutes}`;
 
+      // Convert date to ISO string for MongoDB
+      const scheduleDate = new Date(selectedDate);
+
       const scheduleData = {
-        participant_id: mentorNo,
-        date: formattedDate,
+        date: scheduleDate.toISOString(),
         time: formattedTime,
         location: sessionType === "in-person" ? meetingLocation : "online",
         subject: selectedSubject,
       };
 
-      // Here you would make your API call
       console.log("Scheduling data:", scheduleData);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      onConfirm(scheduleData);
+      // Make API call to create schedule
+      const token = getCookie('MindMateToken');
+      const response = await api.post(`/api/learner/schedule/${mentorId}`, scheduleData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (response.status !== 201) {
+        throw new Error('Failed to create schedule');
+      }
+
+      const result = response.data;
+      onConfirm(result);
       onClose();
     } catch (error) {
       console.error("Error scheduling:", error);
@@ -302,10 +346,13 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
           src={mentorProfilePic || 'https://placehold.co/400x400'}
           width="64"
           height="64"
+          onError={(e) => {
+            e.currentTarget.src = 'https://placehold.co/400x400';
+          }}
         />
         <div>
-          <p><strong>{mentorName}</strong></p>
-          <p>{mentorYear} - {mentorCourse}</p>
+          <p><strong>{mentorName || 'Mentor Name'}</strong></p>
+          <p>{mentorYear || 'Year'} - {mentorCourse || 'Course'}</p>
           <p>College of Computer Studies</p>
         </div>
       </div>
@@ -316,7 +363,7 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
         <div className="left">
           <div className="time-header">
             <h2>Select Time Slots</h2>
-            <p>({mentorSessionDur} duration)</p>
+            <p>({mentorSessionDur || 'Duration not specified'})</p>
           </div>
           <div className="time-slots">
             {availableTimes.map((time) => (
@@ -336,7 +383,7 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
               type="button"
               onClick={() => setSessionType('in-person')}
               className={`mode-btn ${sessionType === 'in-person' ? 'mode-active' : ''}`}
-              disabled={!mentorModality?.toLowerCase().includes('in-person')}
+              disabled={!mentorModality?.toLowerCase().includes('in-person') && !mentorModality?.toLowerCase().includes('both')}
             >
               <span aria-label="In Person"><i className="fas fa-user"></i></span>
               <span>In Person</span>
@@ -345,7 +392,7 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
               type="button"
               onClick={() => setSessionType('online')}
               className={`mode-btn ${sessionType === 'online' ? 'mode-active' : ''}`}
-              disabled={!mentorModality?.toLowerCase().includes('online')}
+              disabled={!mentorModality?.toLowerCase().includes('online') && !mentorModality?.toLowerCase().includes('both')}
             >
               <span aria-label="Online"><i className="fas fa-laptop"></i></span>
               <span>Online</span>
@@ -443,9 +490,9 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
               className="subject-dropdown" 
               required
             >
-              <option value="" disabled selected>Choose a subject</option>
-              {subjectOptions().map((subject: string) => (
-                <option key={subject} value={subject} className="subject option">
+              <option value="" disabled>Choose a subject</option>
+              {subjectOptions().map((subject: string, index: number) => (
+                <option key={`${subject}-${index}`} value={subject} className="subject option">
                   {subject}
                 </option>
               ))}

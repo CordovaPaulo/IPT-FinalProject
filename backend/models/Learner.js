@@ -4,7 +4,6 @@ const learnerSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, unique: true },
     name: { type: String, required: true },
     email: { type: String, required: true },
-    age: { type: Number, required: true },
     sex: { type: String, required: true, enum: ['male', 'female'] },
     program: { type: String, required: true, enum: ['BSIT', 'BSCS', 'BSEMC']},
     yearLevel: { type: String, required: true, enum: ['1st year', '2nd year', '3rd year', '4th year', 'graduate'] },

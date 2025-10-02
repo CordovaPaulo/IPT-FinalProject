@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import './MentorInfoalt.css';
+import api from "@/lib/axios";
 
 interface DropdownOpenState {
   gender: boolean;
@@ -356,17 +357,114 @@ const MentorInfo = () => {
     
     try {
       setIsSubmitting(true);
-      
-      // Form submission logic would go here
-      // This would include API calls to submit the mentor application
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setShowStatusPopup(true);
+
+      // Create FormData object
+      const formData = new FormData();
+
+      // Map dropdown values to backend enums
+      const mapProgram = (program: string) => {
+        const programMap: { [key: string]: string } = {
+          'Bachelor of Science in Information Technology (BSIT)': 'BSIT',
+          'Bachelor of Science in Computer Science (BSCS)': 'BSCS',
+          'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)': 'BSEMC'
+        };
+        return programMap[program] || program;
+      };
+
+      const mapYearLevel = (yearLevel: string) => {
+        const yearMap: { [key: string]: string } = {
+          '1st Year': '1st year',
+          '2nd Year': '2nd year',
+          '3rd Year': '3rd year',
+          '4th Year': '4th year',
+          'Graduate': 'graduate'
+        };
+        return yearMap[yearLevel] || yearLevel.toLowerCase();
+      };
+
+      const mapModality = (modality: string) => {
+        const modalityMap: { [key: string]: string } = {
+          'Online': 'online',
+          'Offline': 'offline',
+          'Mixed': 'mixed'
+        };
+        return modalityMap[modality] || modality.toLowerCase();
+      };
+
+      const mapProficiency = (proficiency: string) => {
+        const profMap: { [key: string]: string } = {
+          'Beginner': 'beginner',
+          'Intermediate': 'intermediate',
+          'Advanced': 'advanced'
+        };
+        return profMap[proficiency] || proficiency.toLowerCase();
+      };
+
+      const mapSessionDuration = (duration: string) => {
+        const durationMap: { [key: string]: string } = {
+          '1 hour': '1hr',
+          '2 hours': '2hrs',
+          '3 hours': '3hrs'
+        };
+        return durationMap[duration] || duration;
+      };
+
+      const mapAvailability = (days: string[]) => days.map(day => day.toLowerCase());
+      const mapLearningStyle = (styles: string[]) => {
+        const styleMap: { [key: string]: string } = {
+          'Lecture-Based': 'lecture-based',
+          'Interactive Discussion (hands-on)': 'interactive-discussion',
+          'Q&A Session': 'q-and-a-discussion',
+          'Demonstration': 'demonstrations',
+          'Project-based': 'project-based',
+          'Step-by-step process': 'step-by-step-discussion'
+        };
+        return styles.map(style => styleMap[style] || style.toLowerCase().replace(/\s+/g, '-'));
+      };
+
+      // Append all required fields
+      formData.append('sex', gender.toLowerCase());
+      formData.append('program', mapProgram(program));
+      formData.append('yearLevel', mapYearLevel(yearLevel));
+      formData.append('phoneNumber', contactNumber);
+      formData.append('bio', bio);
+      formData.append('exp', experience); // experience field required
+      formData.append('address', address);
+      formData.append('modality', mapModality(modality));
+      formData.append('proficiency', mapProficiency(proficiency));
+      formData.append('sessionDur', mapSessionDuration(sessionDuration));
+      formData.append('subjects', JSON.stringify(selectedSubjects));
+      formData.append('availability', JSON.stringify(mapAvailability(selectedDays)));
+      formData.append('style', JSON.stringify(mapLearningStyle(selectedSessionStyles)));
+
+      // Add profile image if selected
+      if (profileInputRef.current?.files?.[0]) {
+        formData.append('image', profileInputRef.current.files[0]);
+      }
+
+      // Add credentials (multiple files)
+      if (credentialsInputRef.current?.files) {
+        Array.from(credentialsInputRef.current.files).forEach(file => {
+          formData.append('credentials', file);
+        });
+      }
+
+      // Get MindMateToken from cookie
+      const token = getCookie('MindMateToken');
+
+      // Send request to mentor signup endpoint with Authorization header
+      const response = await api.post('/api/auth/mentor/signup', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      console.log('Mentor signup successful:', response.data);
+      router.push('/mentor');
     } catch (error) {
-      console.error('Application submission error:', error);
-      alert('There was an error submitting your application. Please try again.');
+      console.error('Mentor signup error:', error);
+      alert('There was an error submitting your information. Please try again.');
     } finally {
       setIsSubmitting(false);
       setIsButtonActive(false);
@@ -1080,3 +1178,11 @@ const MentorInfo = () => {
 };
 
 export default MentorInfo;
+
+// Helper to get cookie value (works only for non-httpOnly cookies)
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}

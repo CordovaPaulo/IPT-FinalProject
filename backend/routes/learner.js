@@ -1,5 +1,5 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 const learnerController = require('../controllers/learner');
 const jwtService = require('../service/jwt');
 
@@ -8,6 +8,7 @@ router.post('/schedule/:id', jwtService.authenticateToken('learner'), learnerCon
 router.post('/feedback/:id', jwtService.authenticateToken('learner'), learnerController.setFeedback);
 
 // GET routes
+router.get('/profile', jwtService.authenticateToken('learner'), learnerController.getProfileInfo);
 router.get('/mentors', jwtService.authenticateToken('learner'), learnerController.getAllMentors);
 router.get('/mentors/:id', jwtService.authenticateToken('learner'), learnerController.getMentorById);
 router.get('/schedules', jwtService.authenticateToken('learner'), learnerController.getSchedules);

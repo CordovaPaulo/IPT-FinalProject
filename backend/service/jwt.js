@@ -25,23 +25,22 @@ function authenticateToken(requiredRole) {
     };
 }
 
-const getValuesFromToken = (req, res) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+const getValuesFromToken = (req) => {
+  try {
+    // Read token from cookie instead of Authorization header
+    const token = req.cookies.MindMateToken;
+    
     if (!token) {
-        return res.status(401).json({ error: 'No token provided (service/jwt.js)' });
+      console.log('No token found in cookies');
+      return null;
     }
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-       return {
-           id: decoded.id,
-           username: decoded.username,
-           email: decoded.email,
-           role: decoded.role
-       };
-    } catch (err) {
-        return null;
-    }
-}
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded;
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    return null;
+  }
+};
 
 module.exports = { authenticateToken, getValuesFromToken };

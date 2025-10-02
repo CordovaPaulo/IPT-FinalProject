@@ -10,17 +10,25 @@ interface Reviewer {
 }
 
 interface Feedback {
-  id: number;
+  id: string;
   rating: number;
   comment: string;
   reviewer?: Reviewer;
+  date?: string;
+  subject?: string;
+  location?: string;
+  mentor?: any;
+  learner?: any;
+  feedback?: any;
+  has_feedback?: boolean;
 }
 
 interface ReviewsComponentProps {
-  feedbacks?: Feedback[];
+  schedForReview?: any[];
+  userData?: any;
 }
 
-export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentProps) {
+export default function ReviewsComponent({ schedForReview = [], userData }: ReviewsComponentProps) {
   const [records, setRecords] = useState<Feedback[]>([]);
   const [recordView, setRecordView] = useState<Feedback | null>(null);
   const [isFeedback, setIsFeedback] = useState(false);
@@ -31,9 +39,31 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
 
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+  // Transform schedForReview data to match the expected Feedback interface
+  const transformScheduleToFeedback = (schedule: any): Feedback => {
+    return {
+      id: schedule.id,
+      rating: schedule.feedback?.rating || 0,
+      comment: schedule.feedback?.feedback || "",
+      date: schedule.date,
+      subject: schedule.subject,
+      location: schedule.location,
+      has_feedback: schedule.has_feedback || false,
+      reviewer: {
+        name: schedule.mentor?.user?.name || schedule.mentor?.name || "Unknown Mentor",
+        course: schedule.mentor?.course || schedule.mentor?.program || "N/A",
+        year: schedule.mentor?.year || schedule.mentor?.yearLevel || "N/A",
+        image: schedule.mentor?.image || "https://placehold.co/600x400"
+      },
+      mentor: schedule.mentor,
+      learner: schedule.learner,
+      feedback: schedule.feedback
+    };
+  };
+
   const sampleData: Feedback[] = [
     {
-      id: 1,
+      id: "1",
       rating: 5,
       comment: "Excellent mentor! Very patient and knowledgeable. The sessions were well-structured and helped me understand complex topics easily.",
       reviewer: {
@@ -44,7 +74,7 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
       }
     },
     {
-      id: 2,
+      id: "2",
       rating: 4,
       comment: "Very helpful sessions with great explanations. The mentor was professional and provided valuable insights.",
       reviewer: {
@@ -55,7 +85,7 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
       }
     },
     {
-      id: 3,
+      id: "3",
       rating: 0,
       comment: "",
       reviewer: {
@@ -68,9 +98,19 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
   ];
 
   useEffect(() => {
-    const dataToUse = sampleData;
-    setRecords(dataToUse);
-  }, [feedbacks]);
+    console.log("schedForReview received:", schedForReview);
+    
+    if (schedForReview && schedForReview.length > 0) {
+      // Transform the schedForReview data to match the expected format
+      const transformedRecords = schedForReview.map(transformScheduleToFeedback);
+      setRecords(transformedRecords);
+      console.log("Transformed records:", transformedRecords);
+    } else {
+      // Use sample data as fallback
+      setRecords(sampleData);
+      console.log("Using sample data");
+    }
+  }, [schedForReview]);
 
   const viewFeedback = (record: Feedback) => {
     setIsFeedback(true);
@@ -102,7 +142,8 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
       const updatedRecord = {
         ...recordView,
         rating: tempRating,
-        comment: feedbackText
+        comment: feedbackText,
+        has_feedback: true
       };
 
       setRecords(prev => prev.map(r => r.id === recordView.id ? updatedRecord : r));
@@ -130,7 +171,9 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
     return (
       (reviewer.name?.toLowerCase() || '').includes(searchTerm) ||
       (reviewer.course?.toLowerCase() || '').includes(searchTerm) ||
-      (reviewer.year?.toLowerCase() || '').includes(searchTerm)
+      (reviewer.year?.toLowerCase() || '').includes(searchTerm) ||
+      (record.subject?.toLowerCase() || '').includes(searchTerm) ||
+      (record.location?.toLowerCase() || '').includes(searchTerm)
     );
   });
 
@@ -151,11 +194,11 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
   };
 
   const getReviewerName = (reviewer?: Reviewer) => {
-    return reviewer?.name || 'Unknown Learner';
+    return reviewer?.name || 'Unknown Mentor';
   };
 
   const getReviewerCourse = (reviewer?: Reviewer) => {
-    return reviewer?.course ? reviewer.course.match(/\(([^)]+)\)/)?.[1] : 'N/A';
+    return reviewer?.course ? reviewer.course.match(/\(([^)]+)\)/)?.[1] || reviewer.course : 'N/A';
   };
 
   const getReviewerYear = (reviewer?: Reviewer) => {
@@ -196,9 +239,9 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
         <table className="data-table">
           <thead className="table-head">
             <tr>
-              <th>LEARNER&apos;S NAME</th>
-              <th>COURSE</th>
-              <th>YEAR</th>
+              <th>MENTOR&apos;S NAME</th>
+              <th>SUBJECT</th>
+              <th>DATE</th>
               <th>RATING</th>
               <th>ACTIONS</th>
             </tr>
@@ -207,8 +250,8 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
             {filteredRecords.map((record) => (
               <tr key={record.id}>
                 <td className="small-text">{getReviewerName(record.reviewer)}</td>
-                <td className="small-text">{getReviewerCourse(record.reviewer)}</td>
-                <td className="small-text">{getReviewerYear(record.reviewer)}</td>
+                <td className="small-text">{record.subject || 'N/A'}</td>
+                <td className="small-text">{record.date || 'N/A'}</td>
                 <td>
                   <StarRating rating={record.rating} />
                 </td>
@@ -244,7 +287,7 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
                 <svg className="modal-title-icon" viewBox="0 0 24 24" width="20" height="20">
                   <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
                 </svg>
-                <h3 className="modal-title small-text">Feedback Details</h3>
+                <h3 className="modal-title small-text">Feedback for {recordView.subject || 'Session'}</h3>
               </div>
               <button className="close-btn" onClick={closeFeedback}>
                 <svg viewBox="0 0 24 24" width="20" height="20">
@@ -281,10 +324,10 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
                         <svg viewBox="0 0 24 24" width="14" height="14" style={{ marginRight: '0.5rem' }}>
                           <path fill="currentColor" d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
                         </svg>
-                        Course
+                        Subject
                       </span>
                       <span className="info-value small-text">
-                        {getReviewerCourse(recordView.reviewer)}
+                        {recordView.subject || 'N/A'}
                       </span>
                     </div>
                     <div className="info-item">
@@ -292,10 +335,21 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
                         <svg viewBox="0 0 24 24" width="14" height="14" style={{ marginRight: '0.5rem' }}>
                           <path fill="currentColor" d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/>
                         </svg>
-                        Year Level
+                        Date
                       </span>
                       <span className="info-value small-text">
-                        {getReviewerYear(recordView.reviewer)}
+                        {recordView.date || 'N/A'}
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label small-text">
+                        <svg viewBox="0 0 24 24" width="14" height="14" style={{ marginRight: '0.5rem' }}>
+                          <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                        Location
+                      </span>
+                      <span className="info-value small-text">
+                        {recordView.location || 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -315,9 +369,9 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
                     {[1, 2, 3, 4, 5].map((i) => (
                       <span
                         key={i}
-                        onClick={() => handleSetRating(i)}
-                        onMouseEnter={() => setHoverRating(i)}
-                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => !hasFeedback(recordView) && handleSetRating(i)}
+                        onMouseEnter={() => !hasFeedback(recordView) && setHoverRating(i)}
+                        onMouseLeave={() => !hasFeedback(recordView) && setHoverRating(0)}
                         className={`star ${i <= (hoverRating || tempRating) ? 'filled' : ''} ${hasFeedback(recordView) ? 'disabled' : ''}`}
                       >
                         ★

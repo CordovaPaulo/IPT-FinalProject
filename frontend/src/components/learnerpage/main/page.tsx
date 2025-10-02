@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import ViewUser from '@/components/learnerpage/viewUser/page';
 
 interface User {
-  id: number;
+  id: string; // <-- change from number to string
   userName: string;
   yearLevel: string;
   course: string;
@@ -25,11 +25,11 @@ export default function MainComponent({
   upcomingSchedule 
 }: MainComponentProps) {
   const [isView, setIsView] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number>();
+  const [selectedUserId, setSelectedUserId] = useState<string>();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredUsers, setFilteredUsers] = useState<User[]>(userInformation);
 
-  const openView = (id: number) => {
+  const openView = (id: string) => {
     setSelectedUserId(id);
     setIsView(true);
   };
@@ -71,6 +71,14 @@ export default function MainComponent({
   const getCourseAbbreviation = (course: string) => {
     const match = course.match(/\(([^)]+)\)/);
     return match ? match[1] : course;
+  };
+
+  // Add this simple formatting function for proficiency
+  const formatProficiency = (proficiency: string) => {
+    if (!proficiency) return '';
+    
+    // Convert to proper case (first letter uppercase, rest lowercase)
+    return proficiency.charAt(0).toUpperCase() + proficiency.slice(1).toLowerCase();
   };
 
   return (
@@ -117,7 +125,7 @@ export default function MainComponent({
             <div className="lower-element">
               <p>{user.yearLevel}</p>
               <p>{getCourseAbbreviation(user.course)}</p>
-              <p className="proficiency">{user.proficiency}</p>
+              <p className="proficiency">{formatProficiency(user.proficiency)}</p>
               <div className="button-spacer"></div>
               <button onClick={() => openView(user.id)}>See More</button>
             </div>

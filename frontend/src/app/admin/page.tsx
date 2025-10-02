@@ -343,7 +343,7 @@ const AdminProfile: React.FC = () => {
             {activeTab === 'application' && (
               <Applications 
                 applicants={applicantsList}
-                onUpdateApplicants={fetchApplicants} // Pass refresh function
+                onUpdateApplicants={fetchApplicants}
               />
             )}
 
@@ -351,7 +351,7 @@ const AdminProfile: React.FC = () => {
             {activeTab === 'users' && (
               <Users 
                 users={usersFetch}
-                onUpdateUsers={fetchAll} // Pass refresh function to update users list
+                onUpdateUsers={fetchAll}
               />
             )}
           </main>

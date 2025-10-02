@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Schedule from '@/components/learnerpage/schedule/page';
+import api from '@/lib/axios';
 
 interface ViewUserProps {
-  userId: number;
+  userId: string;
   onClose: () => void;
 }
 
@@ -24,7 +25,7 @@ interface UserInfo {
   prefSessDur: string;
   goals: string;
   image: string;
-  id: number;
+  id: string;
 }
 
 export default function ViewUser({ userId, onClose }: ViewUserProps) {
@@ -49,7 +50,7 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
     prefSessDur: '',
     goals: '',
     image: '',
-    id: 0
+    id: ''
   });
 
   const [imageUrl, setImageUrl] = useState<string>('');
@@ -75,79 +76,60 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
     }
   };
 
-  const fetchUserInfo = async (id: number) => {
+  // Fetch mentor info from backend using MindMateToken
+  const fetchUserInfo = async (id: string) => {
     try {
       setIsLoading(true);
+      const token = typeof document !== 'undefined'
+        ? document.cookie.split('; ').find(row => row.startsWith('MindMateToken='))?.split('=')[1]
+        : '';
 
-      // Mock API call - replace with actual API
-      console.log("Fetching user info for ID:", id);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data - replace with actual API response
-      const mockUserData = {
-        user: {
-          name: "Dr. John Smith",
-          email: "john.smith@university.edu",
-          id: 1
+      const res = await api.get(`/api/learner/mentors/${id}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        user_info: {
-          year: "Professor",
-          course: "Computer Science",
-          gender: "male",
-          phoneNum: "+1234567890",
-          address: "University Campus",
-          bio: "Experienced professor with 10+ years of teaching experience in computer science and programming.",
-          subjects: ["Programming", "Algorithms", "Data Structures"],
-          learn_modality: "Online",
-          learn_sty: ["Interactive", "Practical", "Theoretical"],
-          availability: ["Monday", "Wednesday", "Friday"],
-          prefSessDur: "1 hour",
-          goals: "10 years of teaching experience at university level",
-          image: ""
-        },
-        image_url: "https://placehold.co/600x400"
-      };
-
-      setUserInfo({
-        name: mockUserData.user.name || '',
-        year: mockUserData.user_info?.year || '',
-        course: mockUserData.user_info?.course || '',
-        gender: mockUserData.user_info?.gender || '',
-        phoneNum: mockUserData.user_info?.phoneNum || '',
-        email: mockUserData.user?.email || '',
-        address: mockUserData.user_info?.address || '',
-        bio: mockUserData.user_info?.bio || '',
-        subjects: mockUserData.user_info?.subjects || [],
-        learn_modality: mockUserData.user_info?.learn_modality || '',
-        learn_sty: mockUserData.user_info?.learn_sty || [],
-        availability: mockUserData.user_info?.availability || [],
-        prefSessDur: mockUserData.user_info?.prefSessDur || '',
-        goals: mockUserData.user_info?.goals || '',
-        image: mockUserData.user_info?.image || '',
-        id: mockUserData.user?.id || 0
       });
 
-      setImageUrl(mockUserData.image_url || '');
+      const mentor = res.data;
 
-      // Prepare data for schedule component
-      const scheduleData = [
-        mockUserData.user?.id || 0,
-        userId,
-        mockUserData.user?.name || '',
-        mockUserData.user_info?.year || '',
-        mockUserData.user_info?.course || '',
-        mockUserData.user_info?.prefSessDur || '',
-        mockUserData.user_info?.learn_modality || '',
-        mockUserData.user_info?.learn_sty || [],
-        mockUserData.user_info?.availability || [],
-        mockUserData.user_info?.learn_modality || '',
-        mockUserData.user_info?.image || '',
-        mockUserData.user_info?.subjects || [],
-      ];
+    setUserInfo({
+      name: mentor.name || '',
+      year: mentor.yearLevel || '',
+      course: mentor.program || '',
+      gender: mentor.sex || '',
+      phoneNum: mentor.phoneNumber || '',
+      email: mentor.email || '',
+      address: mentor.address || '',
+      bio: mentor.bio || '',
+      subjects: mentor.subjects || [],
+      learn_modality: mentor.modality || '',
+      learn_sty: mentor.style || [],
+      availability: mentor.availability || [],
+      prefSessDur: mentor.sessionDur || '',
+      goals: mentor.goals || '',
+      image: mentor.image || '',
+      id: mentor._id || ''
+    });
+
+      setImageUrl(mentor.image || '');
+
+      // Prepare data for schedule component - use more robust object structure
+      const scheduleData = {
+        mentorId: mentor._id || id,
+        mentorName: mentor.name || '',
+        mentorYear: mentor.yearLevel || '',
+        mentorCourse: mentor.program || '',
+        mentorSessionDur: mentor.sessionDur || '',
+        mentorModality: mentor.modality || '',
+        mentorTeachStyle: mentor.style || [],
+        mentorAvailability: mentor.availability || [],
+        mentorProfilePic: mentor.image || '',
+        mentorSubjects: mentor.subjects || [],
+        // Add more fields from userInfo if needed
+      };
       
       setUserDeetsForSched(scheduleData);
+      console.log("Mentor data prepared for Schedule:", scheduleData);
     } catch (error) {
       console.error("Error fetching user info:", error);
     } finally {
@@ -857,6 +839,35 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
             }
             .profile-information {
               text-align: center;
+            }
+            .applicant-name,
+            .info-item {
+              text-align: center;
+            }
+            .action-button {
+              justify-content: center;
+            }
+            .button-group {
+              justify-content: center;
+              flex-direction: column-reverse;
+              align-items: stretch;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .info-grid {
+              grid-template-columns: 1fr;
+            }
+            .details-card,
+            .bio-card {
+              padding: 0.8rem;
+            }
+            .profile-image {
+              width: 80px;
+              height: 80px;
+            }
+            .upper-element {
+              padding: 0.8rem 
             }
             .applicant-name,
             .info-item {

@@ -321,16 +321,16 @@ const Applications: React.FC<ApplicationsProps> = ({
       if (actionToConfirm === 'Approved') {
         await approve(currentAppId);
         // Update local state
-        setLocalApplicants(prev => {
+        setLocalApplicants((prev: any) => {
           const updatedApplicants = { ...prev };
           // Find the applicant in pending
           const applicant = updatedApplicants.mentors.pending.find(
-            app => app.user_id === currentAppId
+            (app: any) => app.user_id === currentAppId
           );
           if (applicant) {
             // Remove from pending
             updatedApplicants.mentors.pending = updatedApplicants.mentors.pending.filter(
-              app => app.user_id !== currentAppId
+              (app: any) => app.user_id !== currentAppId
             );
             // Add to approved with updated status
             updatedApplicants.mentors.approved = [
@@ -343,16 +343,16 @@ const Applications: React.FC<ApplicationsProps> = ({
       } else if (actionToConfirm === 'Rejected') {
         await reject(currentAppId);
         // Update local state
-        setLocalApplicants(prev => {
+        setLocalApplicants((prev: any) => {
           const updatedApplicants = { ...prev };
           // Find the applicant in pending
           const applicant = updatedApplicants.mentors.pending.find(
-            app => app.user_id === currentAppId
+            (app: any) => app.user_id === currentAppId
           );
           if (applicant) {
             // Remove from pending
             updatedApplicants.mentors.pending = updatedApplicants.mentors.pending.filter(
-              app => app.user_id !== currentAppId
+              (app: any) => app.user_id !== currentAppId
             );
             // Add to rejected with updated status
             updatedApplicants.mentors.rejected = [

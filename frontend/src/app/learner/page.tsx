@@ -7,54 +7,63 @@ import SessionComponent from '@/components/learnerpage/session/page';
 import ReviewsComponent from '@/components/learnerpage/reviews/page';
 import EditInformation from '@/components/learnerpage/information/page';
 import LogoutComponent from '@/components/learnerpage/logout/page';
+import api from "@/lib/axios";
 import './learner.css';
 
-interface UserData {
-  user: {
-    id: number | null;
-    name: string;
-    email: string;
-    role: string;
-  };
-  learn: {
-    address: string;
-    year: string;
-    course: string;
-    availability: string[];
-    prefSessDur: string;
-    bio: string;
-    subjects: string[];
-    image: string;
-    phoneNum: string;
-    learn_sty: string[];
-    goals: string;
-    rating_ave: number;
-  };
-  image_url: string | null;
+// Helper to get cookie value (works only for non-httpOnly cookies)
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
 }
 
+interface UserData {
+  _id: string;
+  userId: string;
+  name: string;
+  email: string;
+  address: string;
+  yearLevel: string;
+  program: string;
+  availability: string[];
+  sessionDur: string;
+  bio: string;
+  subjects: string[];
+  image: string;
+  phoneNumber: string;
+  style: string[];
+  goals: string;
+  sex: string;
+  status: string;
+  modality: string;
+  createdAt: string;
+  __v: number;
+}
+
+// Update the Schedule interface to match the API response
 interface Schedule {
-  id: number;
+  id: string;
   date: string;
   time: string;
-  mentor_name: string;
   subject: string;
   location: string;
   mentor: {
-    user: {
-      name: string;
-    };
-    year?: string;
-    course?: string;
-    image?: string;
-    ment_inf_id: number;
+    name: string;
+    program: string;
+    yearLevel: string;
+    image: string;
+  };
+  learner: {
+    name: string;
+    program: string;
+    yearLevel: string;
   };
   feedback?: {
     rating: number;
     feedback: string;
   };
   has_feedback?: boolean;
-  files?: any[];
 }
 
 interface MentorFile {
@@ -85,19 +94,36 @@ interface Mentor {
   image_url: string;
 }
 
+// Update the Mentor interface to match the API response
+interface MentorFromAPI {
+  id: string;
+  name: string;
+  program: string;
+  yearLevel: string;
+  image: string;
+  aveRating: number;
+  proficiency: string
+}
+
 // Helper function to transform schedules for review component
-const transformSchedulesForReview = (schedules: Schedule[]): any[] => {
+const transformSchedulesForReview = (schedules: any[]): any[] => {
   return schedules.map(schedule => ({
     id: schedule.id,
     date: `${schedule.date} ${schedule.time}`,
     subject: schedule.subject,
+    location: schedule.location,
     mentor: {
       user: {
-        name: schedule.mentor.user.name
+        name: schedule.mentor?.name || "Unknown Mentor"
       },
-      year: schedule.mentor.year || "Professor",
-      course: schedule.mentor.course || `${schedule.subject} (${schedule.subject.substring(0, 3).toUpperCase()})`,
-      image: schedule.mentor.image || "https://placehold.co/600x400"
+      year: schedule.mentor?.yearLevel || "Professor",
+      course: schedule.mentor?.program || `${schedule.subject} (${schedule.subject?.substring(0, 3).toUpperCase()})`,
+      image: schedule.mentor?.image || "https://placehold.co/600x400"
+    },
+    learner: {
+      name: schedule.learner?.name || "Unknown Learner",
+      program: schedule.learner?.program || "N/A",
+      yearLevel: schedule.learner?.yearLevel || "N/A"
     },
     feedback: schedule.feedback || {
       rating: 0,
@@ -107,32 +133,44 @@ const transformSchedulesForReview = (schedules: Schedule[]): any[] => {
   }));
 };
 
+// Transform function to convert API data to component format
+const transformMentorData = (apiMentors: MentorFromAPI[]): User[] => {
+  return apiMentors.map(mentor => ({
+    id: mentor.id, // Convert string ID to number
+    userName: mentor.name,
+    yearLevel: mentor.yearLevel,
+    course: mentor.program,
+    image_url: mentor.image,
+    proficiency: mentor.proficiency,
+    rating_ave: mentor.aveRating
+  }));
+};
+
 export default function LearnerPage() {
   const router = useRouter();
   
   const [isLoading, setIsLoading] = useState(false);
   const [userData, setUserData] = useState<UserData>({
-    user: {
-      id: null,
-      name: "John Doe",
-      email: "john@example.com",
-      role: "learner"
-    },
-    learn: {
-      address: "Sample Address",
-      year: "2nd Year",
-      course: "Computer Science (CS)",
-      availability: ["Monday", "Wednesday", "Friday"],
-      prefSessDur: "1 hour",
-      bio: "This is a sample bio for the learner.",
-      subjects: ["Mathematics", "Physics", "Programming", "Algorithms", "Data Structures", "Calculus"],
-      image: "",
-      phoneNum: "",
-      learn_sty: [],
-      goals: "",
-      rating_ave: 0
-    },
-    image_url: null
+    _id: "",
+    userId: "",
+    name: "",
+    email: "",
+    address: "",
+    yearLevel: "",
+    program: "",
+    availability: [],
+    sessionDur: "",
+    bio: "",
+    subjects: [],
+    image: "",
+    phoneNumber: "",
+    style: [],
+    goals: "",
+    sex: "",
+    status: "",
+    modality: "",
+    createdAt: "",
+    __v: 0
   });
   
   const [schedForReview, setSchedForReview] = useState<Schedule[]>([]);
@@ -140,6 +178,12 @@ export default function LearnerPage() {
   const [upcomingSchedule, setUpcomingSchedule] = useState<Schedule[]>([]);
   const [mentorFiles, setMentorFiles] = useState<MentorFile[]>([]);
   const [users, setUsers] = useState<Mentor[]>([]);
+  const [profile, setProfile] = useState<UserData[]>([]);
+  const [mentors, setMentors] = useState<MentorFromAPI[]>([]);
+  const [transformedMentors, setTransformedMentors] = useState<User[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [isLoadingMentors, setIsLoadingMentors] = useState(false);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   
   const [isEdit, setIsEdit] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -153,106 +197,25 @@ export default function LearnerPage() {
   const startLoading = () => setIsLoading(true);
   const stopLoading = () => setIsLoading(false);
 
-  const getLearnerDets = async () => {
-    try {
-      console.log("Fetching learner details...");
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setUserData(prev => ({
-        ...prev,
-        user: {
-          ...prev.user,
-          name: "Jane Smith"
-        }
-      }));
-    } catch (error) {
-      console.error('Error fetching learner details:', error);
-    }
-  };
-
   const sessionInfo = async () => {
     try {
       console.log("Fetching session info...");
-      const mockTodaySchedule: Schedule[] = [
-        {
-          id: 1,
-          date: new Date().toISOString().split('T')[0],
-          time: "10:00 AM",
-          mentor_name: "Dr. Smith",
-          subject: "Programming",
-          location: "Room 101",
-          mentor: {
-            user: {
-              name: "Dr. Smith"
-            },
-            year: "Professor",
-            course: "Computer Science (CS)",
-            image: "https://placehold.co/600x400",
-            ment_inf_id: 1
-          },
-          files: []
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/learner/schedules', {
+        withCredentials: true,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        {
-          id: 2,
-          date: new Date().toISOString().split('T')[0],
-          time: "2:00 PM",
-          mentor_name: "Prof. Johnson",
-          subject: "Algorithms",
-          location: "Online",
-          mentor: {
-            user: {
-              name: "Prof. Johnson"
-            },
-            year: "Associate Professor",
-            course: "Software Engineering (SE)",
-            image: "https://placehold.co/600x400",
-            ment_inf_id: 2
-          },
-          files: []
-        }
-      ];
-      
-      const mockUpcomingSchedule: Schedule[] = [
-        {
-          id: 3,
-          date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-          time: "11:00 AM",
-          mentor_name: "Dr. Wilson",
-          subject: "Data Structures",
-          location: "Library",
-          mentor: {
-            user: {
-              name: "Dr. Wilson"
-            },
-            year: "Professor",
-            course: "Computer Science (CS)",
-            image: "https://placehold.co/600x400",
-            ment_inf_id: 3
-          },
-          files: []
-        },
-        {
-          id: 4,
-          date: new Date(Date.now() + 172800000).toISOString().split('T')[0],
-          time: "3:00 PM",
-          mentor_name: "Prof. Brown",
-          subject: "Mathematics",
-          location: "Room 202",
-          mentor: {
-            user: {
-              name: "Prof. Brown"
-            },
-            year: "Professor",
-            course: "Mathematics (MATH)",
-            image: "https://placehold.co/600x400",
-            ment_inf_id: 4
-          },
-          files: []
-        }
-      ];
-      
-      setTodaySchedule(mockTodaySchedule);
-      setUpcomingSchedule(mockUpcomingSchedule);
+      });
+
+      setTodaySchedule(res.data); // Or setSchedules(res.data) if you want all schedules in one state
+
+      // If you want to separate today's and upcoming schedules, you can filter here
+      // Example:
+      // const today = new Date().toISOString().split('T')[0];
+      // setTodaySchedule(res.data.filter(s => s.date === today));
+      // setUpcomingSchedule(res.data.filter(s => s.date > today));
+
     } catch (error) {
       console.error('Error fetching session info:', error);
     }
@@ -479,7 +442,7 @@ export default function LearnerPage() {
     }));
   };
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = transformedMentors.filter((user) => {
     const searchLower = searchQuery.toLowerCase();
     return (
       searchQuery === "" ||
@@ -512,22 +475,138 @@ export default function LearnerPage() {
     }
   };
 
+  const fetchUserData = async () => {
+    setIsLoading(true);
+    try {
+      console.log("Starting fetchUserData...");
+      const token = getCookie('MindMateToken');
+      console.log("Token:", token ? "Found" : "Not found");
+      
+      const res = await api.get('/api/learner/profile', {
+        withCredentials: true,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      setUserData(res.data.userData);
+      console.log(res.data);
+      
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      
+      console.log("Keeping mock data due to API error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch all mentors
+  const fetchMentors = async () => {
+    setIsLoadingMentors(true);
+    try {
+      console.log("Fetching mentors from API...");
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/learner/mentors', {
+        withCredentials: true,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      console.log("Mentors API Response:", res.data);
+      
+      // Set the raw API data
+      setMentors(res.data);
+      
+      // Transform and set the data for the component
+      const transformed = transformMentorData(res.data);
+      setTransformedMentors(transformed);
+      
+      console.log("Transformed mentors:", transformed);
+      
+    } catch (error) {
+      console.error('Error fetching mentors:', error);
+      
+      // Fallback to mock data if API fails
+      const mockMentors: MentorFromAPI[] = [
+        {
+          id: "1",
+          name: "Dr. Smith",
+          program: "BSCS",
+          yearLevel: "Professor",
+          image: "https://placehold.co/600x400",
+          aveRating: 4.5,
+          proficiency: "Expert"
+        },
+        {
+          id: "2", 
+          name: "Prof. Johnson",
+          program: "BSIT",
+          yearLevel: "Associate Professor",
+          image: "https://placehold.co/600x400",
+          aveRating: 4.2,
+          proficiency: "Advanced"
+        },
+        {
+          id: "3",
+          name: "Dr. Wilson", 
+          program: "BSCS",
+          yearLevel: "Professor",
+          image: "https://placehold.co/600x400",
+          aveRating: 4.8,
+          proficiency: "Expert"
+        }
+      ];
+      
+      setMentors(mockMentors);
+      setTransformedMentors(transformMentorData(mockMentors));
+      
+    } finally {
+      setIsLoadingMentors(false);
+    }
+  };
+
+  // Fetch schedules
+  const fetchSchedules = async () => {
+    setIsLoadingSchedules(true);
+    try {
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/learner/schedules', {
+        withCredentials: true,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      // Assign each array to its state
+      setTodaySchedule(res.data.todaySchedule || []);
+      setUpcomingSchedule(res.data.upcomingSchedule || []);
+      setSchedForReview(res.data.schedForReview || []);
+      console.log("Schedules fetched:", res.data);
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+    } finally {
+      setIsLoadingSchedules(false);
+    }
+  };
+
   useEffect(() => {
     const initializeData = async () => {
       startLoading();
       checkMobileView();
-      
+
       if (typeof window !== 'undefined') {
         window.addEventListener('resize', checkMobileView);
       }
 
       try {
+        await fetchUserData();
         await Promise.allSettled([
-          getLearnerDets(),
-          sessionInfo(),
           mentorProfile(),
-          sessionForReview(),
-          fetchMentFiles()
+          fetchMentFiles(),
+          fetchMentors(),
+          fetchSchedules() // Only this for schedules
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -545,6 +624,11 @@ export default function LearnerPage() {
     };
   }, []);
 
+  // Add debugging useEffect
+  useEffect(() => {
+    console.log("Current userData state:", userData);
+  }, [userData]);
+
   const switchComponent = (component: string) => {
     console.log('Switching to component:', component);
     if (activeComponent !== component) {
@@ -556,9 +640,6 @@ export default function LearnerPage() {
   };
 
   const renderComponent = () => {
-    console.log('Active component:', activeComponent);
-    
-    // Transform schedules for review component
     const transformedSchedForReview = transformSchedulesForReview(schedForReview);
 
     const props = {
@@ -567,7 +648,8 @@ export default function LearnerPage() {
       upcomingSchedule,
       schedule: todaySchedule,
       schedForReview: transformedSchedForReview,
-      mentFiles: { files: mentorFiles }
+      mentFiles: { files: mentorFiles },
+      onScheduleCreated: fetchSchedules // Add this to refresh schedules after creation
     };
 
     switch (activeComponent) {
@@ -576,14 +658,17 @@ export default function LearnerPage() {
       case 'session':
         return <SessionComponent {...props} />;
       case 'records':
-        return <ReviewsComponent schedForReview={transformedSchedForReview} />;
+        // Explicitly pass schedForReview to the ReviewsComponent
+        return <ReviewsComponent 
+          schedForReview={transformedSchedForReview}
+          userData={userData}
+        />;
       default:
         return <MainComponent {...props} />;
     }
   };
 
-  const courseMatch = userData.learn.course.match(/\(([^)]+)\)/);
-  const courseAbbreviation = courseMatch ? courseMatch[1] : userData.learn.course;
+  const courseAbbreviation = userData.program;
 
   return (
     <>
@@ -620,7 +705,7 @@ export default function LearnerPage() {
           <div>
             <h1>Hi, Learner!</h1>
             <img
-              src={userData.image_url || 'https://placehold.co/100x100'}
+              src={userData.image || 'https://placehold.co/100x100'}
               alt="profile-pic"
               width={100}
               height={100}
@@ -628,8 +713,8 @@ export default function LearnerPage() {
             />
           </div>
           <div>
-            <h2>{userData.user.name}</h2>
-            <i><p>{userData.learn.year}</p></i>
+            <h2>{userData.name}</h2>
+            <i><p>{userData.yearLevel}</p></i>
             <i><p>{courseAbbreviation}</p></i>
           </div>
         </div>
@@ -639,7 +724,7 @@ export default function LearnerPage() {
             <h1>BIO</h1>
             <div className="lines">
               <p style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
-                {userData.learn.bio}
+                {userData.bio}
               </p>
             </div>
           </div>
@@ -649,13 +734,13 @@ export default function LearnerPage() {
             <div className="lines">
               <h3>Days:</h3>
               <div>
-                <p>{userData.learn.availability.join(', ')}</p>
+                <p>{userData.availability?.join(', ') || 'Not specified'}</p>
               </div>
             </div>
             <div className="lines">
               <h3>Duration:</h3>
               <div>
-                <p>{userData.learn.prefSessDur}</p>
+                <p>{userData.sessionDur || 'Not specified'}</p>
               </div>
             </div>
           </div>
@@ -663,7 +748,7 @@ export default function LearnerPage() {
           <div className="subject-interest">
             <h1>Subject of Interest</h1>
             <div className="course-grid">
-              {userData.learn.subjects.slice(0, 5).map((subject, index) => (
+              {userData.subjects?.slice(0, 5).map((subject, index) => (
                 <div key={index} className="course-card">
                   <div className="lines">
                     <div>
@@ -671,8 +756,8 @@ export default function LearnerPage() {
                     </div>
                   </div>
                 </div>
-              ))}
-              {userData.learn.subjects.length > 5 && (
+              )) || []}
+              {(userData.subjects?.length || 0) > 5 && (
                 <div 
                   className="course-card remaining-courses" 
                   onClick={() => setShowAllCourses(!showAllCourses)}
@@ -680,7 +765,7 @@ export default function LearnerPage() {
                 >
                   <div className="lines">
                     <div>
-                      <p>+{userData.learn.subjects.length - 5}</p>
+                      <p>+{(userData.subjects?.length || 0) - 5}</p>
                     </div>
                   </div>
                 </div>
@@ -692,11 +777,11 @@ export default function LearnerPage() {
                 <div className="popup-content">
                   <h3>All Subject of Interest</h3>
                   <div className="popup-courses">
-                    {userData.learn.subjects.map((subject, index) => (
+                    {userData.subjects?.map((subject, index) => (
                       <div key={index} className="popup-course">
                         {subject}
                       </div>
-                    ))}
+                    )) || []}
                   </div>
                   <button 
                     className="popup-close-btn"
