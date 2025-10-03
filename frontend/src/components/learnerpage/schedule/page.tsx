@@ -263,6 +263,13 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
       return;
     }
 
+    // Guard: ensure mentorId is present before calling backend
+    if (!mentorId) {
+      console.error("Missing mentorId - cannot create schedule", { mentorId, info });
+      alert("Unable to schedule: mentor information is incomplete. Please try again.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -291,8 +298,9 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
         subject: selectedSubject,
       };
 
-      console.log("Scheduling data:", scheduleData);
-      
+      // Debugging logs: outgoing data
+      console.log("Scheduling data (outgoing):", { mentorId, scheduleData });
+
       // Make API call to create schedule
       const token = getCookie('MindMateToken');
       const response = await api.post(`/api/learner/schedule/${mentorId}`, scheduleData, {
@@ -304,15 +312,27 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
       });
 
       if (response.status !== 201) {
+        console.error("Unexpected response creating schedule:", response.status, response.data);
         throw new Error('Failed to create schedule');
       }
 
       const result = response.data;
       onConfirm(result);
       onClose();
-    } catch (error) {
-      console.error("Error scheduling:", error);
-      alert("Failed to create schedule. Please try again.");
+    } catch (error: any) {
+      // Improved error logging for Axios errors
+      if (error?.isAxiosError) {
+        console.error("Axios error scheduling:", {
+          message: error.message,
+          status: error?.response?.status,
+          responseData: error?.response?.data,
+          headers: error?.response?.headers,
+        });
+        alert(`Failed to create schedule: ${error?.response?.data?.message || error.message}`);
+      } else {
+        console.error("Error scheduling:", error);
+        alert("Failed to create schedule. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }

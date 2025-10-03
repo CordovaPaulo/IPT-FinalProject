@@ -61,56 +61,56 @@ export default function ReviewsComponent({ schedForReview = [], userData }: Revi
     };
   };
 
-  const sampleData: Feedback[] = [
-    {
-      id: "1",
-      rating: 5,
-      comment: "Excellent mentor! Very patient and knowledgeable. The sessions were well-structured and helped me understand complex topics easily.",
-      reviewer: {
-        name: "Alice Johnson",
-        course: "Computer Science (CS)",
-        year: "2nd Year",
-        image: "alice.jpg"
-      }
-    },
-    {
-      id: "2",
-      rating: 4,
-      comment: "Very helpful sessions with great explanations. The mentor was professional and provided valuable insights.",
-      reviewer: {
-        name: "Bob Smith",
-        course: "Information Technology (IT)",
-        year: "1st Year",
-        image: "bob.jpg"
-      }
-    },
-    {
-      id: "3",
-      rating: 0,
-      comment: "",
-      reviewer: {
-        name: "Carol Davis",
-        course: "Software Engineering (SE)",
-        year: "3rd Year",
-        image: "carol.jpg"
-      }
-    }
-  ];
+  // const sampleData: Feedback[] = [
+  //   {
+  //     id: "1",
+  //     rating: 5,
+  //     comment: "Excellent mentor! Very patient and knowledgeable. The sessions were well-structured and helped me understand complex topics easily.",
+  //     reviewer: {
+  //       name: "Alice Johnson",
+  //       course: "Computer Science (CS)",
+  //       year: "2nd Year",
+  //       image: "alice.jpg"
+  //     }
+  //   },
+  //   {
+  //     id: "2",
+  //     rating: 4,
+  //     comment: "Very helpful sessions with great explanations. The mentor was professional and provided valuable insights.",
+  //     reviewer: {
+  //       name: "Bob Smith",
+  //       course: "Information Technology (IT)",
+  //       year: "1st Year",
+  //       image: "bob.jpg"
+  //     }
+  //   },
+  //   {
+  //     id: "3",
+  //     rating: 0,
+  //     comment: "",
+  //     reviewer: {
+  //       name: "Carol Davis",
+  //       course: "Software Engineering (SE)",
+  //       year: "3rd Year",
+  //       image: "carol.jpg"
+  //     }
+  //   }
+  // ];
 
-  useEffect(() => {
-    console.log("schedForReview received:", schedForReview);
+  // useEffect(() => {
+  //   console.log("schedForReview received:", schedForReview);
     
-    if (schedForReview && schedForReview.length > 0) {
-      // Transform the schedForReview data to match the expected format
-      const transformedRecords = schedForReview.map(transformScheduleToFeedback);
-      setRecords(transformedRecords);
-      console.log("Transformed records:", transformedRecords);
-    } else {
-      // Use sample data as fallback
-      setRecords(sampleData);
-      console.log("Using sample data");
-    }
-  }, [schedForReview]);
+  //   if (schedForReview && schedForReview.length > 0) {
+  //     // Transform the schedForReview data to match the expected format
+  //     const transformedRecords = schedForReview.map(transformScheduleToFeedback);
+  //     setRecords(transformedRecords);
+  //     console.log("Transformed records:", transformedRecords);
+  //   } else {
+  //     // Use sample data as fallback
+  //     setRecords(sampleData);
+  //     console.log("Using sample data");
+  //   }
+  // }, [schedForReview]);
 
   const viewFeedback = (record: Feedback) => {
     setIsFeedback(true);

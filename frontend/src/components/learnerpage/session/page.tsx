@@ -17,32 +17,35 @@ import {
 import RescheduleDialog from '@/components/learnerpage/RescheduleDialog/page';
 
 interface ScheduleItem {
-  id: number;
+  id: string;
   subject: string;
   mentor: {
     user: {
       name: string;
     };
-    ment_inf_id: number;
+    ment_inf_id?: number | string;
+    image?: string;
+    program?: string;
+    yearLevel?: string;
   };
-  date: string;
-  time: string;
+  date: string; // YYYY-MM-DD
+  time: string; // display-ready (e.g. "11:00 AM" or "11:00")
   location: string;
   files?: any[];
 }
 
 interface SessionComponentProps {
-  schedule?: ScheduleItem[];
-  upcomingSchedule?: ScheduleItem[];
+  schedule?: any[]; // server payload arrays
+  upcomingSchedule?: any[];
   mentFiles?: {
     files: Array<{
-      id: number;
+      id: number | string;
       file_name: string;
       file_id: string;
-      owner_id: number;
+      owner_id: number | string;
     }>;
   };
-  schedForReview?: ScheduleItem[];
+  schedForReview?: any[];
   userInformation?: any[];
   userData?: any;
 }
@@ -220,14 +223,68 @@ export default function SessionComponent({
     };
   }, []);
 
-  // Initialize schedules
-  useEffect(() => {
-    console.log('SessionComponent received schedule:', schedule);
-    console.log('SessionComponent received upcomingSchedule:', upcomingSchedule);
-    console.log('SessionComponent received mentFiles:', mentFiles);
+  // helper: convert "HH:mm" (24h) or "HH:mm" already to friendly "h:mm AM/PM"
+  const to12Hour = (time24?: string) => {
+    if (!time24) return '';
+    // if already contains AM/PM, return as-is
+    if (/(AM|PM)$/i.test(time24.trim())) return time24;
+    const [hhStr, mm = '00'] = time24.split(':');
+    if (!hhStr) return time24;
+    let hh = parseInt(hhStr, 10);
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    hh = hh % 12 === 0 ? 12 : hh % 12;
+    return `${hh}:${String(mm).padStart(2, '0')} ${ampm}`;
+  };
+
+  // normalize a single server schedule object into ScheduleItem
+  const normalizeServerItem = (s: any): ScheduleItem => {
+    // Handle the new structure where mentor is directly an object with name (not nested in user)
+    const mentorObj = s.mentor || {};
     
-    setTodaySchedule(schedule || []);
-    setUpcommingSchedule(upcomingSchedule || []);
+    // Get mentor name - either from mentor.name or fallback paths
+    const mentorName = mentorObj.name || (mentorObj.user?.name) || 'Unknown Mentor';
+    
+    // Get mentor ID from available properties
+    const mentorId = mentorObj._id || mentorObj.id || '';
+    
+    // Extract other mentor properties
+    const mentorImage = mentorObj.image || '';
+    const mentorProgram = mentorObj.program || '';
+    const mentorYearLevel = mentorObj.yearLevel || '';
+    
+    return {
+      id: String(s.id || s._id || ''),
+      subject: s.subject || 'No subject',
+      mentor: {
+        user: { name: mentorName },
+        ment_inf_id: mentorId,
+        image: mentorImage,
+        program: mentorProgram,
+        yearLevel: mentorYearLevel
+      },
+      date: s.date || '', 
+      time: to12Hour(s.time || ''),
+      location: s.location || 'Unknown location',
+      files: s.files || [],
+    };
+  };
+
+  // Initialize schedules (map server payload into internal format)
+  useEffect(() => {
+    try {
+      console.log('SessionComponent raw schedule payload:', schedule);
+      console.log('SessionComponent raw upcoming payload:', upcomingSchedule);
+
+      const mappedToday = Array.isArray(schedule) ? schedule.map(normalizeServerItem) : [];
+      const mappedUpcoming = Array.isArray(upcomingSchedule) ? upcomingSchedule.map(normalizeServerItem) : [];
+
+      setTodaySchedule(mappedToday);
+      setUpcommingSchedule(mappedUpcoming);
+    } catch (err) {
+      console.error('Error mapping schedules:', err);
+      setTodaySchedule([]);
+      setUpcommingSchedule([]);
+    }
   }, [schedule, upcomingSchedule]);
 
   // Format date to be more readable
