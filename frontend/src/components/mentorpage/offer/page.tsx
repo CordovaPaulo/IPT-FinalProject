@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import styles from './offer.module.css';
 
 interface OfferProps {
   info: any[];
@@ -326,9 +327,9 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
   }, [currentDate]);
 
   return (
-    <div className="booking">
+    <div className={styles.offerBooking}>
       {/* Header */}
-      <div className="header">
+      <div className={styles.offerHeader}>
         <div className="flex items-center space-x-3">
           <h1>Send Offer</h1>
         </div>
@@ -336,7 +337,7 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
       </div>
 
       {/* Profile info */}
-      <div className="profile">
+      <div className={styles.offerProfile}>
         <img
           src={learnerPic ? `/api/image/${learnerPic}` : 'https://placehold.co/400x400'}
           alt="Profile image"
@@ -353,31 +354,31 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
       </div>
 
       {/* Main content */}
-      <div className="content">
+      <div className={styles.offerContent}>
         {/* Left side */}
-        <div className="left">
-          <div className="time-header">
+        <div className={styles.offerLeft}>
+          <div className={styles.offerTimeHeader}>
             <h2>Select Time Slots</h2>
             <p>({learnerDur} duration)</p>
           </div>
-          <div className="time-slots">
+          <div className={styles.offerTimeSlots}>
             {availableTimes.map((time) => (
               <button
                 key={time}
                 onClick={() => setSelectedTime(time)}
-                className={`time-btn ${selectedTime === time ? 'time-selected' : ''}`}
+                className={`${styles.offerTimeBtn} ${selectedTime === time ? styles.offerTimeSelected : ''}`}
               >
                 {time}
               </button>
             ))}
           </div>
 
-          <h3 className="mode-header">Select Mode of Session</h3>
-          <div className="mode-buttons">
+          <h3 className={styles.offerModeHeader}>Select Mode of Session</h3>
+          <div className={styles.offerModeButtons}>
             <button
               type="button"
               onClick={() => setSessionType('in-person')}
-              className={`mode-btn ${sessionType === 'in-person' ? 'mode-active' : ''}`}
+              className={`${styles.offerModeBtn} ${sessionType === 'in-person' ? styles.offerModeActive : ''}`}
               disabled={!isInPersonModality}
             >
               <span aria-label="In Person"><i className="fas fa-user"></i></span>
@@ -386,7 +387,7 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
             <button
               type="button"
               onClick={() => setSessionType('online')}
-              className={`mode-btn ${sessionType === 'online' ? 'mode-active' : ''}`}
+              className={`${styles.offerModeBtn} ${sessionType === 'online' ? styles.offerModeActive : ''}`}
               disabled={!isOnlineModality}
             >
               <span aria-label="Online"><i className="fas fa-laptop"></i></span>
@@ -396,13 +397,13 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
 
           {/* Location input */}
           {sessionType === 'in-person' && (
-            <div className="location-input">
+            <div className={styles.offerLocationInput}>
               <input
                 value={meetingLocation}
                 onChange={(e) => setMeetingLocation(e.target.value)}
                 type="text"
                 placeholder="Enter meeting location"
-                className="location-field"
+                className={styles.offerLocationField}
                 required
               />
             </div>
@@ -410,30 +411,30 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
         </div>
 
         {/* Right side */}
-        <div className="right" style={{ marginLeft: '-20px' }}>
-          <div className="calendar">
-            <div className="calendar-header">
-              <button className="arrow" onClick={prevMonth}>&lt;</button>
-              <div className="month-container">
+        <div className={styles.offerRight}>
+          <div className={styles.offerCalendar}>
+            <div className={styles.offerCalendarHeader}>
+              <button className={styles.offerArrow} onClick={prevMonth}>&lt;</button>
+              <div className={styles.offerMonthContainer}>
                 <button
-                  className="month"
+                  className={styles.offerMonth}
                   onClick={() => setShowYearSelection(!showYearSelection)}
                 >
                   {currentMonthYear}
                 </button>
-                <button className="today-btn" onClick={goToToday}>Today</button>
+                <button className={styles.offerTodayBtn} onClick={goToToday}>Today</button>
               </div>
-              <button className="arrow" onClick={nextMonth}>&gt;</button>
+              <button className={styles.offerArrow} onClick={nextMonth}>&gt;</button>
             </div>
 
             {/* Year selection dropdown */}
             {showYearSelection && (
-              <div className="year-select">
+              <div className={styles.offerYearSelect}>
                 {years.map((year) => (
                   <div
                     key={year}
                     onClick={() => selectYear(year)}
-                    className={`year-option ${currentDate.getFullYear() === year ? 'year-active' : ''}`}
+                    className={`${styles.offerYearOption} ${currentDate.getFullYear() === year ? styles.offerYearActive : ''}`}
                   >
                     {year}
                   </div>
@@ -442,34 +443,34 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
             )}
 
             {/* Available days legend */}
-            <div className="calendar-legend">
-              <div className="legend-item">
-                <span className="legend-dot available"></span>
+            <div className={styles.offerCalendarLegend}>
+              <div className={styles.offerLegendItem}>
+                <span className={`${styles.offerLegendDot} ${styles.offerLegendDotAvailable}`}></span>
                 <span>Available</span>
               </div>
-              <div className="legend-item">
-                <span className="legend-dot unavailable"></span>
+              <div className={styles.offerLegendItem}>
+                <span className={`${styles.offerLegendDot} ${styles.offerLegendDotUnavailable}`}></span>
                 <span>Unavailable</span>
               </div>
             </div>
 
-            <div className="weekdays">
+            <div className={styles.offerWeekdays}>
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                 <div key={day}>{day}</div>
               ))}
             </div>
 
-            <div className="days">
+            <div className={styles.offerDays}>
               {days.map((day, index) => (
                 <div
                   key={index}
                   onClick={() => day.isAvailable ? selectDate(day) : null}
                   className={[
-                    'day',
-                    day.isToday ? 'today' : '',
-                    day.isSelected ? 'selected' : '',
-                    day.isCurrentMonth ? 'current' : 'other',
-                    day.isAvailable ? 'available' : 'unavailable',
+                    styles.offerDay,
+                    day.isToday ? styles.offerDayToday : '',
+                    day.isSelected ? styles.offerDaySelected : '',
+                    day.isCurrentMonth ? styles.offerDayCurrent : styles.offerDayOther,
+                    day.isAvailable ? styles.offerDayAvailable : styles.offerDayUnavailable,
                   ].join(' ')}
                 >
                   {day.date.getDate()}
@@ -479,12 +480,12 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
           </div>
 
           {/* Subject selection */}
-          <div className="subject-select">
-            <h3 className="subject-header">Select Subject</h3>
+          <div className={styles.offerSubjectSelect}>
+            <h3 className={styles.offerSubjectHeader}>Select Subject</h3>
             <select 
               value={selectedSubject} 
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="subject-dropdown" 
+              className={styles.offerSubjectDropdown} 
               required
             >
               <option value="" disabled>Choose a subject</option>
@@ -499,600 +500,19 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
       </div>
 
       {/* Footer */}
-      <div className="footer">
-        <button onClick={onClose} type="button" className="btn-cancel">
+      <div className={styles.offerFooter}>
+        <button onClick={onClose} type="button" className={styles.offerBtnCancel}>
           CANCEL
         </button>
         <button 
           onClick={confirmSchedule} 
           type="button" 
-          className="btn-proceed"
+          className={styles.offerBtnProceed}
           disabled={isSubmitting}
         >
           {isSubmitting ? 'SENDING...' : 'PROCEED'}
         </button>
       </div>
-
-      <style jsx>{`
-        /* Copy all your CSS from the Vue component here */
-        .booking {
-          border-bottom-width: 4px;
-          width: 1000px;
-          max-width: 900px;
-          position: fixed;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
-          max-height: 85vh;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          box-shadow: 0 8px 24px rgba(26, 79, 159, 0.5);
-          z-index: 999;
-          background: white;
-          border-radius: 1.5rem;
-        }
-
-        .header {
-          background: linear-gradient(135deg, #0b2b31, #2b737e);
-          color: white;
-          padding: 0.75rem 1.25rem;
-          border-top-left-radius: 1.5rem;
-          border-top-right-radius: 1.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          position: sticky;
-          top: 0;
-          z-index: 30;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .header h1 {
-          font-weight: 800;
-          font-size: 1.125rem;
-          user-select: none;
-        }
-
-        .header button {
-          font-size: 2rem;
-          font-weight: 800;
-          line-height: 1;
-          color: white;
-          background: none;
-          border: none;
-          cursor: pointer;
-          user-select: none;
-          transition: transform 0.2s;
-        }
-
-        .header button:hover {
-          transform: scale(1.1);
-        }
-
-        .profile {
-          background-color: #f8f9fa;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem 1.5rem;
-          color: #0b3b44;
-          border-bottom: 1px solid #e9ecef;
-        }
-
-        .profile img {
-          width: 4rem;
-          height: 4rem;
-          border-radius: 9999px;
-          border: 2px solid #0b3b44;
-          object-fit: cover;
-        }
-
-        .profile div p {
-          margin: 0.25rem 0;
-        }
-
-        .profile div p:first-child {
-          font-weight: 600;
-          font-size: 1.1rem;
-        }
-
-        .content {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-          padding: 2.5rem;
-          background-color: white;
-          overflow-y: auto;
-          flex-grow: 1;
-          height: calc(100% - 140px);
-        }
-
-        @media (min-width: 768px) {
-          .content {
-            flex-direction: row;
-          }
-        }
-
-        .left,
-        .right {
-          flex: 1;
-        }
-
-        .time-header {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .time-header h2 {
-          font-weight: 600;
-          color: #0b3b44;
-          font-size: 0.875rem;
-          user-select: none;
-          margin: 0;
-        }
-
-        .time-header p {
-          font-style: italic;
-          font-size: 0.75rem;
-          color: #6c757d;
-          user-select: none;
-          margin: 0;
-        }
-
-        .time-slots {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 1rem 2rem;
-          max-width: 20rem;
-        }
-
-        .time-btn {
-          background-color: #e9ecef;
-          color: #495057;
-          font-weight: 600;
-          font-size: 0.875rem;
-          padding: 0.5rem 1.5rem;
-          border-radius: 0.375rem;
-          user-select: none;
-          border: none;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .time-btn:hover {
-          background-color: #dee2e6;
-        }
-
-        .time-selected {
-          background-color: #0b3b44;
-          color: white;
-        }
-
-        .time-selected:hover {
-          background-color: #0a2e34;
-        }
-
-        .mode-header {
-          font-weight: 600;
-          color: #0b3b44;
-          font-size: 0.875rem;
-          margin: 2rem 0 0.75rem 0;
-          user-select: none;
-        }
-
-        .mode-buttons {
-          display: flex;
-          gap: 1.5rem;
-        }
-
-        .mode-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          border-radius: 9999px;
-          padding: 0.5rem 1rem;
-          font-size: 0.875rem;
-          cursor: pointer;
-          user-select: none;
-          border: 1px solid #ced4da;
-          background-color: white;
-          transition: all 0.2s;
-        }
-
-        .mode-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          background-color: #e9ecef;
-        }
-
-        .mode-btn:disabled:hover {
-          background-color: #e9ecef;
-        }
-
-        .mode-btn:hover {
-          background-color: #f1f3f5;
-        }
-
-        .mode-active {
-          background-color: #0b3b44;
-          color: white;
-          border-color: #0b3b44;
-        }
-
-        .mode-active:hover {
-          background-color: #0a2e34;
-        }
-
-        .location-input {
-          margin-top: 1rem;
-        }
-
-        .location-field {
-          width: 100%;
-          max-width: 300px;
-          padding: 0.5rem 0.75rem;
-          border: 1px solid #ced4da;
-          border-radius: 0.375rem;
-          font-size: 0.875rem;
-          transition: border-color 0.2s;
-        }
-
-        .location-field:focus {
-          outline: none;
-          border-color: #0b3b44;
-          box-shadow: 0 0 0 2px rgba(11, 59, 68, 0.1);
-        }
-
-        .right {
-          max-width: 22rem;
-        }
-
-        .calendar {
-          border: 1px solid #dee2e6;
-          border-radius: 0.375rem;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-          padding: 0.75rem;
-          font-family: Arial, sans-serif;
-          font-size: 0.75rem;
-          color: #495057;
-          width: 100%;
-        }
-
-        .calendar-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.5rem;
-          font-size: 0.8125rem;
-          color: #6c757d;
-        }
-
-        .month-container {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .calendar-header .month {
-          font-weight: 700;
-          color: #212529;
-          font-size: 0.8125rem;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 0.25rem 0.5rem;
-          border-radius: 0.25rem;
-          transition: background-color 0.2s;
-        }
-
-        .calendar-header .month:hover {
-          background-color: #f1f3f5;
-        }
-
-        .calendar-header .today-btn {
-          font-size: 0.75rem;
-          padding: 0.25rem 0.5rem;
-          border-radius: 0.25rem;
-          background: none;
-          border: 1px solid #ced4da;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .calendar-header .today-btn:hover {
-          background-color: #f1f3f5;
-        }
-
-        .calendar-header .arrow {
-          display: flex;
-          gap: 0.25rem;
-          color: #495057;
-          cursor: pointer;
-          user-select: none;
-          background: none;
-          border: none;
-          font-size: 1rem;
-          padding: 0.25rem 0.5rem;
-          border-radius: 0.25rem;
-          transition: background-color 0.2s;
-        }
-
-        .calendar-header .arrow:hover {
-          background-color: #f1f3f5;
-        }
-
-        .year-select {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 0.5rem;
-          margin-bottom: 0.5rem;
-          padding: 0.5rem;
-          background-color: #f8f9fa;
-          border-radius: 0.25rem;
-          border: 1px solid #e9ecef;
-        }
-
-        .year-option {
-          padding: 0.25rem;
-          text-align: center;
-          cursor: pointer;
-          border-radius: 0.25rem;
-          transition: all 0.2s;
-        }
-
-        .year-option:hover {
-          background-color: #e9ecef;
-        }
-
-        .year-active {
-          background-color: #0b3b44;
-          color: white;
-        }
-
-        .calendar-legend {
-          display: flex;
-          justify-content: center;
-          gap: 1rem;
-          margin: 0.5rem 0;
-          font-size: 0.75rem;
-        }
-
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-        }
-
-        .legend-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-
-        .legend-dot.available {
-          background-color: #0b3b44;
-        }
-
-        .legend-dot.unavailable {
-          background-color: #e9ecef;
-        }
-
-        .weekdays {
-          display: grid;
-          grid-template-columns: repeat(7, minmax(0, 1fr));
-          gap: 0.25rem;
-          text-align: center;
-          font-size: 0.625rem;
-          font-weight: 400;
-          color: #6c757d;
-          margin-bottom: 0.25rem;
-        }
-
-        .days {
-          display: grid;
-          grid-template-columns: repeat(7, minmax(0, 1fr));
-          gap: 0.25rem;
-          text-align: center;
-          font-size: 0.6875rem;
-          font-weight: 400;
-        }
-
-        .day {
-          padding: 0.5rem 0;
-          border-radius: 0.25rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .day:hover {
-          background-color: #f1f3f5;
-        }
-
-        .day.current {
-          color: #212529;
-          font-weight: 600;
-        }
-
-        .day.other {
-          color: #adb5bd;
-          font-weight: 400;
-        }
-
-        .day.today {
-          background-color: #349eb1;
-          color: white;
-        }
-
-        .day.selected {
-          background-color: #0b3b44;
-          color: white;
-        }
-
-        .day.available {
-          color: #212529;
-          cursor: pointer;
-        }
-
-        .day.unavailable {
-          color: #ced4da;
-          cursor: not-allowed;
-          background-color: #f8f9fa;
-        }
-
-        .day.unavailable:hover {
-          background-color: #f8f9fa;
-        }
-
-        .day.selected.available {
-          background-color: #0b3b44;
-          color: white;
-        }
-
-        .footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 1rem;
-          padding: 1rem 1.5rem;
-          border-top: 1px solid #dee2e6;
-          background-color: white;
-          border-bottom-left-radius: 1.5rem;
-          border-bottom-right-radius: 1.5rem;
-          position: sticky;
-          bottom: 0;
-          z-index: 30;
-          box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-cancel {
-          color: #dc3545;
-          font-weight: 600;
-          font-size: 0.875rem;
-          border: 1px solid #dc3545;
-          border-radius: 0.375rem;
-          padding: 0.5rem 1.25rem;
-          cursor: pointer;
-          user-select: none;
-          background: none;
-          transition: all 0.2s;
-        }
-
-        .btn-cancel:hover {
-          background-color: #f8f9fa;
-        }
-
-        .btn-proceed {
-          background: linear-gradient(135deg, #0b2b31, #2b737e);
-          color: white;
-          font-weight: 600;
-          font-size: 0.875rem;
-          border-radius: 0.375rem;
-          padding: 0.5rem 1.25rem;
-          cursor: pointer;
-          user-select: none;
-          border: none;
-          transition: all 0.2s;
-        }
-
-        .btn-proceed:hover {
-          background: linear-gradient(135deg, #2b737e, #0b2b31);
-        }
-
-        .btn-proceed:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .subject-select {
-          margin-top: 1.5rem;
-          width: 100%;
-        }
-
-        .subject-header {
-          font-weight: 600;
-          color: #0b3b44;
-          font-size: 0.875rem;
-          margin-bottom: 0.5rem;
-          user-select: none;
-        }
-
-        .subject-dropdown {
-          width: 100%;
-          padding: 0.625rem 1rem;
-          border: 1px solid #ced4da;
-          border-radius: 0.5rem;
-          font-size: 0.875rem;
-          background-color: white;
-          color: #495057;
-          cursor: pointer;
-          appearance: none;
-          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b3b44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-          background-repeat: no-repeat;
-          background-position: right 0.75rem center;
-          background-size: 1rem;
-          transition: all 0.2s;
-        }
-
-        .subject-dropdown:focus {
-          outline: none;
-          border-color: #0b3b44;
-          box-shadow: 0 0 0 2px rgba(11, 59, 68, 0.1);
-        }
-
-        .subject-dropdown option {
-          white-space: normal;
-          word-wrap: break-word;
-          padding: 8px 12px;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 1200px) {
-          .booking {
-            width: 100%;
-            margin: 0;
-            max-height: 100vh;
-            border-radius: 0;
-          }
-        }
-
-        @media (max-width: 992px) {
-          .content {
-            padding: 1.5rem;
-          }
-          .time-slots {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.75rem 1.5rem;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .content {
-            height: calc(100% - 160px);
-          }
-          .header {
-            position: sticky;
-            top: 0;
-          }
-          .footer {
-            position: sticky;
-            bottom: 0;
-          }
-        }
-
-        @media (max-width: 576px) {
-          .booking {
-            margin: 0;
-            top: 0;
-            left: 0;
-            transform: none;
-            border-radius: 0;
-            max-height: 100vh;
-            width: 100%;
-          }
-        }
-      `}</style>
     </div>
   );
 }

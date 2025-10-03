@@ -1,0 +1,521 @@
+/* view.module.css */
+
+.viewModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: flex-end; 
+  align-items: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.viewWrapper {
+  background: white;
+  border-radius: 12px;
+  width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 100;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin-right: 15rem; 
+}
+
+.viewWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.viewStickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 150;
+}
+
+.viewWrapText {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.viewAvailabilityText {
+  white-space: pre-line;
+  word-break: break-word;
+  display: inline-block;
+  width: 100%;
+}
+
+.viewUpperElement {
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #0c434d, #3b9aa9);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  min-height: 60px;
+}
+
+.viewModalTitle {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.viewModalTitleIcon {
+  font-size: 1.1rem;
+}
+
+.viewCloseBtn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.viewCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.viewLowerElement {
+  padding: 1.5rem;
+}
+
+/* Profile Section */
+.viewLowerUpper {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  align-items: flex-start;
+}
+
+.viewProfileImageContainer {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.viewProfileImage {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #e1e4e8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.viewProfileInformation {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.viewApplicantName {
+  margin: 0.3rem 0 1rem 0;
+  font-size: 1.3rem;
+  color: #0c434d;
+  font-weight: 700;
+  text-align: left;
+}
+
+.viewDivider {
+  border: none;
+  border-top: 3px solid #8a8a8f;
+  margin-bottom: 0.8rem;
+  margin-top: -0.5rem;
+}
+
+.viewInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.8rem;
+}
+
+.viewInfoItem {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.viewInfoLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.viewInfoLabel i {
+  width: 14px;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.viewInfoValue {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0c434d;
+}
+
+.viewLowerLower {
+  margin-top: 1rem;
+}
+
+.viewDetailsSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.viewDetailsCard,
+.viewBioCard {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  min-width: 0;
+}
+
+.viewSectionTitle {
+  margin: 0 0 0.8rem 0;
+  font-size: 1rem;
+  color: #0c434d;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.viewSectionTitle i {
+  font-size: 0.9rem;
+}
+
+.viewDivider2 {
+  border: none;
+  border-top: 1px solid #8a8a8f;
+  margin-bottom: 0.8rem;
+  margin-top: -0.3rem;
+}
+
+.viewDetailsContent {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+.viewDetailItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.6rem;
+}
+
+.viewDetailLabel {
+  font-weight: 500;
+  color: #4b5563;
+  font-size: 0.8rem;
+  flex: 1;
+  padding-right: 0.8rem;
+  text-align: left;
+}
+
+.viewDetailValue {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.8rem;
+  flex: 1;
+  text-align: right;
+}
+
+.viewBioContent {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #4b5563;
+  text-align: left;
+}
+
+.viewDetailItem2 {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.viewDetailValue2 {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+  text-align: left;
+}
+
+.viewActionButton {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 1) 25%
+  );
+  padding: 1rem;
+  margin-top: 1rem;
+  z-index: 150;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.viewActionButton button {
+  background: linear-gradient(135deg, #0c434d, #3b9aa9);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(12, 67, 77, 0.3);
+  font-size: 0.85rem;
+}
+
+.viewActionButton button:hover {
+  background: linear-gradient(135deg, #0a3b44, #328c9a);
+  transform: translateY(-1px);
+}
+
+.viewConfirmationModalOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.viewConfirmationModal {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  max-width: 350px;
+  width: 90%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.viewConfirmationModal h3 {
+  margin-top: 0;
+  color: #0c434d;
+  margin-bottom: 0.8rem;
+  font-size: 1.1rem;
+}
+
+.viewConfirmationModal p {
+  margin: 0.8rem 0;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.viewModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1.2rem;
+}
+
+.viewModalBtn {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+.viewModalBtnCancel {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.viewModalBtnCancel:hover {
+  background-color: #e0e0e0;
+}
+
+.viewModalBtnConfirm {
+  background: linear-gradient(135deg, #0c434d, #3b9aa9);
+  color: white;
+}
+
+.viewModalBtnConfirm:hover {
+  background: linear-gradient(135deg, #0a3b44, #328c9a);
+}
+
+.viewPopupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.viewButtonGroup {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+}
+
+.viewCloseBtnNew {
+  background: #fff0f0;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+.viewCloseBtnNew:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.viewSendOfferBtn {
+  background: linear-gradient(135deg, #0c434d, #3b9aa9);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+.viewSendOfferBtn:hover {
+  background: linear-gradient(135deg, #0a3b44, #328c9a);
+  transform: translateY(-1px);
+}
+
+/* Loading Styles */
+.viewLoadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.viewSpinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #006981;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: viewSpin 1s linear infinite;
+}
+
+@keyframes viewSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 850px) {
+  .viewModalOverlay {
+    padding: 1rem;
+    justify-content: center; 
+  }
+  .viewWrapper {
+    width: 95%;
+    max-width: 95vw;
+    margin-right: 0; 
+  }
+  .viewDetailsSection {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .viewLowerUpper {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .viewProfileInformation {
+    text-align: center;
+  }
+  .viewApplicantName,
+  .viewInfoItem {
+    text-align: center;
+  }
+  .viewActionButton {
+    justify-content: center;
+  }
+  .viewButtonGroup {
+    justify-content: center;
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .viewInfoGrid {
+    grid-template-columns: 1fr;
+  }
+  .viewDetailsCard,
+  .viewBioCard {
+    padding: 0.8rem;
+  }
+  .viewProfileImage {
+    width: 80px;
+    height: 80px;
+  }
+  .viewUpperElement {
+    padding: 0.8rem 1rem;
+  }
+}

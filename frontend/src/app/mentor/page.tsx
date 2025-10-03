@@ -425,7 +425,7 @@ export default function MentorPage() {
       >
         <div className="logo-container">
           <img src="/logo_gccoed.png" alt="GCCoEd Logo" className="logo" />
-          <span className="logo-text">GCCoEd</span>
+          <span className="logo-text">MindMates</span>
         </div>
 
         <div className="upper-element">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import './files.css';
+import styles from './files.module.css'; // Corrected import path
 
 interface FileItem {
   id: number;
@@ -170,39 +170,39 @@ export default function FilesComponent() {
   });
 
   return (
-    <div className="files-wrapper">
+    <div className={styles.filesComponentWrapper}>
       {/* Header Section */}
-      <div className="table-header">
-        <h2 className="table-title">
-          <i className="fas fa-folder-open header-icon"></i>
+      <div className={styles.filesComponentTableHeader}>
+        <h2 className={styles.filesComponentTableTitle}>
+          <i className={`fas fa-folder-open ${styles.filesComponentHeaderIcon}`}></i>
           Files and Documents
         </h2>
       </div>
 
       {/* Main Content Section */}
-      <div className="lower-element">
-        <div className="lower-grid">
+      <div className={styles.filesComponentLowerElement}>
+        <div className={styles.filesComponentLowerGrid}>
           {/* File Upload Section */}
-          <div className="upload-file">
+          <div className={styles.filesComponentUploadFile}>
             <div
               ref={dropZoneRef}
-              className={`drop-zone ${isOverDropZone ? 'drop-zone-active' : ''}`}
+              className={`${styles.filesComponentDropZone} ${isOverDropZone ? styles.filesComponentDropZoneActive : ''}`}
               onClick={triggerFileInput}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              <i className="fas fa-file-arrow-up drop-zone-icon"></i>
+              <i className={`fas fa-file-arrow-up ${styles.filesComponentDropZoneIcon}`}></i>
               <p>
                 {isOverDropZone ? "Drop Files Here" : "Click or Drag Files to Upload"}
               </p>
             </div>
 
-            <div className="browse-file">
+            <div className={styles.filesComponentBrowseFile}>
               <input
                 type="file"
                 ref={fileInputRef}
-                className="file-upload"
+                className={styles.filesComponentFileUpload}
                 onChange={onFileInputChange}
                 multiple
                 accept="*"
@@ -210,38 +210,38 @@ export default function FilesComponent() {
               />
             </div>
 
-            <button onClick={triggerFileInput} className="custom-file-upload">
+            <button onClick={triggerFileInput} className={styles.filesComponentCustomFileUpload}>
               <i className="fas fa-folder-open"></i> Browse Files
             </button>
           </div>
 
           {/* Uploaded Files Display Section */}
-          <div className="displayed-files">
-            <div className="files-header">
+          <div className={styles.filesComponentDisplayedFiles}>
+            <div className={styles.filesComponentFilesHeader}>
               <h3><i className="fas fa-file-alt"></i> Uploaded Files</h3>
-              <div className="file-count">{files.length} files</div>
+              <div className={styles.filesComponentFileCount}>{files.length} files</div>
             </div>
 
-            <div className="displayed-container">
+            <div className={styles.filesComponentDisplayedContainer}>
               {files.length > 0 ? (
                 files.map((file, index) => (
-                  <div key={file.id} className="file-item">
-                    <div className="file-content">
+                  <div key={file.id} className={styles.filesComponentFileItem}>
+                    <div className={styles.filesComponentFileContent}>
                       <img src={getFileIcon(file.type, file.name)} alt="file" />
-                      <div className="file-info">
-                        <p className="file-name" title={file.name}>{file.name}</p>
-                        <span className="file-type">{file.type || file.name.split('.').pop()?.toUpperCase()}</span>
+                      <div className={styles.filesComponentFileInfo}>
+                        <p className={styles.filesComponentFileName} title={file.name}>{file.name}</p>
+                        <span className={styles.filesComponentFileType}>{file.type || file.name.split('.').pop()?.toUpperCase()}</span>
                       </div>
                     </div>
-                    <div className="file-actions">
-                      <button onClick={() => removeFile(index)} className="delete-btn">
+                    <div className={styles.filesComponentFileActions}>
+                      <button onClick={() => removeFile(index)} className={styles.filesComponentDeleteBtn}>
                         <i className="fas fa-trash"></i>
                       </button>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="no-files">
+                <div className={styles.filesComponentNoFiles}>
                   <p>No files uploaded yet</p>
                 </div>
               )}
@@ -251,15 +251,14 @@ export default function FilesComponent() {
       </div>
 
       {/* Upload Button */}
-      <div className="upload-button">
-        <button onClick={uploadFiles} className="upload-btn">
+      <div className={styles.filesComponentUploadButton}>
+        <button onClick={uploadFiles} className={styles.filesComponentUploadBtn}>
           <i className="fas fa-upload"></i> Upload Files
         </button>
       </div>
 
       {/* Add FontAwesome CDN for icons */}
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-
     </div>
   );
 }

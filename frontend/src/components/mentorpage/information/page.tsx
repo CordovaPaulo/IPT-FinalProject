@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import styles from './information.module.css';
 
 interface User {
   id: number | null;
@@ -605,26 +606,26 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
   return (
     <>
       {/* Background Overlay */}
-      <div className="edit-information-overlay" onClick={closeEditInformation} />
+      <div className={styles.editInformationOverlay} onClick={closeEditInformation} />
       
       {/* Edit Information Modal */}
-      <div className="edit-information-modal" ref={dropdownRef}>
-        <div className="edit-information">
-          <div className="upper-element">
+      <div className={styles.editInformationModal} ref={dropdownRef}>
+        <div className={styles.editInformation}>
+          <div className={styles.upperElement}>
             <h1>Edit Information</h1>
             <img 
               src="/exit.svg" 
               alt="exit" 
-              className="exit-icon"
+              className={styles.exitIcon}
               onClick={closeEditInformation}
             />
           </div>
-          <div className="lower-element">
-            <div className="personal-information">
+          <div className={styles.lowerElement}>
+            <div className={styles.personalInformation}>
               <h1>I. PERSONAL INFORMATION</h1>
-              <div className="input-wrapper">
+              <div className={styles.inputWrapper}>
                 {inputFieldPersonalInformation.map((item, index) => (
-                  <div key={index} className="input-fields">
+                  <div key={index} className={styles.inputFields}>
                     <label>{item.field}</label>
 
                     {item.type === 'text' ? (
@@ -637,19 +638,19 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                             setPersonalData(prev => ({ ...prev, [toCamelCase(item.field)]: newValue }));
                             validateField(toCamelCase(item.field), newValue);
                           }}
-                          className={`standard-input ${validationErrors[toCamelCase(item.field)] ? 'input-error' : ''}`}
+                          className={`${styles.standardInput} ${validationErrors[toCamelCase(item.field)] ? styles.inputError : ''}`}
                           placeholder={getPlaceholder(item.field, 'personal') || `Enter your ${item.field.toLowerCase()}`}
                         />
                         {validationErrors[toCamelCase(item.field)] && (
-                          <span className="error-message">
+                          <span className={styles.errorMessage}>
                             {validationErrors[toCamelCase(item.field)]}
                           </span>
                         )}
                       </>
                     ) : item.type === 'select' && item.field !== 'Gender' ? (
-                      <div className="custom-dropdown">
+                      <div className={styles.customDropdown}>
                         <div
-                          className="dropdown-container"
+                          className={styles.dropdownContainer}
                           onClick={() => toggleDropdown(toCamelCase(item.field))}
                         >
                           <input
@@ -657,16 +658,16 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                             value={personalData[toCamelCase(item.field) as keyof typeof personalData] as string}
                             placeholder={getPlaceholder(item.field, 'personal') || `Select ${item.field.toLowerCase()}`}
                             readOnly
-                            className="standard-input"
+                            className={styles.standardInput}
                           />
-                          <i className={`dropdown-icon ${dropdownOpen[toCamelCase(item.field)] ? 'open' : ''}`}>▼</i>
+                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
                         </div>
                         {dropdownOpen[toCamelCase(item.field)] && (
-                          <div className="dropdown-options">
+                          <div className={styles.dropdownOptions}>
                             {item.options.map((option, i) => (
                               <div
                                 key={i}
-                                className="dropdown-option"
+                                className={styles.dropdownOption}
                                 onClick={() => selectOption(toCamelCase(item.field), option, 'personal')}
                               >
                                 {option}
@@ -680,29 +681,29 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                 ))}
 
                 {/* Gender Dropdown */}
-                <div className="input-fields">
+                <div className={styles.inputFields}>
                   <label>Sex at Birth</label>
-                  <div className="gender-section">
-                    <div className="gender-dropdown">
+                  <div className={styles.genderSection}>
+                    <div className={styles.genderDropdown}>
                       <div
-                        className="dropdown-container"
+                        className={styles.dropdownContainer}
                         onClick={() => toggleDropdown('gender')}
                       >
                         <input
                           type="text"
                           value={personalData.gender}
                           placeholder={capitalizeFirstLetter(userData.ment.gender || '') || 'Select your sex at birth'}
-                          className="standard-input"
+                          className={styles.standardInput}
                           readOnly
                         />
-                        <i className={`dropdown-icon ${dropdownOpen.gender ? 'open' : ''}`}>▼</i>
+                        <i className={`${styles.dropdownIcon} ${dropdownOpen.gender ? styles.open : ''}`}>▼</i>
                       </div>
                       {dropdownOpen.gender && (
-                        <div className="dropdown-options gender-options">
-                          <div className="dropdown-option" onClick={() => selectGender('Female')}>
+                        <div className={`${styles.dropdownOptions} ${styles.genderOptions}`}>
+                          <div className={styles.dropdownOption} onClick={() => selectGender('Female')}>
                             Female
                           </div>
-                          <div className="dropdown-option" onClick={() => selectGender('Male')}>
+                          <div className={styles.dropdownOption} onClick={() => selectGender('Male')}>
                             Male
                           </div>
                         </div>
@@ -713,17 +714,17 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
               </div>
             </div>
 
-            <div className="profile-information">
+            <div className={styles.profileInformation}>
               <h1>II. PROFILE INFORMATION</h1>
-              <div className="input-wrapper">
+              <div className={styles.inputWrapper}>
                 {inputFieldProfileInformation.map((item, index) => (
-                  <div key={index} className="input-fields">
+                  <div key={index} className={styles.inputFields}>
                     <label>{item.field}</label>
 
                     {item.type === 'select' && item.field !== 'Course Offered' ? (
-                      <div className="custom-dropdown">
+                      <div className={styles.customDropdown}>
                         <div
-                          className="dropdown-container"
+                          className={styles.dropdownContainer}
                           onClick={() => toggleDropdown(toCamelCase(item.field))}
                         >
                           <input
@@ -731,16 +732,16 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                             value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
                             placeholder={getPlaceholder(item.field, 'profile') || `Select ${item.field.toLowerCase()}`}
                             readOnly
-                            className="standard-input"
+                            className={styles.standardInput}
                           />
-                          <i className={`dropdown-icon ${dropdownOpen[toCamelCase(item.field)] ? 'open' : ''}`}>▼</i>
+                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
                         </div>
                         {dropdownOpen[toCamelCase(item.field)] && (
-                          <div className="dropdown-options">
+                          <div className={styles.dropdownOptions}>
                             {item.options.map((option, i) => (
                               <div
                                 key={i}
-                                className="dropdown-option"
+                                className={styles.dropdownOption}
                                 onClick={() => selectOption(toCamelCase(item.field), option)}
                               >
                                 {option}
@@ -750,9 +751,9 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                         )}
                       </div>
                     ) : item.field === 'Course Offered' ? (
-                      <div className="custom-dropdown">
+                      <div className={styles.customDropdown}>
                         <div
-                          className="dropdown-container"
+                          className={styles.dropdownContainer}
                           onClick={() => toggleDropdown(toCamelCase(item.field))}
                         >
                           <input
@@ -760,17 +761,17 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                             value={getDisplayValue('courseOffered')}
                             placeholder={getPlaceholder(item.field, 'profile')}
                             readOnly
-                            className="standard-input"
+                            className={styles.standardInput}
                           />
-                          <i className={`dropdown-icon ${dropdownOpen[toCamelCase(item.field)] ? 'open' : ''}`}>▼</i>
+                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
                         </div>
                         {dropdownOpen[toCamelCase(item.field)] && (
-                          <div className="dropdown-options checkbox-options">
+                          <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
                             {availableSubjects.coreSubjects.length > 0 && (
-                              <div className="category-section">
+                              <div className={styles.categorySection}>
                                 <h4>Core Subjects</h4>
                                 {availableSubjects.coreSubjects.map((option, i) => (
-                                  <div key={`core-${i}`} className="checkbox-option">
+                                  <div key={`core-${i}`} className={styles.checkboxOption}>
                                     <input
                                       type="checkbox"
                                       id={`core-${i}`}
@@ -784,10 +785,10 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                               </div>
                             )}
                             {availableSubjects.gecSubjects.length > 0 && (
-                              <div className="category-section">
+                              <div className={styles.categorySection}>
                                 <h4>GEC Subjects</h4>
                                 {availableSubjects.gecSubjects.map((option, i) => (
-                                  <div key={`gec-${i}`} className="checkbox-option">
+                                  <div key={`gec-${i}`} className={styles.checkboxOption}>
                                     <input
                                       type="checkbox"
                                       id={`gec-${i}`}
@@ -801,10 +802,10 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                               </div>
                             )}
                             {availableSubjects.peNstpSubjects.length > 0 && (
-                              <div className="category-section">
+                              <div className={styles.categorySection}>
                                 <h4>NSTP & PE Subjects</h4>
                                 {availableSubjects.peNstpSubjects.map((option, i) => (
-                                  <div key={`pe-${i}`} className="checkbox-option">
+                                  <div key={`pe-${i}`} className={styles.checkboxOption}>
                                     <input
                                       type="checkbox"
                                       id={`pe-${i}`}
@@ -821,9 +822,9 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                         )}
                       </div>
                     ) : item.type === 'checkbox' ? (
-                      <div className="custom-dropdown">
+                      <div className={styles.customDropdown}>
                         <div
-                          className="dropdown-container"
+                          className={styles.dropdownContainer}
                           onClick={() => toggleDropdown(toCamelCase(item.field))}
                         >
                           <input
@@ -831,14 +832,14 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                             value={getDisplayValue(toCamelCase(item.field))}
                             placeholder={getPlaceholder(item.field, 'profile')}
                             readOnly
-                            className="standard-input"
+                            className={styles.standardInput}
                           />
-                          <i className={`dropdown-icon ${dropdownOpen[toCamelCase(item.field)] ? 'open' : ''}`}>▼</i>
+                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
                         </div>
                         {dropdownOpen[toCamelCase(item.field)] && (
-                          <div className="dropdown-options checkbox-options">
+                          <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
                             {item.options.map((option, i) => (
-                              <div key={i} className="checkbox-option">
+                              <div key={i} className={styles.checkboxOption}>
                                 <input
                                   type="checkbox"
                                   id={`${toCamelCase(item.field)}-${i}`}
@@ -860,10 +861,10 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
               </div>
             </div>
 
-            <div className="bio-experience-wrapper">
-              <div className="bio-experience-grid">
+            <div className={styles.bioExperienceWrapper}>
+              <div className={styles.bioExperienceGrid}>
                 {bioAndExperienceFields.map((item, index) => (
-                  <div key={`bio-${index}`} className="input-fields">
+                  <div key={`bio-${index}`} className={styles.inputFields}>
                     <label>{item.field}</label>
                     <textarea
                       value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
@@ -872,12 +873,12 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                         setProfileData(prev => ({ ...prev, [toCamelCase(item.field)]: newValue }));
                         validateField(toCamelCase(item.field), newValue);
                       }}
-                      className={`fixed-textarea ${validationErrors[toCamelCase(item.field)] ? 'input-error' : ''}`}
+                      className={`${styles.fixedTextarea} ${validationErrors[toCamelCase(item.field)] ? styles.inputError : ''}`}
                       placeholder={getPlaceholder(item.field, 'profile') || 
                         (item.field === 'Short Bio' ? 'Tell us about yourself' : 'Describe your tutoring experience')}
                     />
                     {validationErrors[toCamelCase(item.field)] && (
-                      <span className="error-message">
+                      <span className={styles.errorMessage}>
                         {validationErrors[toCamelCase(item.field)]}
                       </span>
                     )}
@@ -886,351 +887,11 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
               </div>
             </div>
           </div>
-          <div className="save">
-            <button className="save-button" onClick={saveChanges}>Save Changes</button>
+          <div className={styles.save}>
+            <button className={styles.saveButton} onClick={saveChanges}>Save Changes</button>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        /* Background Overlay */
-        .edit-information-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(0, 0, 0, 0.5);
-          z-index: 1999;
-        }
-
-        /* Modal Container */
-        .edit-information-modal {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: 2000;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .edit-information {
-          width: 500px !important;
-          max-height: 700px;
-          height: 700px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-          border-radius: 20px;
-          background-color: white;
-        }
-
-        .upper-element {
-          display: flex;
-          flex-direction: row;
-          background: linear-gradient(135deg, #0b2b31, #2b737e);
-          justify-content: center;
-          align-items: center;
-          padding: 15px 20px;
-          border-radius: 20px 20px 0 0;
-          position: relative;
-        }
-
-        .upper-element h1 {
-          font-size: 24px;
-          color: #ffffff;
-          margin: 0;
-        }
-
-        .exit-icon {
-          position: absolute;
-          right: 20px;
-          width: 20px;
-          height: 20px;
-          cursor: pointer;
-        }
-
-        .lower-element {
-          padding: 0 20px;
-          background-color: white;
-          overflow-y: auto;
-          flex: 1;
-        }
-
-        .lower-element h1 {
-          font-size: 17px;
-          color: #0c434d;
-          margin-bottom: 20px;
-        }
-
-        .input-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .input-fields {
-          display: flex;
-          flex-direction: column;
-          margin-bottom: 15px;
-        }
-
-        .input-fields label {
-          color: #116174;
-          margin-bottom: 5px;
-          font-size: 13px;
-        }
-
-        .standard-input {
-          width: 100%;
-          padding: 8px 10px;
-          border-radius: 10px;
-          border: 1px solid #0c434d;
-          font-size: 12px;
-          color: #0c434d;
-          background-color: #d9d9d9;
-          box-sizing: border-box;
-          height: 35px;
-        }
-
-        .personal-information,
-        .profile-information {
-          padding: 0 0 20px 0;
-          border-bottom: 1px solid #eee;
-          margin-bottom: 20px;
-        }
-
-        .custom-dropdown {
-          position: relative;
-          width: 100%;
-        }
-
-        .gender-section {
-          position: relative;
-          width: 100%;
-        }
-
-        .gender-dropdown {
-          position: relative;
-          width: 100%;
-        }
-
-        .dropdown-container {
-          position: relative;
-          cursor: pointer;
-        }
-
-        .dropdown-icon {
-          position: absolute;
-          right: 10px;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 10px;
-          transition: transform 0.2s;
-          color: #0c434d;
-          pointer-events: none;
-        }
-
-        .dropdown-icon.open {
-          transform: translateY(-50%) rotate(180deg);
-        }
-
-        .dropdown-options {
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
-          max-height: 200px;
-          overflow-y: auto;
-          background: white;
-          border: 1px solid #ddd;
-          border-radius: 0 0 10px 10px;
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-          z-index: 1000;
-        }
-
-        .gender-options {
-          z-index: 1001;
-        }
-
-        .dropdown-option {
-          padding: 8px 10px;
-          cursor: pointer;
-          color: #0c434d;
-          font-size: 12px;
-        }
-
-        .dropdown-option:hover {
-          background-color: #f0f0f0;
-        }
-
-        .checkbox-options {
-          padding: 5px;
-        }
-
-        .checkbox-option {
-          display: flex;
-          align-items: center;
-          padding: 5px 10px;
-          cursor: pointer;
-        }
-
-        .checkbox-option:hover {
-          background-color: #f0f0f0;
-        }
-
-        .checkbox-option input[type="checkbox"] {
-          margin-right: 8px;
-          cursor: pointer;
-        }
-
-        .checkbox-option label {
-          font-size: 12px;
-          color: #0c434d;
-          cursor: pointer;
-        }
-
-        .category-section {
-          padding: 5px 10px;
-          border-bottom: 1px solid #eee;
-        }
-
-        .category-section h4 {
-          margin: 5px 0;
-          color: #0c434d;
-          font-size: 12px;
-          font-weight: bold;
-        }
-
-        .bio-experience-wrapper {
-          margin-top: 20px;
-        }
-
-        .bio-experience-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .fixed-textarea {
-          border-radius: 10px;
-          border: 1px solid #0c434d;
-          font-size: 12px;
-          color: #0c434d;
-          background-color: #d9d9d9;
-          padding: 8px 10px;
-          height: 70px;
-          width: 100%;
-          resize: none;
-          box-sizing: border-box;
-        }
-
-        .save {
-          display: flex;
-          justify-content: flex-end;
-          padding: 10px;
-          border-radius: 0 0 20px 20px !important;
-        }
-
-        .save-button {
-          background-color: #006981;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 10px;
-          cursor: pointer;
-          font-size: 16px;
-        }
-
-        .input-error {
-          border-color: #f87171;
-          background-color: #fff1f2;
-          outline: none;
-        }
-
-        .error-message {
-          color: #ef4444;
-          font-size: 0.875rem;
-          margin-top: 0.25rem;
-        }
-
-        @media (max-width: 768px) {
-          .edit-information {
-            width: calc(80vw - 30px) !important;
-            height: 85vh;
-            max-height: 85vh;
-            margin-right: 10px;
-            border-radius: 15px;
-          }
-
-          .upper-element {
-            padding: 12px 15px;
-            border-radius: 15px 15px 0 0;
-          }
-
-          .upper-element h1 {
-            font-size: 20px;
-          }
-
-          .exit-icon {
-            right: 15px;
-            width: 18px;
-            height: 18px;
-          }
-
-          .lower-element {
-            padding: 0 15px;
-            max-height: calc(85vh - 120px);
-            overflow-y: auto;
-          }
-
-          .input-wrapper {
-            gap: 12px;
-          }
-
-          .input-fields {
-            margin-bottom: 12px;
-          }
-
-          .standard-input,
-          .dropdown-option,
-          .checkbox-option label,
-          .category-section h4,
-          .fixed-textarea {
-            font-size: 11px;
-          }
-
-          .save-button {
-            padding: 8px 16px;
-            font-size: 14px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .edit-information {
-            width: calc(95vw - 10px) !important;
-            margin-right: 5px;
-            height: 90vh;
-            max-height: 90vh;
-          }
-
-          .upper-element h1 {
-            font-size: 18px;
-          }
-
-          .lower-element {
-            max-height: calc(90vh - 120px);
-          }
-
-          .lower-element h1 {
-            font-size: 15px;
-            margin-bottom: 15px;
-          }
-        }
-      `}</style>
     </>
   );
 }
