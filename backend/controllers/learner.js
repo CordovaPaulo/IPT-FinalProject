@@ -73,10 +73,15 @@ exports.setSchedule = async (req, res) => {
         // Convert date string to Date object
         const scheduleDate = new Date(date);
 
+        const mentorName = mentor.name;
+        const learnerName = learner.name;
+
         // Create schedule with proper ObjectId references
         const schedule = new Schedule({
             learner: learner._id,
             mentor: mentor._id,
+            learnerName: learnerName,
+            mentorName: mentorName,
             date: scheduleDate,
             time,
             location,
