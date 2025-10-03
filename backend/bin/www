@@ -12,7 +12,7 @@ var http = require('http');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '3001');
 app.set('port', port);
 
 /**
@@ -20,6 +20,37 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+
+/**
+ * --- ADD: initialize socket.io and attach to app ---
+ */
+
+const { Server } = require('socket.io');
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  // client should emit 'join' with their user id to receive messages
+  socket.on('join', (userId) => {
+    if (!userId) return;
+    socket.join(String(userId));
+  });
+
+  // optional: fast relay (does NOT persist unless you also call your REST endpoint)
+  socket.on('sendMessage', (payload) => {
+    if (payload?.receiver) {
+      io.to(String(payload.receiver)).emit('message', payload);
+    }
+  });
+
+  socket.on('disconnect', () => {});
+});
 
 /**
  * Listen on provided port, on all network interfaces.

@@ -9,3 +9,9 @@ export const createSocket = () => {
     withCredentials: true
   });
 };
+
+// const socket = createSocket();
+// socket.emit('join', myUserId); // join room for this user
+// socket.on('message', (msg) => {
+//   // handle incoming message in UI
+// });

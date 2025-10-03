@@ -6,6 +6,8 @@ const jwtService = require('../service/jwt');
 // POST routes
 router.post('/schedule/:id', jwtService.authenticateToken('learner'), learnerController.setSchedule);
 router.post('/feedback/:id', jwtService.authenticateToken('learner'), learnerController.setFeedback);
+router.post('/cancel-sched/:id', jwtService.authenticateToken('learner'), learnerController.cancelSched);
+router.post('/resched-sched/:id', jwtService.authenticateToken('learner'), learnerController.reschedSched);
 
 // GET routes
 router.get('/profile', jwtService.authenticateToken('learner'), learnerController.getProfileInfo);
