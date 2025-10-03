@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Schedule from '@/components/learnerpage/schedule/page';
 import api from '@/lib/axios';
+import styles from './viewUser.module.css';
 
 interface ViewUserProps {
   userId: string;
@@ -159,161 +160,144 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
 
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <style jsx>{`
-          .loading-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 200px;
-          }
-          .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #006981;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
       </div>
     );
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="wrapper">
+    <div className={styles.modalOverlay}>
+      <div className={styles.wrapper}>
         {/*  Modal Header - Title */}
-        <div className="upper-element sticky-header">
-          <h3 className="modal-title">
-            <i className="fas fa-user-graduate modal-title-icon"></i>
+        <div className={`${styles.upperElement} ${styles.stickyHeader}`}>
+          <h3 className={styles.modalTitle}>
+            <i className={`fas fa-user-graduate ${styles.modalTitleIcon}`}></i>
             Mentor Profile
           </h3>
+          <button className={styles.closeBtn} onClick={onClose}>
+            <i className="fas fa-times"></i>
+          </button>
         </div>
 
         {/* Modal Body */}
-        <div className="lower-element">
+        <div className={styles.lowerElement}>
           {/* Mentor Profile Section */}
-          <div className="lower-upper">
-            <div className="profile-image-container">
+          <div className={styles.lowerUpper}>
+            <div className={styles.profileImageContainer}>
               <img
                 src={imageUrl || 'https://placehold.co/600x400'}
                 alt="Profile Image"
-                className="profile-image"
+                className={styles.profileImage}
                 onError={(e) => {
                   e.currentTarget.src = 'https://placehold.co/600x400';
                 }}
               />
             </div>
 
-            <div className="profile-information">
-              <h4 className="applicant-name">{userInfo.name}</h4>
-              <hr className="divider" />
-              <div className="info-grid">
-                <div className="info-item">
-                  <span className="info-label">
+            <div className={styles.profileInformation}>
+              <h4 className={styles.applicantName}>{userInfo.name}</h4>
+              <hr className={styles.divider} />
+              <div className={styles.infoGrid}>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>
                     <i className="fas fa-venus-mars"></i> Sex at Birth
                   </span>
-                  <span className="info-value">
+                  <span className={styles.infoValue}>
                     {capitalizeFirstLetter(userInfo.gender) || "N/A"}
                   </span>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>
                     <i className="fas fa-calendar-alt"></i> Year
                   </span>
-                  <span className="info-value">{userInfo.year || "N/A"}</span>
+                  <span className={styles.infoValue}>{userInfo.year || "N/A"}</span>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>
                     <i className="fas fa-graduation-cap"></i> Program
                   </span>
-                  <span className="info-value">{userInfo.course || "N/A"}</span>
+                  <span className={styles.infoValue}>{userInfo.course || "N/A"}</span>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>
                     <i className="fas fa-phone"></i> Contact
                   </span>
-                  <span className="info-value">{userInfo.phoneNum || "N/A"}</span>
+                  <span className={styles.infoValue}>{userInfo.phoneNum || "N/A"}</span>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>
                     <i className="fas fa-envelope"></i> Email
                   </span>
-                  <span className="info-value">{userInfo.email || "N/A"}</span>
+                  <span className={styles.infoValue}>{userInfo.email || "N/A"}</span>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>
                     <i className="fas fa-map-marker-alt"></i> Address
                   </span>
-                  <span className="info-value">{userInfo.address || "N/A"}</span>
+                  <span className={styles.infoValue}>{userInfo.address || "N/A"}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Details Section */}
-          <div className="lower-lower">
-            <div className="details-section">
-              <div className="details-card">
-                <h4 className="section-title">
+          <div className={styles.lowerLower}>
+            <div className={styles.detailsSection}>
+              <div className={styles.detailsCard}>
+                <h4 className={styles.sectionTitle}>
                   <i className="fas fa-book-open"></i> Teaching Details
                 </h4>
-                <hr className="divider2" />
-                <div className="details-content">
-                  <div className="detail-item">
-                    <span className="detail-label">Subjects Offered:</span>
-                    <span className="detail-value wrap-text">
+                <hr className={styles.divider2} />
+                <div className={styles.detailsContent}>
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Subjects Offered:</span>
+                    <span className={`${styles.detailValue} ${styles.wrapText}`}>
                       {parseArrayString(userInfo.subjects) || "N/A"}
                     </span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Teaching Modality:</span>
-                    <span className="detail-value">
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Teaching Modality:</span>
+                    <span className={styles.detailValue}>
                       {userInfo.learn_modality || "N/A"}
                     </span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Teaching Style:</span>
-                    <span className="detail-value">
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Teaching Style:</span>
+                    <span className={styles.detailValue}>
                       {parseArrayString(userInfo.learn_sty) || "N/A"}
                     </span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Availability:</span>
-                    <span className="detail-value availability-text">
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Availability:</span>
+                    <span className={`${styles.detailValue} ${styles.availabilityText}`}>
                       {parseArrayString(userInfo.availability) || "N/A"}
                     </span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Session Duration:</span>
-                    <span className="detail-value">
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Session Duration:</span>
+                    <span className={styles.detailValue}>
                       {userInfo.prefSessDur || "N/A"}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bio-card">
-                <h4 className="section-title">
+              <div className={styles.bioCard}>
+                <h4 className={styles.sectionTitle}>
                   <i className="fas fa-user-edit"></i> Bio & Experience
                 </h4>
-                <hr className="divider2" />
-                <div className="bio-content">
-                  <div className="detail-item2">
-                    <span className="detail-label">Bio:</span>
-                    <span className="detail-value2 wrap-text">
+                <hr className={styles.divider2} />
+                <div className={styles.bioContent}>
+                  <div className={styles.detailItem2}>
+                    <span className={styles.detailLabel}>Bio:</span>
+                    <span className={`${styles.detailValue2} ${styles.wrapText}`}>
                       {userInfo.bio || "No bio provided"}
                     </span>
                   </div>
-                  <div className="detail-item2">
-                    <span className="detail-label">Experience:</span>
-                    <span className="detail-value2 wrap-text">
+                  <div className={styles.detailItem2}>
+                    <span className={styles.detailLabel}>Experience:</span>
+                    <span className={`${styles.detailValue2} ${styles.wrapText}`}>
                       {userInfo.goals || "No experience provided"}
                     </span>
                   </div>
@@ -322,16 +306,16 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
             </div>
 
             {/* Modal Footer */}
-            <div className="action-button">
-              <div className="button-group">
+            <div className={styles.actionButton}>
+              <div className={styles.buttonGroup}>
                 <button 
-                  className="close-btn-new" 
+                  className={styles.closeBtnNew} 
                   onClick={onClose}
                 >
-                Close
+                  <i className="fas fa-times"></i> Close
                 </button>
                 <button 
-                  className="send-offer-btn" 
+                  className={styles.sendOfferBtn} 
                   onClick={() => setShowConfirmationModal(true)}
                 >
                   <i className="fas fa-calendar-alt"></i> Schedule Session
@@ -343,19 +327,19 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
 
         {/* Confirmation Modal */}
         {showConfirmationModal && (
-          <div className="confirmation-modal-overlay">
-            <div className="confirmation-modal">
+          <div className={styles.confirmationModalOverlay}>
+            <div className={styles.confirmationModal}>
               <h3>Confirm Schedule</h3>
-              <hr className="divider2" />
+              <hr className={styles.divider2} />
               <p>Are you sure you want to schedule a session with {userInfo.name}?</p>
-              <div className="modal-actions">
+              <div className={styles.modalActions}>
                 <button
-                  className="modal-btn cancel"
+                  className={`${styles.modalBtn} ${styles.cancel}`}
                   onClick={() => setShowConfirmationModal(false)}
                 >
                   Cancel
                 </button>
-                <button className="modal-btn confirm" onClick={confirmSchedule}>
+                <button className={`${styles.modalBtn} ${styles.confirm}`} onClick={confirmSchedule}>
                   Confirm
                 </button>
               </div>
@@ -365,7 +349,7 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
 
         {/* Schedule Modal - This will appear when showSchedule is true */}
         {showSchedule && (
-          <div className="popup-overlay">
+          <div className={styles.popupOverlay}>
             <Schedule
               info={userDeetsForSched}
               onClose={() => setShowSchedule(false)}
@@ -373,532 +357,6 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
             />
           </div>
         )}
-
-        <style jsx>{`
-          .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 2rem;
-          }
-
-          .wrapper {
-            background: white;
-            border-radius: 12px;
-            width: 800px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            z-index: 100;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            margin-left: 15rem;
-            margin-right: auto; 
-          }
-
-          .wrapper::-webkit-scrollbar {
-            display: none;
-          }
-
-          .sticky-header {
-            position: sticky;
-            top: 0;
-            z-index: 150;
-          }
-
-          .wrap-text {
-            white-space: normal;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            display: inline-block;
-            max-width: 100%;
-          }
-
-          .availability-text {
-            white-space: pre-line;
-            word-break: break-word;
-            display: inline-block;
-            width: 100%;
-          }
-
-          /* Header with title left and close button right */
-          .upper-element {
-            padding: 1rem 1.5rem;
-            background: linear-gradient(135deg, #0c434d, #3b9aa9);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
-            min-height: 60px;
-          }
-
-          .modal-title {
-            margin: 0;
-            font-size: 1.3rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-          }
-
-          .modal-title-icon {
-            font-size: 1.1rem;
-          }
-
-          .close-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.25rem;
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-          }
-
-          .close-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-          }
-
-          .lower-element {
-            padding: 1.5rem;
-          }
-
-          /* Profile Section */
-          .lower-upper {
-            display: flex;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-            align-items: flex-start;
-          }
-
-          .profile-image-container {
-            position: relative;
-            flex-shrink: 0;
-          }
-
-          .profile-image {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #e1e4e8;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          }
-
-          .profile-information {
-            flex-grow: 1;
-            min-width: 0;
-          }
-
-          .applicant-name {
-            margin: 0.3rem 0 1rem 0;
-            font-size: 1.3rem;
-            color: #0c434d;
-            font-weight: 700;
-            text-align: left;
-          }
-
-          .divider {
-            border: none;
-            border-top: 3px solid #8a8a8f;
-            margin-bottom: 0.8rem;
-            margin-top: -0.5rem;
-          }
-
-          .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 0.8rem;
-          }
-
-          .info-item {
-            display: flex;
-            flex-direction: column;
-            text-align: left;
-          }
-
-          .info-label {
-            font-size: 0.75rem;
-            color: #6b7280;
-            margin-bottom: 0.2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-          }
-
-          .info-label i {
-            width: 14px;
-            text-align: center;
-            font-size: 0.8rem;
-          }
-
-          .info-value {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #0c434d;
-          }
-
-          .lower-lower {
-            margin-top: 1rem;
-          }
-
-          .details-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-          }
-
-          .details-card,
-          .bio-card {
-            background: #f9fafb;
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e5e7eb;
-            min-width: 0;
-          }
-
-          .section-title {
-            margin: 0 0 0.8rem 0;
-            font-size: 1rem;
-            color: #0c434d;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-            text-align: left;
-          }
-
-          .section-title i {
-            font-size: 0.9rem;
-          }
-
-          .divider2 {
-            border: none;
-            border-top: 1px solid #8a8a8f;
-            margin-bottom: 0.8rem;
-            margin-top: -0.3rem;
-          }
-
-          .details-content {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.6rem;
-          }
-
-          .detail-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 0.6rem;
-          }
-
-          .detail-label {
-            font-weight: 500;
-            color: #4b5563;
-            font-size: 0.8rem;
-            flex: 1;
-            padding-right: 0.8rem;
-            text-align: left;
-          }
-
-          .detail-value {
-            font-weight: 600;
-            color: #1f2937;
-            font-size: 0.8rem;
-            flex: 1;
-            text-align: right;
-          }
-
-          .bio-content {
-            font-size: 0.8rem;
-            line-height: 1.5;
-            color: #4b5563;
-            text-align: left;
-          }
-
-          .detail-item2 {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 1rem;
-            text-align: left;
-          }
-
-          .detail-value2 {
-            font-weight: 600;
-            color: #1f2937;
-            font-size: 0.8rem;
-            margin-top: 0.2rem;
-            text-align: left;
-          }
-
-          .action-button {
-            position: sticky;
-            bottom: 0;
-            background: linear-gradient(
-              180deg,
-              rgba(255, 255, 255, 0) 0%,
-              rgba(255, 255, 255, 1) 25%
-            );
-            padding: 1rem;
-            margin-top: 1rem;
-            z-index: 150;
-            display: flex;
-            justify-content: flex-end;
-            width: 100%;
-            box-sizing: border-box;
-          }
-
-          .action-button button {
-            background: linear-gradient(135deg, #0c434d, #3b9aa9);
-            color: white;
-            border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-            box-shadow: 0 2px 6px rgba(12, 67, 77, 0.3);
-            font-size: 0.85rem;
-          }
-
-          .action-button button:hover {
-            background: linear-gradient(135deg, #0a3b44, #328c9a);
-            transform: translateY(-1px);
-          }
-
-          .confirmation-modal-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-          }
-
-          .confirmation-modal {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            max-width: 350px;
-            width: 90%;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-          }
-
-          .confirmation-modal h3 {
-            margin-top: 0;
-            color: #0c434d;
-            margin-bottom: 0.8rem;
-            font-size: 1.1rem;
-          }
-
-          .confirmation-modal p {
-            margin: 0.8rem 0;
-            color: #4b5563;
-            font-size: 0.9rem;
-          }
-
-          .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.8rem;
-            margin-top: 1.2rem;
-          }
-
-          .modal-btn {
-            padding: 0.4rem 0.8rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-            font-size: 0.85rem;
-          }
-
-          .modal-btn.cancel {
-            background-color: #f0f0f0;
-            color: #333;
-          }
-
-          .modal-btn.cancel:hover {
-            background-color: #e0e0e0;
-          }
-
-          .modal-btn.confirm {
-            background: linear-gradient(135deg, #0c434d, #3b9aa9);
-            color: white;
-          }
-
-          .modal-btn.confirm:hover {
-            background: linear-gradient(135deg, #0a3b44, #328c9a);
-          }
-
-          .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 3000;
-          }
-
-          .button-group {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            gap: 1rem;
-          }
-
-          .close-btn-new {
-            background: #fff0f0;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-            padding: 0.6rem 1.2rem;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-            font-size: 0.85rem;
-          }
-
-          .close-btn-new:hover {
-            background: #fee2e2;
-            border-color: #fca5a5;
-          }
-
-          .send-offer-btn {
-            background: linear-gradient(135deg, #0c434d, #3b9aa9);
-            color: white;
-            border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-            font-size: 0.85rem;
-          }
-
-          .send-offer-btn:hover {
-            background: linear-gradient(135deg, #0a3b44, #328c9a);
-            transform: translateY(-1px);
-          }
-
-          @media (max-width: 850px) {
-            .modal-overlay {
-              padding: 1rem;
-            }
-            .wrapper {
-              width: 95%;
-              max-width: 95vw;
-            }
-            .details-section {
-              grid-template-columns: 1fr;
-              gap: 1rem;
-            }
-          }
-
-          @media (max-width: 768px) {
-            .lower-upper {
-              flex-direction: column;
-              align-items: center;
-              text-align: center;
-            }
-            .profile-information {
-              text-align: center;
-            }
-            .applicant-name,
-            .info-item {
-              text-align: center;
-            }
-            .action-button {
-              justify-content: center;
-            }
-            .button-group {
-              justify-content: center;
-              flex-direction: column-reverse;
-              align-items: stretch;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .info-grid {
-              grid-template-columns: 1fr;
-            }
-            .details-card,
-            .bio-card {
-              padding: 0.8rem;
-            }
-            .profile-image {
-              width: 80px;
-              height: 80px;
-            }
-            .upper-element {
-              padding: 0.8rem 
-            }
-            .applicant-name,
-            .info-item {
-              text-align: center;
-            }
-            .action-button {
-              justify-content: center;
-            }
-            .button-group {
-              justify-content: center;
-              flex-direction: column-reverse;
-              align-items: stretch;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .info-grid {
-              grid-template-columns: 1fr;
-            }
-            .details-card,
-            .bio-card {
-              padding: 0.8rem;
-            }
-            .profile-image {
-              width: 80px;
-              height: 80px;
-            }
-            .upper-element {
-              padding: 0.8rem 1rem;
-            }
-          }
-        `}</style>
       </div>
     </div>
   );

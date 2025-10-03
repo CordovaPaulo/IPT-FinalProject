@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import styles from './information.module.css';
 
 interface UserData {
   user: {
@@ -583,23 +584,23 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
   }, [userData]);
 
   return (
-    <div className="edit-information" ref={dropdownRef} style={styles.editInformation}>
-      <div className="upper-element" style={styles.upperElement}>
-        <h1 style={styles.upperElementH1}>Edit Information</h1>
+    <div className={styles.editInformation} ref={dropdownRef}>
+      <div className={styles.upperElement}>
+        <h1 className={styles.upperElementH1}>Edit Information</h1>
         <img 
           src="/exit.svg" 
           alt="exit" 
           onClick={onClose}
-          style={styles.exitIcon}
+          className={styles.exitIcon}
         />
       </div>
-      <div className="lower-element" style={styles.lowerElement}>
-        <div className="personal-information" style={styles.personalInformation}>
-          <h1 style={styles.sectionH1}>PERSONAL INFORMATION</h1>
-          <div className="input-wrapper" style={styles.inputWrapper}>
+      <div className={styles.lowerElement}>
+        <div className={styles.personalInformation}>
+          <h1 className={styles.sectionH1}>PERSONAL INFORMATION</h1>
+          <div className={styles.inputWrapper}>
             {inputFieldPersonalInformation.map((item, index) => (
-              <div key={index} className="input-fields" style={styles.inputFields}>
-                <label style={styles.label}>{item.field}</label>
+              <div key={index} className={styles.inputFields}>
+                <label className={styles.label}>{item.field}</label>
 
                 {item.type === 'text' && (
                   <input
@@ -611,15 +612,14 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
                       validateField(fieldName, e.target.value);
                     }}
                     placeholder={getPlaceholder(item.field, 'personal')}
-                    style={styles.standardInput}
+                    className={styles.standardInput}
                   />
                 )}
 
                 {item.type === 'select' && (
-                  <div className="custom-dropdown" style={styles.customDropdown}>
+                  <div className={styles.customDropdown}>
                     <div
-                      className="dropdown-container"
-                      style={styles.dropdownContainer}
+                      className={styles.dropdownContainer}
                       onClick={() => toggleDropdown(toCamelCase(item.field))}
                     >
                       <input
@@ -630,23 +630,18 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
                           `Select ${item.field.toLowerCase()}`
                         }
                         readOnly
-                        style={styles.standardInput}
+                        className={styles.standardInput}
                       />
                       <i
-                        className={`dropdown-icon ${dropdownOpen[toCamelCase(item.field)] ? 'open' : ''}`}
-                        style={{
-                          ...styles.dropdownIcon,
-                          ...(dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : {})
-                        }}
+                        className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}
                       >▼</i>
                     </div>
                     {dropdownOpen[toCamelCase(item.field)] && (
-                      <div className="dropdown-options" style={styles.dropdownOptions}>
+                      <div className={styles.dropdownOptions}>
                         {(item.options as string[])?.map((option, i) => (
                           <div
                             key={i}
-                            className="dropdown-option"
-                            style={styles.dropdownOption}
+                            className={styles.dropdownOption}
                             onClick={() => selectOption(toCamelCase(item.field), option, 'personal')}
                           >
                             {option}
@@ -657,7 +652,7 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
                   </div>
                 )}
                 {validationErrors[toCamelCase(item.field)] && (
-                  <div style={styles.errorMessage}>
+                  <div className={styles.errorMessage}>
                     {validationErrors[toCamelCase(item.field)]}
                   </div>
                 )}
@@ -666,18 +661,17 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
           </div>
         </div>
 
-        <div className="profile-information" style={styles.profileInformation}>
-          <h1 style={styles.sectionH1}>PROFILE INFORMATION</h1>
-          <div className="input-wrapper" style={styles.inputWrapper}>
+        <div className={styles.profileInformation}>
+          <h1 className={styles.sectionH1}>PROFILE INFORMATION</h1>
+          <div className={styles.inputWrapper}>
             {inputFieldProfileInformation.map((item, index) => (
-              <div key={index} className="input-fields" style={styles.inputFields}>
-                <label style={styles.label}>{item.field}</label>
+              <div key={index} className={styles.inputFields}>
+                <label className={styles.label}>{item.field}</label>
 
                 {item.type === 'select' && item.field !== 'Subject of Interest' && (
-                  <div className="custom-dropdown" style={styles.customDropdown}>
+                  <div className={styles.customDropdown}>
                     <div
-                      className="dropdown-container"
-                      style={styles.dropdownContainer}
+                      className={styles.dropdownContainer}
                       onClick={() => toggleDropdown(toCamelCase(item.field))}
                     >
                       <input
@@ -688,23 +682,18 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
                           `Select ${item.field.toLowerCase()}`
                         }
                         readOnly
-                        style={styles.standardInput}
+                        className={styles.standardInput}
                       />
                       <i
-                        className={`dropdown-icon ${dropdownOpen[toCamelCase(item.field)] ? 'open' : ''}`}
-                        style={{
-                          ...styles.dropdownIcon,
-                          ...(dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : {})
-                        }}
+                        className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}
                       >▼</i>
                     </div>
                     {dropdownOpen[toCamelCase(item.field)] && (
-                      <div className="dropdown-options" style={styles.dropdownOptions}>
+                      <div className={styles.dropdownOptions}>
                         {(item.options as string[])?.map((option, i) => (
                           <div
                             key={i}
-                            className="dropdown-option"
-                            style={styles.dropdownOption}
+                            className={styles.dropdownOption}
                             onClick={() => selectOption(toCamelCase(item.field), option)}
                           >
                             {option}
@@ -716,10 +705,9 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
                 )}
 
                 {item.field === 'Subject of Interest' && (
-                  <div className="custom-dropdown" style={styles.customDropdown}>
+                  <div className={styles.customDropdown}>
                     <div
-                      className="dropdown-container"
-                      style={styles.dropdownContainer}
+                      className={styles.dropdownContainer}
                       onClick={() => toggleDropdown('Subject of Interest')}
                     >
                       <input
@@ -727,67 +715,63 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
                         value={getCSubjectInterestDisplay()}
                         placeholder={getCSubjectInterestDisplay() || 'Select courses'}
                         readOnly
-                        style={styles.standardInput}
+                        className={styles.standardInput}
                       />
                       <i
-                        className={`dropdown-icon ${dropdownOpen['subjectOfInterest'] ? 'open' : ''}`}
-                        style={{
-                          ...styles.dropdownIcon,
-                          ...(dropdownOpen['subjectOfInterest'] ? styles.dropdownIconOpen : {})
-                        }}
+                        className={`${styles.dropdownIcon} ${dropdownOpen['subjectOfInterest'] ? styles.dropdownIconOpen : ''}`}
                       >▼</i>
                     </div>
                     {dropdownOpen['subjectOfInterest'] && (
-                      <div className="dropdown-options checkbox-options" style={{...styles.dropdownOptions, padding: '5px'}}>
+                      <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
                         {availableSubjects.coreSubjects.length > 0 && (
-                          <div className="category-section" style={styles.categorySection}>
-                            <h4 style={styles.categoryH4}>Core Subjects</h4>
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryH4}>Core Subjects</h4>
                             {availableSubjects.coreSubjects.map((option, i) => (
-                              <div key={`core-${i}`} className="checkbox-option" style={styles.checkboxOption}>
+                              <div key={`core-${i}`} className={styles.checkboxOption}>
                                 <input
                                   type="checkbox"
                                   id={`core-${i}`}
                                   checked={profileData.courseOffered.includes(option)}
                                   onChange={(e) => handleSubjectCheckboxChange(option, e.target.checked)}
-                                  style={styles.checkboxInput}
+                                  className={styles.checkboxInput}
                                 />
-                                <label htmlFor={`core-${i}`} style={styles.checkboxLabel}>{option}</label>
+                                <label htmlFor={`core-${i}`} className={styles.checkboxLabel}>{option}</label>
                               </div>
                             ))}
                           </div>
                         )}
 
                         {availableSubjects.gecSubjects.length > 0 && (
-                          <div className="category-section" style={styles.categorySection}>
-                            <h4 style={styles.categoryH4}>GEC Subjects</h4>
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryH4}>GEC Subjects</h4>
                             {availableSubjects.gecSubjects.map((option, i) => (
-                              <div key={`gec-${i}`} className="checkbox-option" style={styles.checkboxOption}>
+                              <div key={`gec-${i}`} className={styles.checkboxOption}>
                                 <input
                                   type="checkbox"
                                   id={`gec-${i}`}
                                   checked={profileData.courseOffered.includes(option)}
                                   onChange={(e) => handleSubjectCheckboxChange(option, e.target.checked)}
-                                  style={styles.checkboxInput}
+                                  className={styles.checkboxInput}
                                 />
-                                <label htmlFor={`gec-${i}`} style={styles.checkboxLabel}>{option}</label>
+                                <label htmlFor={`gec-${i}`} className={styles.checkboxLabel}>{option}</label>
                               </div>
                             ))}
                           </div>
                         )}
 
                         {availableSubjects.peNstpSubjects.length > 0 && (
-                          <div className="category-section" style={styles.categorySection}>
-                            <h4 style={styles.categoryH4}>NSTP & PE Subjects</h4>
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryH4}>NSTP & PE Subjects</h4>
                             {availableSubjects.peNstpSubjects.map((option, i) => (
-                              <div key={`pe-${i}`} className="checkbox-option" style={styles.checkboxOption}>
+                              <div key={`pe-${i}`} className={styles.checkboxOption}>
                                 <input
                                   type="checkbox"
                                   id={`pe-${i}`}
                                   checked={profileData.courseOffered.includes(option)}
                                   onChange={(e) => handleSubjectCheckboxChange(option, e.target.checked)}
-                                  style={styles.checkboxInput}
+                                  className={styles.checkboxInput}
                                 />
-                                <label htmlFor={`pe-${i}`} style={styles.checkboxLabel}>{option}</label>
+                                <label htmlFor={`pe-${i}`} className={styles.checkboxLabel}>{option}</label>
                               </div>
                             ))}
                           </div>
@@ -798,38 +782,33 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
                 )}
 
                 {item.type === 'checkbox' && (
-                  <div className="custom-dropdown" style={styles.customDropdown}>
+                  <div className={styles.customDropdown}>
                     <div
-                      className="dropdown-container"
-                      style={styles.dropdownContainer}
+                      className={styles.dropdownContainer}
                       onClick={() => toggleDropdown(toCamelCase(item.field))}
                     >
                       <input
                         type="text"
                         value={getDisplayValue(toCamelCase(item.field))}
                         readOnly
-                        style={styles.standardInput}
+                        className={styles.standardInput}
                       />
                       <i
-                        className={`dropdown-icon ${dropdownOpen[toCamelCase(item.field)] ? 'open' : ''}`}
-                        style={{
-                          ...styles.dropdownIcon,
-                          ...(dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : {})
-                        }}
+                        className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}
                       >▼</i>
                     </div>
                     {dropdownOpen[toCamelCase(item.field)] && (
-                      <div className="dropdown-options checkbox-options" style={{...styles.dropdownOptions, padding: '5px'}}>
+                      <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
                         {(item.options as { label: string; value: string }[])?.map((option, i) => (
-                          <div key={i} className="checkbox-option" style={styles.checkboxOption}>
+                          <div key={i} className={styles.checkboxOption}>
                             <input
                               type="checkbox"
                               id={`${toCamelCase(item.field)}-${i}`}
                               checked={(profileData[toCamelCase(item.field)] as string[])?.includes(option.value) || false}
                               onChange={(e) => handleCheckboxChange(toCamelCase(item.field), option.value, e.target.checked)}
-                              style={styles.checkboxInput}
+                              className={styles.checkboxInput}
                             />
-                            <label htmlFor={`${toCamelCase(item.field)}-${i}`} style={styles.checkboxLabel}>
+                            <label htmlFor={`${toCamelCase(item.field)}-${i}`} className={styles.checkboxLabel}>
                               {option.label}
                             </label>
                           </div>
@@ -839,7 +818,7 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
                   </div>
                 )}
                 {validationErrors[toCamelCase(item.field)] && (
-                  <div style={styles.errorMessage}>
+                  <div className={styles.errorMessage}>
                     {validationErrors[toCamelCase(item.field)]}
                   </div>
                 )}
@@ -848,38 +827,38 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
           </div>
         </div>
 
-        <div className="bio-goals-wrapper" style={styles.bioGoalsWrapper}>
-          <div className="bio-goals-grid" style={styles.bioGoalsGrid}>
-            <div className="input-fields" style={styles.inputFields}>
-              <label style={styles.label}>Short Bio</label>
+        <div className={styles.bioGoalsWrapper}>
+          <div className={styles.bioGoalsGrid}>
+            <div className={styles.inputFields}>
+              <label className={styles.label}>Short Bio</label>
               <textarea
                 value={profileData.shortBio as string}
                 onChange={(e) => {
                   setProfileData(prev => ({ ...prev, shortBio: e.target.value }));
                   validateField('shortBio', e.target.value);
                 }}
-                style={styles.fixedTextarea}
+                className={styles.fixedTextarea}
                 placeholder="Tell us about yourself"
               />
               {validationErrors.shortBio && (
-                <div style={styles.errorMessage}>
+                <div className={styles.errorMessage}>
                   {validationErrors.shortBio}
                 </div>
               )}
             </div>
-            <div className="input-fields" style={styles.inputFields}>
-              <label style={styles.label}>Learning Goals</label>
+            <div className={styles.inputFields}>
+              <label className={styles.label}>Learning Goals</label>
               <textarea
                 value={profileData.learningGoals as string}
                 onChange={(e) => {
                   setProfileData(prev => ({ ...prev, learningGoals: e.target.value }));
                   validateField('learningGoals', e.target.value);
                 }}
-                style={styles.fixedTextarea}
+                className={styles.fixedTextarea}
                 placeholder="Tell us your learning goals"
               />
               {validationErrors.learningGoals && (
-                <div style={styles.errorMessage}>
+                <div className={styles.errorMessage}>
                   {validationErrors.learningGoals}
                 </div>
               )}
@@ -887,198 +866,9 @@ export default function EditInformation({ userData, onClose, onUpdateUserData }:
           </div>
         </div>
       </div>
-      <div className="save" style={styles.save}>
-        <button onClick={saveChanges} style={styles.saveButton}>Save Changes</button>
+      <div className={styles.save}>
+        <button onClick={saveChanges} className={styles.saveButton}>Save Changes</button>
       </div>
     </div>
   );
 }
-
-const styles: { [key: string]: React.CSSProperties } = {
-  editInformation: {
-    width: '500px',
-    maxHeight: '700px',
-    height: '700px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-    zIndex: 2000,
-    boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
-    borderRadius: '20px',
-    backgroundColor: 'white',
-  },
-  upperElement: {
-    display: 'flex',
-    flexDirection: 'row',
-    background: 'linear-gradient(135deg, #0b2b31, #2b737e)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: '15px 20px',
-    borderRadius: '20px 20px 0 0',
-    position: 'relative',
-  },
-  upperElementH1: {
-    fontSize: '24px',
-    color: '#ffffff',
-    margin: '0',
-  },
-  exitIcon: {
-    position: 'absolute',
-    right: '20px',
-    width: '20px',
-    height: '20px',
-    cursor: 'pointer',
-  },
-  lowerElement: {
-    padding: '0 20px',
-    backgroundColor: 'white',
-    overflowY: 'auto',
-    flex: 1,
-  },
-  sectionH1: {
-    fontSize: '17px',
-    color: '#0c434d',
-    marginBottom: '20px',
-  },
-  inputWrapper: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '15px',
-  },
-  inputFields: {
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: '15px',
-  },
-  label: {
-    color: '#116174',
-    marginBottom: '5px',
-    fontSize: '13px',
-  },
-  standardInput: {
-    width: '100%',
-    padding: '8px 10px',
-    borderRadius: '10px',
-    border: '1px solid #0c434d',
-    fontSize: '12px',
-    color: '#0c434d',
-    backgroundColor: '#d9d9d9',
-    boxSizing: 'border-box',
-    height: '35px',
-  },
-  personalInformation: {
-    padding: '0 0 20px 0',
-    borderBottom: '1px solid #eee',
-    marginBottom: '20px',
-  },
-  profileInformation: {
-    padding: '0 0 20px 0',
-    borderBottom: '1px solid #eee',
-    marginBottom: '20px',
-  },
-  customDropdown: {
-    position: 'relative',
-    width: '100%',
-  },
-  dropdownContainer: {
-    position: 'relative',
-    cursor: 'pointer',
-  },
-  dropdownIcon: {
-    position: 'absolute',
-    right: '10px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    fontSize: '10px',
-    transition: 'transform 0.2s',
-    color: '#0c434d',
-    pointerEvents: 'none',
-  },
-  dropdownIconOpen: {
-    transform: 'translateY(-50%) rotate(180deg)',
-  },
-  dropdownOptions: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    maxHeight: '200px',
-    overflowY: 'auto',
-    background: 'white',
-    border: '1px solid #ddd',
-    borderRadius: '0 0 10px 10px',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-    zIndex: 1000,
-  },
-  dropdownOption: {
-    padding: '8px 10px',
-    cursor: 'pointer',
-    color: '#0c434d',
-    fontSize: '12px',
-  },
-  checkboxOption: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '5px 10px',
-    cursor: 'pointer',
-  },
-  checkboxInput: {
-    marginRight: '8px',
-    cursor: 'pointer',
-  },
-  checkboxLabel: {
-    fontSize: '12px',
-    color: '#0c434d',
-    cursor: 'pointer',
-  },
-  categorySection: {
-    padding: '5px 10px',
-    borderBottom: '1px solid #eee',
-  },
-  categoryH4: {
-    margin: '5px 0',
-    color: '#0c434d',
-    fontSize: '12px',
-    fontWeight: 'bold',
-  },
-  bioGoalsWrapper: {
-    marginTop: '20px',
-  },
-  bioGoalsGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  fixedTextarea: {
-    borderRadius: '10px',
-    border: '1px solid #0c434d',
-    fontSize: '12px',
-    color: '#0c434d',
-    backgroundColor: '#d9d9d9',
-    padding: '8px 10px',
-    height: '70px',
-    width: '100%',
-    resize: 'none',
-    boxSizing: 'border-box',
-  },
-  save: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    padding: '10px',
-    borderRadius: '0 0 20px 20px',
-  },
-  saveButton: {
-    backgroundColor: '#006981',
-    color: 'white',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    fontSize: '16px',
-  },
-  errorMessage: {
-    color: 'red',
-    fontSize: '12px',
-    marginTop: '5px',
-  },
-};
