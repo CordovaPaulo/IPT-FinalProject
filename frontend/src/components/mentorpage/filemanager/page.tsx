@@ -439,9 +439,7 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
       {/* Add Font Awesome CSS */}
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
-      <style jsx>{`
-        /* ... (keep all the previous CSS styles exactly as they were) ... */
-        
+      <style jsx>{`        
         /* Base Styles */
         :root {
           --primary: #3b9aa9;
@@ -477,10 +475,10 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
           display: flex;
           align-items: center;
           padding: 1.5rem;
-          background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+          background: white;
           gap: 1rem;
           flex-wrap: wrap;
-          color: var(--text-light);
+          color: var(--text-dark);
           position: sticky;
           top: 0;
           z-index: 20;
@@ -490,7 +488,7 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
         .table-title {
           margin: 0;
           font-size: 1.6rem;
-          color: var(--text-light);
+          color: var(--text-dark);
           display: flex;
           align-items: center;
           gap: 0.8rem;
@@ -519,7 +517,7 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
 
         .search-input {
           padding: 0.75rem 1rem 0.75rem 2.5rem;
-          border: 1px solid rgb(17, 17, 95);
+          border: 1px solid rgba(134, 134, 132, 1);
           border-radius: 8px;
           width: 250px;
           font-size: 0.9rem;
@@ -665,7 +663,7 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
         .modal-header {
           padding: 1.5rem;
           background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-          color: #0b2548;
+          color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -682,7 +680,7 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
         .close-btn {
           background: none;
           border: none;
-          color: #0b2548;
+          color: white;
           font-size: 1.25rem;
           cursor: pointer;
           padding: 0.5rem;

@@ -1,5 +1,5 @@
-       /* ... (keep all the previous CSS styles exactly as they were) ... */
-        
+
+
         /* Base Styles */
         :root {
           --primary: #3b9aa9;
@@ -223,7 +223,7 @@
         .modal-header {
           padding: 1.5rem;
           background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-          color: #0b2548;
+          color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -240,7 +240,7 @@
         .close-btn {
           background: none;
           border: none;
-          color: #0b2548;
+          color: white;
           font-size: 1.25rem;
           cursor: pointer;
           padding: 0.5rem;

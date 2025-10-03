@@ -313,7 +313,7 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
           display: flex;
           align-items: center;
           padding: 1.5rem;
-          background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+          background: white;
           gap: 1rem;
           flex-wrap: wrap;
           color: #0b2548;
@@ -325,14 +325,15 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
         .table-title {
           margin: 0;
           font-size: 1.6rem;
-          color: var(--text-light);
+          color: var(--text-dark);
           display: flex;
           align-items: center;
           gap: 0.8rem;
         }
 
-        .header-icon {
-          color: var(--text-light);
+
+        .search-container {
+          margin-left: auto;
         }
 
         .search-container {
@@ -349,6 +350,7 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
           position: absolute;
           left: 12px;
           color: var(--primary);
+          z-index: 1;
         }
 
         .search-input {
@@ -356,16 +358,17 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
           border: 1px solid rgb(17, 17, 95);
           border-radius: 8px;
           width: 250px;
-          font-size: 0.8rem;
-          height: 13px;
+          font-size: 0.9rem;
+          height: 40px;
           transition: all 0.3s ease;
+          position: relative;
         }
 
         .search-input:focus {
           outline: none;
           box-shadow: 0 2px 8px rgba(54, 88, 141, 0.7);
+          border-color: var(--primary);
         }
-
         .table-scroll-container {
           overflow-y: auto;
           max-height: calc(100vh - 200px);
