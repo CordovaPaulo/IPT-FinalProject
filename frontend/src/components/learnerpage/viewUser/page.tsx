@@ -194,9 +194,6 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
             <i className="fas fa-user-graduate modal-title-icon"></i>
             Mentor Profile
           </h3>
-          <button className="close-btn" onClick={onClose}>
-            <i className="fas fa-times"></i>
-          </button>
         </div>
 
         {/* Modal Body */}
@@ -331,7 +328,7 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
                   className="close-btn-new" 
                   onClick={onClose}
                 >
-                  <i className="fas fa-times"></i> Close
+                Close
                 </button>
                 <button 
                   className="send-offer-btn" 
@@ -404,6 +401,8 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
             z-index: 100;
             scrollbar-width: none;
             -ms-overflow-style: none;
+            margin-left: 15rem;
+            margin-right: auto; 
           }
 
           .wrapper::-webkit-scrollbar {
