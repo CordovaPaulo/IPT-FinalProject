@@ -27,11 +27,10 @@ function authenticateToken(requiredRole) {
 
 const getValuesFromToken = (req) => {
   try {
-    // Read token from cookie instead of Authorization header
-    const token = req.cookies.MindMateToken;
-    
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
-      console.log('No token found in cookies');
+      console.log('No token found in authorization header');
       return null;
     }
 

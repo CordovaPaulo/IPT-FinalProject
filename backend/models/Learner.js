@@ -11,7 +11,7 @@ const learnerSchema = new mongoose.Schema({
     bio: { type: String, required: true },
     goals: { type: String, required: true },
     address: { type: String, required: true },
-    modality: { type: String, required: true, enum: ['online', 'face-to-face', 'mixed'] },
+    modality: { type: String, required: true, enum: ['online', 'in-person', 'hybrid'] },
     subjects: { type: [String], required: true },
     availability: { type: [String], required: true, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] },
     style: { type: [String], required: true, enum: ['lecture-based', 'interactive-discussion', 'q-and-a-discussion', 'demonstrations', 'project-based', 'step-by-step-discussion'] },

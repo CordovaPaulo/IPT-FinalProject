@@ -6,8 +6,9 @@ import api from '@/lib/axios';
 import styles from './viewUser.module.css';
 
 interface ViewUserProps {
-  userId: string;
+  user: any;
   onClose: () => void;
+  isOpen: boolean;
 }
 
 interface UserInfo {
@@ -29,7 +30,7 @@ interface UserInfo {
   id: string;
 }
 
-export default function ViewUser({ userId, onClose }: ViewUserProps) {
+export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
@@ -152,11 +153,14 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
     }
   };
 
+  // Extract userId from the user prop
+  const userId = user?.id || user?._id || user?.userId;
+
   useEffect(() => {
-    if (userId) {
+    if (userId && isOpen) {
       fetchUserInfo(userId);
     }
-  }, [userId]);
+  }, [userId, isOpen]); // Add isOpen to dependencies
 
   if (isLoading) {
     return (
@@ -166,8 +170,16 @@ export default function ViewUser({ userId, onClose }: ViewUserProps) {
     );
   }
 
+  if (!isOpen || !user) return null;
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className={styles.modalOverlay}>
+    <div className={styles.modalOverlay} onClick={handleOverlayClick}>
       <div className={styles.wrapper}>
         {/*  Modal Header - Title */}
         <div className={`${styles.upperElement} ${styles.stickyHeader}`}>

@@ -5,12 +5,13 @@ import { useState, useEffect, useRef } from 'react';
 import ViewUser from '../viewUser/page';
 import styles from './main.module.css';
 
+// Updated interface to match the actual API response
 interface User {
-  id: number;
-  userName: string;
+  id: string;
+  name: string;
   yearLevel: string;
-  course: string;
-  image_url?: string;
+  program?: string; // Make this optional since some learners don't have it
+  image?: string | null;
 }
 
 interface MentorData {
@@ -22,17 +23,21 @@ interface MainComponentProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   mentorData?: MentorData;
+  setUserId?: (id: string | null) => void;
+  userData?: any;
 }
 
 export default function MainComponent({ 
   users, 
   searchQuery, 
   setSearchQuery,
-  mentorData = {} 
+  mentorData = {},
+  setUserId,
+  userData
 }: MainComponentProps) {
   const [filteredUsers, setFilteredUsers] = useState<User[]>(users);
   const [isView, setIsView] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState<number>(-1); // -1 means no focus, 0+ means card focus
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
   const userCardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -47,11 +52,17 @@ export default function MainComponent({
 
     const query = searchQuery.toLowerCase().trim();
     const filtered = users.filter((user) => {
+      // Safely handle undefined/null values
+      const userName = user.name?.toLowerCase() || '';
+      const yearLevel = user.yearLevel?.toLowerCase() || '';
+      const program = user.program?.toLowerCase() || '';
+      const programAbbreviation = user.program?.match(/\(([^)]+)\)/)?.[1]?.toLowerCase() || '';
+
       return (
-        (user.userName && user.userName.toLowerCase().includes(query)) ||
-        (user.course && user.course.toLowerCase().includes(query)) ||
-        (user.yearLevel && user.yearLevel.toLowerCase().includes(query)) ||
-        (user.course.match(/\(([^)]+)\)/)?.[1]?.toLowerCase().includes(query))
+        userName.includes(query) ||
+        yearLevel.includes(query) ||
+        program.includes(query) ||
+        programAbbreviation.includes(query)
       );
     });
     
@@ -165,14 +176,37 @@ export default function MainComponent({
     }
   };
 
-  const openView = (id: number) => {
+  const openView = (id: string) => {
     setSelectedUserId(id);
     setIsView(true);
+    if (setUserId) {
+      setUserId(id);
+    }
   };
 
   const closeView = () => {
     setIsView(false);
     setSelectedUserId(null);
+    if (setUserId) {
+      setUserId(null);
+    }
+  };
+
+  // Helper function to get program abbreviation or full program name
+  const getProgramDisplay = (program?: string) => {
+    if (!program) return 'N/A';
+    
+    // Try to extract abbreviation from parentheses
+    const abbreviation = program.match(/\(([^)]+)\)/)?.[1];
+    return abbreviation || program;
+  };
+
+  // Helper function to handle image URLs
+  const getImageUrl = (image?: string | null) => {
+    if (!image || image === 'null' || image === null) {
+      return 'https://placehold.co/600x400';
+    }
+    return image;
     // Restore focus to the previously focused card when closing view
     setTimeout(() => {
       if (focusedIndex >= 0) {
@@ -223,8 +257,9 @@ export default function MainComponent({
       </form>
       
       <div className={styles.mainUserGrid}>
-        {filteredUsers.map((user, index) => (
-          <div 
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user, index) => (
+            <div 
             key={user.id} 
             className={styles.mainUserCard}
             ref={el => userCardRefs.current[index] = el}
@@ -243,30 +278,35 @@ export default function MainComponent({
               }
             }}
           >
-            <div className={styles.mainUpperElement}>
-              <img
-                src={user.image_url || 'https://placehold.co/600x400'}
-                alt="profile-pic"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://placehold.co/600x400';
-                }}
-              />
-              <h1>{user.userName}</h1>
-            </div>
-            <div className={styles.mainLowerElement}>
-              <p>{user.yearLevel}</p>
-              <p>{user.course.match(/\(([^)]+)\)/)?.[1] || user.course}</p>
-              <div className={styles.mainButtonGroup}>
-                <button 
-                  className={styles.mainSeeMoreBtn}
-                  onClick={() => openView(user.id)}
-                >
-                  See More
-                </button>
+              <div className={styles.mainUpperElement}>
+                <img
+                  src={getImageUrl(user.image)}
+                  alt={`${user.name || 'User'} profile`}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://placehold.co/600x400';
+                  }}
+                />
+                <h1>{user.name || 'Unknown User'}</h1>
+              </div>
+              <div className={styles.mainLowerElement}>
+                <p>{user.yearLevel || 'N/A'}</p>
+                <p>{getProgramDisplay(user.program)}</p>
+                <div className={styles.mainButtonGroup}>
+                  <button 
+                    className={styles.mainSeeMoreBtn}
+                    onClick={() => openView(user.id)}
+                  >
+                    See More
+                  </button>
+                </div>
               </div>
             </div>
+          ))
+        ) : (
+          <div className={styles.noResults}>
+            <p>No learners found matching your search.</p>
           </div>
-        ))}
+        )}
       </div>
 
       {/* View User Popup */}

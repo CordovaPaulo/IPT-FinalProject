@@ -15,6 +15,7 @@ const testRouter = require('./routes/test');
 const learnerRoute = require('./routes/learner');
 const mentorRoute = require('./routes/mentor');
 const httpCookieRouter = require('./routes/httpCookie');
+const messageRouter = require('./routes/message')
 
 const app = express();
 
@@ -27,8 +28,8 @@ app.use(cookieParser());
 
 // CORS configuration - MUST BE BEFORE ROUTES
 app.use(cors({
-    origin: 'http://localhost:3000', // Remove the wildcard when using credentials
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
 }));
@@ -40,7 +41,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/test', testRouter);
 app.use('/api/learner', learnerRoute);
 app.use('/api/mentor', mentorRoute);
-app.use('/api/cookie', httpCookieRouter); // Mount the cookie routes
+app.use('/api/cookie', httpCookieRouter);
+app.use('/api/message', messageRouter)
 
 // 404 handler
 app.use((req, res, next) => {

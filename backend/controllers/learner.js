@@ -104,14 +104,24 @@ exports.setFeedback = async (req, res) => {
         return res.status(403).json({ message: 'Invalid token', code: 403 });
     }
 
-    if (!rating || !comments) {
+    if (!rating || !comments ) {
         return res.status(400).json({ message: 'All fields are required', code: 400 });
     }
 
+    const learnerId = await Learner.findOne({
+        $or: [
+            { _id: decoded.id },
+            { userId: decoded.id }
+        ]
+    });
+
+    const sched = await Schedule.findOne({ _id: id });
+
     try {
         const feedback = new Feedback({
-            learner: decoded.id,
-            mentor: id,
+            learner: learnerId._id,
+            mentor: sched.mentor,
+            schedule: sched._id,
             rating,
             comments
         });
@@ -171,7 +181,7 @@ exports.getSchedules = async (req, res) => {
             // Try different approaches to find mentor and learner
             let mentor = await Mentor.findById(schedule.mentor);
             if (!mentor) {
-                mentor = await Mentor.findOne({ MentorId: schedule.mentor });
+                mentor = await Mentor.findOne({ userId: schedule.mentor });
             }
             if (!mentor) {
                 mentor = await Mentor.findOne({ _id: schedule.mentor });
@@ -197,8 +207,9 @@ exports.getSchedules = async (req, res) => {
                 location: schedule.location,
                 subject: schedule.subject,
                 
-                // Mentor information (photo, name, program, year level)
+                // Mentor information (include id)
                 mentor: {
+                    id: mentor?._id || schedule.mentor, // <- added id
                     name: mentor?.name || 'Unknown Mentor',
                     program: mentor?.program || 'N/A',
                     yearLevel: mentor?.yearLevel || 'N/A',
@@ -284,5 +295,167 @@ exports.editProfile = async (req, res) => {
         res.status(200).json({ learner});
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
+    }
+}
+
+exports.cancelSched = async (req, res) => {
+    const { id } = req.params;
+    const decoded = getValuesFromToken(req);
+
+    if (!decoded || !decoded.id) {
+        return res.status(403).json({ message: 'Invalid token', code: 403 });
+    }
+
+    if (!id) {
+        return res.status(400).json({ message: 'Schedule id is required', code: 400 });
+    }
+
+    try {
+        const schedule = await Schedule.findById(id);
+        if (!schedule) {
+            return res.status(404).json({ message: 'Schedule not found', code: 404 });
+        }
+
+        // const requesterId = String(decoded.id);
+        // const schedLearnerId = String(schedule.learner);
+        // const schedMentorId = String(schedule.mentor);
+
+        // // only the learner or the mentor involved can cancel
+        // if (requesterId !== schedLearnerId && requesterId !== schedMentorId) {
+        //     return res.status(403).json({ message: 'Not authorized to cancel this schedule', code: 403 });
+        // }
+
+        await Schedule.findByIdAndDelete(id);
+
+        // notify the other party if socket.io is available (optional)
+        try {
+            const io = req.app && req.app.get('io');
+            if (io) {
+                const otherId = requesterId === schedLearnerId ? schedMentorId : schedLearnerId;
+                io.to(String(otherId)).emit('scheduleCanceled', {
+                    scheduleId: id,
+                    canceledBy: requesterId,
+                    date: schedule.date,
+                    time: schedule.time,
+                    subject: schedule.subject,
+                });
+            }
+        } catch (emitErr) {
+            // do not fail the request if emit fails
+            console.error('Socket emit error (cancelSched):', emitErr);
+        }
+
+        res.status(200).json({ message: 'Schedule canceled', code: 200 });
+    } catch (error) {
+        res.status(500).json({ message: error.message, code: 500 });
+    }
+}
+
+exports.reschedSched = async (req, res) => {
+    const { id } = req.params;
+    const { date, time, location, subject } = req.body;
+    const decoded = getValuesFromToken(req);
+
+    if (!decoded || !decoded.id) {
+        return res.status(403).json({ message: 'Invalid token', code: 403 });
+    }
+
+    if (!id) {
+        return res.status(400).json({ message: 'Schedule id is required', code: 400 });
+    }
+
+    if (!date && !time && !location && !subject) {
+        return res.status(400).json({ message: 'At least one field (date, time, location, subject) is required to reschedule', code: 400 });
+    }
+
+    try {
+        const schedule = await Schedule.findById(id);
+        if (!schedule) {
+            return res.status(404).json({ message: 'Schedule not found', code: 404 });
+        }
+
+        // const requesterId = String(decoded.id);
+        // const schedLearnerId = String(schedule.learner);
+        // const schedMentorId = String(schedule.mentor);
+
+        // // only the learner or the mentor involved can reschedule
+        // if (requesterId !== schedLearnerId && requesterId !== schedMentorId) {
+        //     return res.status(403).json({ message: 'Not authorized to reschedule this schedule', code: 403 });
+        // }
+
+        // keep old values for notification
+        const oldValues = {
+            date: schedule.date,
+            time: schedule.time,
+            location: schedule.location,
+            subject: schedule.subject
+        };
+
+        // apply updates
+        if (date) schedule.date = new Date(date);
+        if (time) schedule.time = time;
+        if (location) schedule.location = location;
+        if (subject) schedule.subject = subject;
+
+        await schedule.save();
+
+        // notify the other party if socket.io is available (optional)
+        try {
+            const io = req.app && req.app.get('io');
+            if (io) {
+                const otherId = requesterId === schedLearnerId ? schedMentorId : schedLearnerId;
+                io.to(String(otherId)).emit('scheduleRescheduled', {
+                    scheduleId: id,
+                    rescheduledBy: requesterId,
+                    old: {
+                        date: oldValues.date,
+                        time: oldValues.time,
+                        location: oldValues.location,
+                        subject: oldValues.subject
+                    },
+                    updated: {
+                        date: schedule.date,
+                        time: schedule.time,
+                        location: schedule.location,
+                        subject: schedule.subject
+                    }
+                });
+            }
+        } catch (emitErr) {
+            console.error('Socket emit error (reschedSched):', emitErr);
+        }
+
+        res.status(200).json({ message: 'Schedule rescheduled', schedule, code: 200 });
+    } catch (error) {
+        console.error('reschedSched error:', error);
+        res.status(500).json({ message: error.message, code: 500 });
+    }
+}
+
+exports.getFeedbacks = async (req, res) => {
+    const decoded = getValuesFromToken(req);
+    if (!decoded || !decoded.id) {
+        return res.status(403).json({ message: 'Invalid token', code: 403 });
+    }
+    try {
+        const learner = await Learner.findOne({
+            $or: [
+                { _id: decoded.id },
+                { userId: decoded.id }
+            ]
+        });
+        if (!learner) {
+            return res.status(404).json({ message: 'Learner not found', code: 404 });
+        }
+
+        const feedbacks = await Feedback.find({ learner: learner._id });
+
+        if (feedbacks.length === 0) {
+            return res.status(404).json({ message: 'No feedbacks found', code: 404 });
+        }
+        res.status(200).json(feedbacks);
+    } catch (error) {
+        console.error('Error fetching feedbacks:', error);
+        res.status(500).json({ message: 'Internal server error', code: 500 });
     }
 }

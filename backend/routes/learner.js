@@ -6,12 +6,15 @@ const jwtService = require('../service/jwt');
 // POST routes
 router.post('/schedule/:id', jwtService.authenticateToken('learner'), learnerController.setSchedule);
 router.post('/feedback/:id', jwtService.authenticateToken('learner'), learnerController.setFeedback);
+router.post('/cancel-sched/:id', jwtService.authenticateToken('learner'), learnerController.cancelSched);
+router.post('/resched-sched/:id', jwtService.authenticateToken('learner'), learnerController.reschedSched);
 
 // GET routes
 router.get('/profile', jwtService.authenticateToken('learner'), learnerController.getProfileInfo);
 router.get('/mentors', jwtService.authenticateToken('learner'), learnerController.getAllMentors);
 router.get('/mentors/:id', jwtService.authenticateToken('learner'), learnerController.getMentorById);
 router.get('/schedules', jwtService.authenticateToken('learner'), learnerController.getSchedules);
+router.get('/feedback-given', jwtService.authenticateToken('learner'), learnerController.getFeedbacks);
 
 //PATCH routes
 router.patch('/profile/edit', jwtService.authenticateToken('learner'), learnerController.editProfile);

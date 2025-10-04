@@ -9,7 +9,16 @@ import FilesComponent from '@/components/mentorpage/files/page';
 import FileManagerComponent from '@/components/mentorpage/filemanager/page';
 import EditInformationComponent from '@/components/mentorpage/information/page';
 import LogoutComponent from '@/components/mentorpage/logout/page';
+import api from "@/lib/axios";
 import './mentor.css';
+
+// Helper to get cookie value (works only for non-httpOnly cookies)
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
 
 interface User {
   id: number | null;
@@ -38,9 +47,72 @@ interface Mentor {
 }
 
 interface UserData {
-  user: User;
-  ment: Mentor;
-  image_url: string | null;
+  _id: string;
+  userId: string;
+  name: string;
+  email: string;
+  address: string;
+  yearLevel: string;
+  program: string;
+  availability: string[];
+  sessionDur: string;
+  bio: string;
+  subjects: string[];
+  image: string;
+  phoneNumber: string;
+  style: string[];
+  goals: string;
+  sex: string;
+  status: string;
+  modality: string;
+  createdAt: string;
+  __v: number;
+  ment?: Mentor;
+  user?: User;
+  image_url?: string;
+}
+
+// Update the Schedule interface to match the API response
+interface Schedule {
+  id: string;
+  date: string;
+  time: string;
+  subject: string;
+  location: string;
+  mentor: {
+    id: string;
+    name: string;
+    program: string;
+    yearLevel: string;
+    image: string;
+  };
+  learner: {
+    id: string;
+    name: string;
+    program: string;
+    yearLevel: string;
+    image: string;
+  };
+}
+
+// Update the Learner interface to match the API response
+interface LearnerFromAPI {
+  _id: string;
+  name: string;
+  program: string;
+  yearLevel: string;
+  image?: string;
+}
+
+interface Feedback {
+  _id: string;
+  learner: string;
+  mentor: string;
+  schedule: string;
+  rating: number;
+  comments: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function MentorPage() {
@@ -49,38 +121,34 @@ export default function MentorPage() {
   // State variables
   const [isLoading, setIsLoading] = useState(false);
   const [userData, setUserData] = useState<UserData>({
-    user: {
-      id: null,
-      name: "John Doe",
-      email: "john@example.com",
-      role: "mentor",
-    },
-    ment: {
-      address: "123 Main St",
-      proficiency: "Advanced",
-      year: "3rd Year",
-      course: "Computer Science (CS)",
-      availability: ["Monday", "Wednesday", "Friday"],
-      prefSessDur: "1 hour",
-      bio: "Experienced mentor with 3 years of teaching experience in computer science subjects.",
-      subjects: ["Mathematics", "Physics", "Programming", "Algorithms", "Data Structures", "Web Development", "Database Management"],
-      image: "",
-      phoneNum: "123-456-7890",
-      teach_sty: ["Interactive", "Practical"],
-      credentials: ["Bachelor of Science in Computer Science", "Teaching Certificate"],
-      exp: "3 years",
-      rating_ave: 4.5,
-      gender: "Male",
-      learn_modality: "Online",
-    },
-    image_url: null,
+    _id: "",
+    userId: "",
+    name: "",
+    email: "",
+    address: "",
+    yearLevel: "",
+    program: "",
+    availability: [],
+    sessionDur: "",
+    bio: "",
+    subjects: [],
+    image: "",
+    phoneNumber: "",
+    style: [],
+    goals: "",
+    sex: "",
+    status: "",
+    modality: "",
+    createdAt: "",
+    __v: 0
   });
   
-  const [users, setUsers] = useState<any[]>([]);
-  const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
-  const [upcomingSchedule, setUpcomingSchedule] = useState<any[]>([]);
-  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [users, setUsers] = useState<LearnerFromAPI[]>([]);
+  const [todaySchedule, setTodaySchedule] = useState<Schedule[]>([]);
+  const [upcomingSchedule, setUpcomingSchedule] = useState<Schedule[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [files, setFiles] = useState<any[]>([]);
+  
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showOffer, setShowOffer] = useState(false);
@@ -163,126 +231,276 @@ export default function MentorPage() {
   };
 
   // API functions
-  const loggedUserDets = async () => {
+  const fetchUserData = async () => {
+    setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log("Starting fetchUserData...");
+      const token = getCookie('MindMateToken');
+      console.log("Token:", token ? "Found" : "Not found");
+      
+      const res = await api.get('/api/mentor/profile', {
+        withCredentials: true,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      setUserData(res.data.userData);
+      console.log("Mentor profile data:", res.data);
+      
     } catch (error) {
-      console.error("Error fetching user details:", error);
+      console.error('Error fetching mentor data:', error);
+      
+      // Fallback to mock data if API fails
+      const mockUserData: UserData = {
+        _id: "mock_id",
+        userId: "mock_user_id",
+        name: "John Doe",
+        email: "john@example.com",
+        address: "123 Main St",
+        yearLevel: "3rd Year",
+        program: "Computer Science (CS)",
+        availability: ["Monday", "Wednesday", "Friday"],
+        sessionDur: "1 hour",
+        bio: "Experienced mentor with 3 years of teaching experience in computer science subjects.",
+        subjects: ["Mathematics", "Physics", "Programming", "Algorithms", "Data Structures", "Web Development", "Database Management"],
+        image: "https://placehold.co/600x400",
+        phoneNumber: "123-456-7890",
+        style: ["Interactive", "Practical"],
+        goals: "Help students excel",
+        sex: "Male",
+        status: "Active",
+        modality: "Online",
+        createdAt: new Date().toISOString(),
+        __v: 0
+      };
+      setUserData(mockUserData);
+      
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const learnersProfile = async () => {
+  const fetchLearners = async () => {
+    setIsLoadingLearners(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setUsers([
-        { id: 1, userName: "Alice Johnson", yearLevel: "2nd Year", course: "Computer Science" },
-        { id: 2, userName: "Bob Smith", yearLevel: "1st Year", course: "Information Technology" },
-        { id: 3, userName: "Carol Davis", yearLevel: "3rd Year", course: "Software Engineering" },
-      ]);
+      console.log("Fetching learners from API...");
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/mentor/learners', {
+        withCredentials: true,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      console.log("Learners API Response:", res.data);
+      setUsers(res.data);
+      
     } catch (error) {
-      console.error("Error fetching learner profiles:", error);
+      console.error('Error fetching learners:', error);
+      
+      // Fallback to mock data if API fails
+      const mockLearners: LearnerFromAPI[] = [
+        {
+          _id: "1",
+          name: "Alice Johnson",
+          program: "BSCS",
+          yearLevel: "2nd Year",
+          image: "https://placehold.co/600x400"
+        },
+        {
+          _id: "2",
+          name: "Bob Smith",
+          program: "BSIT",
+          yearLevel: "1st Year",
+          image: "https://placehold.co/600x400"
+        },
+        {
+          _id: "3",
+          name: "Carol Davis",
+          program: "BSSE",
+          yearLevel: "3rd Year",
+          image: "https://placehold.co/600x400"
+        }
+      ];
+      setUsers(mockLearners);
+      
+    } finally {
+      setIsLoadingLearners(false);
     }
   };
 
-  const sessionInfo = async () => {
+  const fetchSchedules = async () => {
+    setIsLoadingSchedules(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setTodaySchedule([
+      console.log("Fetching schedules from API...");
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/mentor/schedules', {
+        withCredentials: true,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      // Assign each array to its state
+      setTodaySchedule(res.data.todaySchedule || []);
+      setUpcomingSchedule(res.data.upcomingSchedule || []);
+      console.log("Schedules fetched:", res.data);
+      
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+      
+      // Fallback to mock data if API fails
+      const mockTodaySchedule: Schedule[] = [
         { 
-          id: 1, 
+          id: "1", 
+          date: new Date().toISOString().split('T')[0],
           time: "10:00 AM", 
           subject: "Mathematics",
-          date: "2024-01-10",
           location: "Room 101",
-          learner: { user: { name: "Alice Johnson" } }
-        },
+          mentor: {
+            id: "mentor1",
+            name: "John Doe",
+            program: "BSCS",
+            yearLevel: "Professor",
+            image: "https://placehold.co/600x400"
+          },
+          learner: { 
+            id: "learner1",
+            name: "Alice Johnson",
+            program: "BSCS",
+            yearLevel: "2nd Year",
+            image: "https://placehold.co/600x400"
+          }
+        }
+      ];
+      
+      const mockUpcomingSchedule: Schedule[] = [
         { 
-          id: 2, 
-          time: "2:00 PM", 
-          subject: "Programming",
-          date: "2024-01-10", 
-          location: "Online",
-          learner: { user: { name: "Bob Smith" } }
-        },
-      ]);
-      setUpcomingSchedule([
-        { 
-          id: 3, 
-          date: "2024-01-15", 
+          id: "2", 
+          date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
           time: "11:00 AM", 
           subject: "Algorithms",
           location: "Library",
-          learner: { user: { name: "Carol Davis" } }
-        },
-      ]);
-    } catch (error) {
-      console.error("Error fetching session info:", error);
+          mentor: {
+            id: "mentor1",
+            name: "John Doe",
+            program: "BSCS",
+            yearLevel: "Professor",
+            image: "https://placehold.co/600x400"
+          },
+          learner: { 
+            id: "learner2",
+            name: "Carol Davis",
+            program: "BSSE",
+            yearLevel: "3rd Year",
+            image: "https://placehold.co/600x400"
+          }
+        }
+      ];
+      
+      setTodaySchedule(mockTodaySchedule);
+      setUpcomingSchedule(mockUpcomingSchedule);
+      
+    } finally {
+      setIsLoadingSchedules(false);
     }
   };
 
-  const getFeedbacks = async () => {
+  const fetchFeedbacks = async () => {
+    setIsLoadingFeedbacks(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setFeedbacks([
-        { 
-          id: 1, 
-          rating: 5, 
-          comment: "Excellent mentor! Very patient and knowledgeable.", 
-          student: "Alice Johnson",
-          date: "2024-01-15"
+      console.log("Fetching feedbacks from API...");
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/mentor/feedbacks', {
+        withCredentials: true,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        { 
-          id: 2, 
-          rating: 4, 
-          comment: "Very helpful sessions, great explanations.", 
-          student: "Bob Smith",
-          date: "2024-01-12"
-        },
-        { 
-          id: 3, 
-          rating: 5, 
-          comment: "Amazing teaching style, helped me understand complex topics easily.", 
-          student: "Carol Davis",
-          date: "2024-01-10"
-        },
-      ]);
+      });
+      
+      console.log("Feedbacks API Response:", res.data);
+      setFeedbacks(res.data);
+      
     } catch (error) {
-      console.error("Error fetching feedbacks:", error);
+      console.error('Error fetching feedbacks:', error);
+      
+      // If no feedbacks found (404), that's okay - set empty array
+      if (error.response?.status === 404) {
+        setFeedbacks([]);
+      } else {
+        // Fallback to mock data for other errors
+        const mockFeedbacks: Feedback[] = [
+          { 
+            _id: "1",
+            learner: "learner1",
+            mentor: "mentor1",
+            schedule: "schedule1",
+            rating: 5, 
+            comments: "Excellent mentor! Very patient and knowledgeable.", 
+            createdAt: "2024-01-15T00:00:00.000Z",
+            updatedAt: "2024-01-15T00:00:00.000Z"
+          },
+          { 
+            _id: "2",
+            learner: "learner2", 
+            mentor: "mentor1",
+            schedule: "schedule2",
+            rating: 4, 
+            comments: "Very helpful sessions, great explanations.", 
+            createdAt: "2024-01-12T00:00:00.000Z",
+            updatedAt: "2024-01-12T00:00:00.000Z"
+          }
+        ];
+        setFeedbacks(mockFeedbacks);
+      }
+    } finally {
+      setIsLoadingFeedbacks(false);
     }
   };
 
   const getFiles = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setFiles([
+      console.log("Fetching files...");
+      // Mock files for now - you can implement file API later
+      const mockFiles = [
         { id: 1, name: "Mathematics_Notes.pdf", size: "2.4 MB", date: "2024-01-10" },
         { id: 2, name: "Programming_Exercises.zip", size: "5.1 MB", date: "2024-01-08" },
-      ]);
+      ];
+      setFiles(mockFiles);
     } catch (error) {
       console.error("Error fetching files:", error);
     }
   };
 
   const registerLearnerRole = async () => {
-    try {
-      await fetch('/api/set/2nd_role', { method: 'POST' });
-      router.push('/learner-info/alt');
-    } catch (error) {
-      console.error("Error registering learner role:", error);
-    }
+    router.push('/learner-info/alt');
   };
 
   const switchRole = async () => {
     try {
-      await fetch('/api/switch', { method: 'POST' });
+      console.log("Switching role...");
+      router.push('/learner');
+    } catch (error) {
+      console.error('Error switching role:', error);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      console.log("Logging out...");
+      localStorage.removeItem('auth_token');
+      // Clear the cookie
+      document.cookie = 'MindMateToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       router.push('/login');
     } catch (error) {
-      console.error("Error switching role:", error);
+      console.error('Logout error:', error);
     }
   };
 
   // Component functions
   const switchComponent = (component: string) => {
+    console.log('Switching to component:', component);
     if (activeComponent !== component) {
       setActiveComponent(component);
     }
@@ -314,7 +532,14 @@ export default function MentorPage() {
     setShowEditInformation(false);
   };
 
-  // UPDATED LOGOUT FUNCTIONS
+  // Function to handle updating user data from the edit form
+  const handleUpdateUserData = (updatedData: Partial<UserData>) => {
+    setUserData(prev => ({
+      ...prev,
+      ...updatedData
+    }));
+  };
+
   const handleOfferConfirm = () => {
     setShowOffer(false);
   };
@@ -324,14 +549,27 @@ export default function MentorPage() {
   };
 
   const checkMobileView = () => {
-    const mobile = window.innerWidth <= 768;
-    setIsMobileView(mobile);
-    if (!mobile) {
-      setIsSidebarVisible(true);
-    } else {
-      setIsSidebarVisible(false);
+    if (typeof window !== 'undefined') {
+      const mobile = window.innerWidth <= 768;
+      setIsMobileView(mobile);
+      if (!mobile) {
+        setIsSidebarVisible(true);
+      } else {
+        setIsSidebarVisible(false);
+      }
     }
   };
+
+  // Filtered users for search
+  const filteredUsers = users.filter((user) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      searchQuery === "" ||
+      user.name.toLowerCase().includes(searchLower) ||
+      user.yearLevel.toLowerCase().includes(searchLower) ||
+      user.program.toLowerCase().includes(searchLower)
+    );
+  });
 
   // Star rating component
   const StarRating = ({ rating }: { rating: number }) => {
@@ -577,46 +815,78 @@ export default function MentorPage() {
 
   // UPDATED renderComponent function - logout as overlay
   const renderComponent = () => {
+    const props = {
+      users: filteredUsers,
+      userData,
+      todaySchedule,
+      upcomingSchedule,
+      feedbacks,
+      files,
+      searchQuery,
+      setSearchQuery,
+      setUserId,
+      mentorData: userData,
+      setFiles,
+      onScheduleCreated: fetchSchedules // Add this to refresh schedules after creation
+    };
+
     const mainContent = (() => {
       switch (activeComponent) {
         case 'main':
           return (
             <MainComponent 
-              users={users}
+              users={filteredUsers}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               setUserId={setUserId}
               mentorData={userData}
+              userData={userData}
             />
           );
         case 'session':
-          return <SessionComponent schedule={todaySchedule} upcomingSchedule={upcomingSchedule} />;
+          return <SessionComponent 
+            schedule={todaySchedule} 
+            upcomingSchedule={upcomingSchedule}
+            userData={userData}
+            onScheduleCreated={fetchSchedules}
+          />;
         case 'reviews':
-          return <ReviewsComponent feedbacks={feedbacks} />;
+          return <ReviewsComponent 
+            feedbacks={feedbacks}
+            userData={userData}
+          />;
         case 'files':
-          return <FilesComponent files={files} setFiles={setFiles} />;
-        case 'records':
-          return <RecordsComponent />;
+          return <FilesComponent 
+            files={files} 
+            setFiles={setFiles}
+            userData={userData}
+          />;
         case 'fileManage':
-          return <FileManagerComponent files={files} setFiles={setFiles} />;
+          return <FileManagerComponent 
+            files={files} 
+            setFiles={setFiles}
+            userData={userData}
+          />;
         case 'logout': 
           return (
             <MainComponent 
-              users={users}
+              users={filteredUsers}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               setUserId={setUserId}
               mentorData={userData}
+              userData={userData}
             />
           );
         default:
           return (
             <MainComponent 
-              users={users}
+              users={filteredUsers}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               setUserId={setUserId}
               mentorData={userData}
+              userData={userData}
             />
           );
       }
@@ -630,10 +900,7 @@ export default function MentorPage() {
         {activeComponent === 'logout' && (
           <LogoutComponent 
             onCancel={() => switchComponent('main')} 
-            onLogout={() => {
-              // Handle any additional logout logic here
-              console.log('User logged out');
-            }}
+            onLogout={logout}
           />
         )}
       </>
@@ -642,39 +909,51 @@ export default function MentorPage() {
 
   useEffect(() => {
     const initializeData = async () => {
-      setIsLoading(true);
+      startLoading();
       
       checkMobileView();
-      window.addEventListener('resize', checkMobileView);
+      if (typeof window !== 'undefined') {
+        window.addEventListener('resize', checkMobileView);
+      }
 
       try {
+        await fetchUserData();
         await Promise.allSettled([
-          loggedUserDets(),
-          learnersProfile(),
-          sessionInfo(),
-          getFeedbacks(),
+          fetchLearners(),
+          fetchSchedules(),
+          fetchFeedbacks(),
           getFiles(),
         ]);
       } catch (error) {
         console.error("Critical error during initialization:", error);
       } finally {
-        setIsLoading(false);
+        stopLoading();
       }
     };
 
     initializeData();
 
     return () => {
-      window.removeEventListener('resize', checkMobileView);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', checkMobileView);
+      }
     };
   }, []);
+
+  // Add debugging useEffect
+  useEffect(() => {
+    console.log("Current mentor userData state:", userData);
+  }, [userData]);
+
+  const courseAbbreviation = userData.program?.match(/\(([^)]+)\)/)?.[1] || userData.program;
 
   return (
     <div className="mentor-page">
       {/* Loading Overlay */}
       {isLoading && (
         <div className="loading-overlay">
-          <div className="spinner"></div>
+          <div className="loading-backdrop"></div>
+          <div className="loading-spinner">Loading...</div>
         </div>
       )}
 
@@ -684,6 +963,7 @@ export default function MentorPage() {
           userData={userData}
           onSave={handleSaveInformation}
           onCancel={handleCancelEdit}
+          onUpdateUserData={handleUpdateUserData}
         />
       )}
 
@@ -703,7 +983,7 @@ export default function MentorPage() {
       {/* Mobile Sidebar Toggle Button */}
       {isMobileView && (
         <button className="sidebar-toggle" onClick={toggleSidebar}>
-          <i className="fas fa-bars"></i>
+          ☰
         </button>
       )}
 
@@ -729,17 +1009,20 @@ export default function MentorPage() {
           <div>
             <h1>Hi, Mentor!</h1>
             <img
-              src={userData.image_url || 'https://placehold.co/600x400'}
+              src={userData.image || 'https://placehold.co/600x400'}
               alt="profile-pic"
+              width={100}
+              height={100}
+              style={{ borderRadius: '50%', objectFit: 'cover' }}
               onError={(e) => {
                 e.currentTarget.src = 'https://placehold.co/600x400';
               }}
             />
           </div>
           <div>
-            <h2>{userData.user.name}</h2>
-            <i><p>{userData.ment.proficiency}</p></i>
-            <StarRating rating={userData.ment.rating_ave} />
+            <h2>{userData.name}</h2>
+            <i><p>{userData.yearLevel}</p></i>
+            <StarRating rating={4.5} />
           </div>
         </div>
 
@@ -749,16 +1032,14 @@ export default function MentorPage() {
             <div className="lines">
               <h3>Year Level:</h3>
               <div>
-                <p>{userData.ment.year}</p>
+                <p>{userData.yearLevel}</p>
               </div>
             </div>
 
             <div className="lines">
               <h3>Program:</h3>
               <div>
-                <p>
-                  {userData.ment.course.match(/\(([^)]+)\)/)?.[1] || userData.ment.course}
-                </p>
+                <p>{courseAbbreviation}</p>
               </div>
             </div>
           </div>
@@ -768,13 +1049,13 @@ export default function MentorPage() {
             <div className="lines">
               <h3>Days:</h3>
               <div>
-                <p>{userData.ment.availability.join(", ")}</p>
+                <p>{userData.availability?.join(", ") || 'Not specified'}</p>
               </div>
             </div>
             <div className="lines">
               <h3>Duration:</h3>
               <div>
-                <p>{userData.ment.prefSessDur}</p>
+                <p>{userData.sessionDur || 'Not specified'}</p>
               </div>
             </div>
           </div>
@@ -795,6 +1076,7 @@ export default function MentorPage() {
                 <div 
                   className="course-card remaining-courses" 
                   onClick={toggleShowAllCourses}
+                  style={{ cursor: 'pointer' }}
                 >
                   <div className="lines">
                     <div>
@@ -810,11 +1092,11 @@ export default function MentorPage() {
                 <div className="popup-content">
                   <h3>All Courses Offered</h3>
                   <div className="popup-courses">
-                    {userData.ment.subjects.map((course, index) => (
+                    {userData.subjects?.map((course, index) => (
                       <div key={index} className="popup-course">
                         {course}
                       </div>
-                    ))}
+                    )) || []}
                   </div>
                   <button 
                     className="close-popup"
@@ -835,16 +1117,16 @@ export default function MentorPage() {
                 Account
               </button>
               <div className="account-dropdown-content">
-                <a onClick={openEditInformation}>
+                <a onClick={openEditInformation} style={{ cursor: 'pointer' }}>
                   <img src="/edit.svg" alt="Edit" /> Edit Information
                 </a>
-                <a onClick={registerLearnerRole}>
+                <a onClick={registerLearnerRole} style={{ cursor: 'pointer' }}>
                   <img src="/register.svg" alt="Register" /> Register as Learner
                 </a>
-                <a onClick={switchRole}>
+                <a onClick={switchRole} style={{ cursor: 'pointer' }}>
                   <img src="/switch.svg" alt="Switch" /> Switch Account Role
                 </a>
-                <a onClick={() => switchComponent('logout')}>
+                <a onClick={() => switchComponent('logout')} style={{ cursor: 'pointer' }}>
                   <img src="/logout.svg" alt="Logout" /> Logout
                 </a>
               </div>
@@ -880,7 +1162,6 @@ export default function MentorPage() {
           ))}
         </div>
         <div className="topbar-date">
-          <i className="fas fa-calendar-alt date-icon"></i>
           {new Date().toLocaleDateString("en-US", {
             weekday: "long",
             year: "numeric",
@@ -907,9 +1188,9 @@ export default function MentorPage() {
             <div className="form-group">
               <label>Subject:</label>
               <select>
-                {userData.ment.subjects.map((subject, index) => (
+                {userData.subjects?.map((subject, index) => (
                   <option key={index} value={subject}>{subject}</option>
-                ))}
+                )) || []}
               </select>
             </div>
             <div className="form-group">

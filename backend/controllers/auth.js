@@ -84,7 +84,7 @@ exports.learnerSignup = async (req, res) => {
   // Define valid enum values (from your Learner model)
   const validPrograms = ['BSIT', 'BSCS', 'BSEMC'];
   const validYearLevels = ['1st year', '2nd year', '3rd year', '4th year', 'graduate'];
-  const validModalities = ['online', 'face-to-face', 'mixed'];
+  const validModalities = ['online', 'in-person', 'hybrid'];
   const validSessionDurations = ['1hr', '2hrs', '3hrs'];
   const validSexValues = ['male', 'female'];
   const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -271,7 +271,7 @@ exports.mentorSignup = async (req, res) => {
   // Define valid enum values (from your Mentor model)
   const validPrograms = ['BSIT', 'BSCS', 'BSEMC'];
   const validYearLevels = ['1st year', '2nd year', '3rd year', '4th year', 'graduate'];
-  const validModalities = ['online', 'face-to-face', 'mixed'];
+  const validModalities = ['online', 'in-person', 'hybrid'];
   const validSessionDurations = ['1hr', '2hrs', '3hrs'];
   const validSexValues = ['male', 'female'];
   const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -322,7 +322,7 @@ exports.mentorSignup = async (req, res) => {
   try {
     // Create mentor document
     const mentor = new Mentor({
-      MentorId: decoded.id,
+      userId: decoded.id,
       name: decoded.username,
       email: decoded.email,
       sex,

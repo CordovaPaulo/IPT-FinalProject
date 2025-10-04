@@ -4,25 +4,29 @@ import { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './reschedule.module.css';
+import api from '@/lib/axios'; // Add this import
 
 interface RescheduleDialogProps {
-  id: number;
+  sessionId: number;
+  currentDate: string;
+  currentTime: string;
   onClose: () => void;
-  onReschedule: (date: Date) => void;
+  onReschedule: (date: string, time: string) => void;
 }
 
-export default function RescheduleDialog({ id, onClose, onReschedule }: RescheduleDialogProps) {
+export default function RescheduleDialog({ sessionId, currentDate, currentTime, onClose, onReschedule }: RescheduleDialogProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const rescheduleSession = async () => {
     try {
       if (!selectedDate) {
+        alert('Please select a date and time');
         return;
       }
 
-      // Extract date and time (same format as Vue version)
-      const formattedDate = selectedDate.toLocaleDateString("en-US"); // MM/DD/YYYY
+      // Format date and time for backend
+      const formattedDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
       const formattedTime = selectedDate.toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
@@ -31,31 +35,35 @@ export default function RescheduleDialog({ id, onClose, onReschedule }: Reschedu
 
       setIsSubmitting(true);
 
-      // API call (same endpoint as Vue version)
-      const response = await fetch(`/api/resched/${id}`, {
-        method: 'PATCH',
+      // Get the MindMateToken from cookies
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+      };
+
+      const token = getCookie('MindMateToken');
+
+      // API call to the correct learner route
+      const response = await api.post(`/api/learner/resched-sched/${sessionId}`, {
+        date: formattedDate,
+        time: formattedTime,
+      }, {
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          date: formattedDate,
-          time: formattedTime,
-        }),
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
       });
 
-      if (response.ok) {
-        // Show success message (you can replace with toast)
+      if (response.status === 200) {
         console.log("Session rescheduled successfully!");
-        
-        onReschedule(selectedDate);
+        onReschedule(formattedDate, formattedTime);
         onClose();
-      } else {
-        throw new Error('Failed to reschedule session');
       }
-    } catch (error) {
-      console.error("Failed to reschedule session");
-      // Show error message (you can replace with toast)
+    } catch (error: any) {
+      console.error("Failed to reschedule session:", error);
+      const errorMessage = error.response?.data?.message || 'Failed to reschedule session';
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -76,6 +84,9 @@ export default function RescheduleDialog({ id, onClose, onReschedule }: Reschedu
 
         <div className="lower-element">
           <p>Are you sure you want to reschedule this session?</p>
+          <p className="current-schedule">
+            Current: {currentDate} at {currentTime}
+          </p>
 
           <div className="datepicker-wrapper">
             <label htmlFor="reschedule-datetime">Pick new date & time:</label>

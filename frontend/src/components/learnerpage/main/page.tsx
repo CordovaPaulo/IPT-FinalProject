@@ -25,18 +25,28 @@ export default function MainComponent({
   schedule, 
   upcomingSchedule 
 }: MainComponentProps) {
-  const [isView, setIsView] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string>();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredUsers, setFilteredUsers] = useState<User[]>(userInformation);
+  const [showViewUser, setShowViewUser] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const openView = (id: string) => {
-    setSelectedUserId(id);
-    setIsView(true);
+  const handleSeeMore = (user: User) => {
+    console.log('See more clicked for user:', user);
+    console.log('User ID:', user.id);
+    
+    // Add validation to ensure user has required data
+    if (!user.id) {
+      console.error('User ID is missing:', user);
+      return;
+    }
+    
+    setSelectedUser(user);
+    setShowViewUser(true);
   };
 
-  const closeView = () => {
-    setIsView(false);
+  const handleCloseViewUser = () => {
+    setShowViewUser(false);
+    setSelectedUser(null);
   };
 
   // Filter users based on search query
@@ -125,15 +135,25 @@ export default function MainComponent({
               <p>{getCourseAbbreviation(user.course)}</p>
               <p className={styles.proficiency}>{formatProficiency(user.proficiency)}</p>
               <div className={styles.buttonSpacer}></div>
-              <button onClick={() => openView(user.id)}>See More</button>
+              <button 
+                onClick={() => handleSeeMore(user)}
+                className={styles.seeMoreBtn} // Changed to use CSS module class
+              >
+                See More
+              </button>
             </div>
           </div>
         ))}
       </div>
 
-      {isView && (
-        <div className={styles.viewPopup}>
-          <ViewUser userId={selectedUserId} onClose={closeView} />
+      {/* Modal with proper overlay */}
+      {showViewUser && selectedUser && (
+        <div className={styles.modalOverlay}>
+          <ViewUser 
+            user={selectedUser}
+            onClose={handleCloseViewUser}
+            isOpen={showViewUser}
+          />
         </div>
       )}
     </div>
