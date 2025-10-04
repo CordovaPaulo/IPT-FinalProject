@@ -14,6 +14,7 @@ import './mentor.css';
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {
+  if (typeof document === 'undefined') return null;
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
@@ -120,6 +121,11 @@ export default function MentorPage() {
   
   // State variables
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingLearners, setIsLoadingLearners] = useState(false);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+  const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  
   const [userData, setUserData] = useState<UserData>({
     _id: "",
     userId: "",
@@ -173,9 +179,20 @@ export default function MentorPage() {
     { key: 'fileManage', label: 'File Manager', icon: '/files.svg' }
   ];
 
-  // Computed properties
-  const displayedCourses = userData.ment.subjects.slice(0, 5);
-  const remainingCoursesCount = Math.max(userData.ment.subjects.length - 5, 0);
+  // FIXED: Computed properties with safe access
+  const subjects = userData?.subjects || [];
+  const displayedCourses = subjects.slice(0, 5);
+  const remainingCoursesCount = Math.max(subjects.length - 5, 0);
+
+  // Debug useEffect for courses
+  useEffect(() => {
+    console.log('Courses Debug:', {
+      subjects,
+      displayedCourses,
+      remainingCoursesCount,
+      showAllCourses
+    });
+  }, [subjects, displayedCourses, remainingCoursesCount, showAllCourses]);
 
   // NEW: Keyboard navigation functions for topbar
   const handleTopbarKeyDown = (e: React.KeyboardEvent) => {
@@ -230,65 +247,202 @@ export default function MentorPage() {
     setFocusedTopbarIndex(currentIndex >= 0 ? currentIndex : 0);
   };
 
-  // API functions
+  // API functions with improved error handling
   const fetchUserData = async () => {
     setIsLoading(true);
+    setApiError(null);
     try {
       console.log("Starting fetchUserData...");
       const token = getCookie('MindMateToken');
       console.log("Token:", token ? "Found" : "Not found");
       
-      const res = await api.get('/api/mentor/profile', {
-        withCredentials: true,
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      
-      setUserData(res.data.userData);
-      console.log("Mentor profile data:", res.data);
+      // Test if API is reachable first
+      try {
+        const res = await api.get('/api/mentor/profile', {
+          timeout: 10000, // 10 second timeout
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        
+        if (res.data && res.data.userData) {
+          setUserData(res.data.userData);
+          console.log("Mentor profile data:", res.data);
+        } else {
+          throw new Error('Invalid response format');
+        }
+        
+      } catch (apiError: any) {
+        console.error('API Error details:', {
+          message: apiError.message,
+          code: apiError.code,
+          status: apiError.response?.status,
+          statusText: apiError.response?.statusText,
+          url: apiError.config?.url
+        });
+        
+        if (apiError.code === 'NETWORK_ERROR' || apiError.code === 'ECONNREFUSED') {
+          setApiError('Cannot connect to server. Please check if the backend is running.');
+          // Fallback to mock data
+          useMockData();
+        } else if (apiError.response?.status === 401) {
+          setApiError('Authentication failed. Redirecting to login...');
+          setTimeout(() => router.push('/login'), 2000);
+        } else {
+          throw apiError; // Re-throw to be caught by outer catch
+        }
+      }
       
     } catch (error) {
       console.error('Error fetching mentor data:', error);
-      
-      // Fallback to mock data if API fails
-      const mockUserData: UserData = {
-        _id: "mock_id",
-        userId: "mock_user_id",
-        name: "John Doe",
-        email: "john@example.com",
-        address: "123 Main St",
-        yearLevel: "3rd Year",
-        program: "Computer Science (CS)",
-        availability: ["Monday", "Wednesday", "Friday"],
-        sessionDur: "1 hour",
-        bio: "Experienced mentor with 3 years of teaching experience in computer science subjects.",
-        subjects: ["Mathematics", "Physics", "Programming", "Algorithms", "Data Structures", "Web Development", "Database Management"],
-        image: "https://placehold.co/600x400",
-        phoneNumber: "123-456-7890",
-        style: ["Interactive", "Practical"],
-        goals: "Help students excel",
-        sex: "Male",
-        status: "Active",
-        modality: "Online",
-        createdAt: new Date().toISOString(),
-        __v: 0
-      };
-      setUserData(mockUserData);
-      
+      setApiError('Failed to load mentor data. Using demo data.');
+      // Fallback to mock data
+      useMockData();
     } finally {
       setIsLoading(false);
     }
   };
 
+  const useMockData = () => {
+    const mockUserData: UserData = {
+      _id: "mock_id",
+      userId: "mock_user_id",
+      name: "John Doe",
+      email: "john@example.com",
+      address: "123 Main St",
+      yearLevel: "3rd Year",
+      program: "Computer Science (CS)",
+      availability: ["Monday", "Wednesday", "Friday"],
+      sessionDur: "1 hour",
+      bio: "Experienced mentor with 3 years of teaching experience in computer science subjects.",
+      subjects: ["Mathematics", "Physics", "Programming", "Algorithms", "Data Structures", "Web Development", "Database Management"],
+      image: "https://placehold.co/600x400",
+      phoneNumber: "123-456-7890",
+      style: ["Interactive", "Practical"],
+      goals: "Help students excel",
+      sex: "Male",
+      status: "Active",
+      modality: "Online",
+      createdAt: new Date().toISOString(),
+      __v: 0
+    };
+    setUserData(mockUserData);
+    
+    const mockLearners: LearnerFromAPI[] = [
+      {
+        _id: "1",
+        name: "Alice Johnson",
+        program: "BSCS",
+        yearLevel: "2nd Year",
+        image: "https://placehold.co/600x400"
+      },
+      {
+        _id: "2",
+        name: "Bob Smith",
+        program: "BSIT",
+        yearLevel: "1st Year",
+        image: "https://placehold.co/600x400"
+      },
+      {
+        _id: "3",
+        name: "Carol Davis",
+        program: "BSSE",
+        yearLevel: "3rd Year",
+        image: "https://placehold.co/600x400"
+      }
+    ];
+    setUsers(mockLearners);
+    
+    const mockTodaySchedule: Schedule[] = [
+      { 
+        id: "1", 
+        date: new Date().toISOString().split('T')[0],
+        time: "10:00 AM", 
+        subject: "Mathematics",
+        location: "Room 101",
+        mentor: {
+          id: "mentor1",
+          name: "John Doe",
+          program: "BSCS",
+          yearLevel: "Professor",
+          image: "https://placehold.co/600x400"
+        },
+        learner: { 
+          id: "learner1",
+          name: "Alice Johnson",
+          program: "BSCS",
+          yearLevel: "2nd Year",
+          image: "https://placehold.co/600x400"
+        }
+      }
+    ];
+    
+    const mockUpcomingSchedule: Schedule[] = [
+      { 
+        id: "2", 
+        date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        time: "11:00 AM", 
+        subject: "Algorithms",
+        location: "Library",
+        mentor: {
+          id: "mentor1",
+          name: "John Doe",
+          program: "BSCS",
+          yearLevel: "Professor",
+          image: "https://placehold.co/600x400"
+        },
+        learner: { 
+          id: "learner2",
+          name: "Carol Davis",
+          program: "BSSE",
+          yearLevel: "3rd Year",
+          image: "https://placehold.co/600x400"
+        }
+      }
+    ];
+    
+    setTodaySchedule(mockTodaySchedule);
+    setUpcomingSchedule(mockUpcomingSchedule);
+    
+    const mockFeedbacks: Feedback[] = [
+      { 
+        _id: "1",
+        learner: "learner1",
+        mentor: "mentor1",
+        schedule: "schedule1",
+        rating: 5, 
+        comments: "Excellent mentor! Very patient and knowledgeable.", 
+        createdAt: "2024-01-15T00:00:00.000Z",
+        updatedAt: "2024-01-15T00:00:00.000Z"
+      },
+      { 
+        _id: "2",
+        learner: "learner2", 
+        mentor: "mentor1",
+        schedule: "schedule2",
+        rating: 4, 
+        comments: "Very helpful sessions, great explanations.", 
+        createdAt: "2024-01-12T00:00:00.000Z",
+        updatedAt: "2024-01-12T00:00:00.000Z"
+      }
+    ];
+    setFeedbacks(mockFeedbacks);
+  };
+
   const fetchLearners = async () => {
+    if (users.length > 0) return; // Skip if we already have mock data
+    
     setIsLoadingLearners(true);
     try {
       console.log("Fetching learners from API...");
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/learners', {
+        timeout: 10000,
         withCredentials: true,
         headers: {
+          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
@@ -298,123 +452,52 @@ export default function MentorPage() {
       
     } catch (error) {
       console.error('Error fetching learners:', error);
-      
-      // Fallback to mock data if API fails
-      const mockLearners: LearnerFromAPI[] = [
-        {
-          _id: "1",
-          name: "Alice Johnson",
-          program: "BSCS",
-          yearLevel: "2nd Year",
-          image: "https://placehold.co/600x400"
-        },
-        {
-          _id: "2",
-          name: "Bob Smith",
-          program: "BSIT",
-          yearLevel: "1st Year",
-          image: "https://placehold.co/600x400"
-        },
-        {
-          _id: "3",
-          name: "Carol Davis",
-          program: "BSSE",
-          yearLevel: "3rd Year",
-          image: "https://placehold.co/600x400"
-        }
-      ];
-      setUsers(mockLearners);
-      
+      // Mock data already set in useMockData
     } finally {
       setIsLoadingLearners(false);
     }
   };
 
   const fetchSchedules = async () => {
+    if (todaySchedule.length > 0) return; // Skip if we already have mock data
+    
     setIsLoadingSchedules(true);
     try {
       console.log("Fetching schedules from API...");
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/schedules', {
+        timeout: 10000,
         withCredentials: true,
         headers: {
+          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
-      // Assign each array to its state
       setTodaySchedule(res.data.todaySchedule || []);
       setUpcomingSchedule(res.data.upcomingSchedule || []);
       console.log("Schedules fetched:", res.data);
       
     } catch (error) {
       console.error('Error fetching schedules:', error);
-      
-      // Fallback to mock data if API fails
-      const mockTodaySchedule: Schedule[] = [
-        { 
-          id: "1", 
-          date: new Date().toISOString().split('T')[0],
-          time: "10:00 AM", 
-          subject: "Mathematics",
-          location: "Room 101",
-          mentor: {
-            id: "mentor1",
-            name: "John Doe",
-            program: "BSCS",
-            yearLevel: "Professor",
-            image: "https://placehold.co/600x400"
-          },
-          learner: { 
-            id: "learner1",
-            name: "Alice Johnson",
-            program: "BSCS",
-            yearLevel: "2nd Year",
-            image: "https://placehold.co/600x400"
-          }
-        }
-      ];
-      
-      const mockUpcomingSchedule: Schedule[] = [
-        { 
-          id: "2", 
-          date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-          time: "11:00 AM", 
-          subject: "Algorithms",
-          location: "Library",
-          mentor: {
-            id: "mentor1",
-            name: "John Doe",
-            program: "BSCS",
-            yearLevel: "Professor",
-            image: "https://placehold.co/600x400"
-          },
-          learner: { 
-            id: "learner2",
-            name: "Carol Davis",
-            program: "BSSE",
-            yearLevel: "3rd Year",
-            image: "https://placehold.co/600x400"
-          }
-        }
-      ];
-      
-      setTodaySchedule(mockTodaySchedule);
-      setUpcomingSchedule(mockUpcomingSchedule);
-      
+      // Mock data already set in useMockData
     } finally {
       setIsLoadingSchedules(false);
     }
   };
 
   const fetchFeedbacks = async () => {
+    if (feedbacks.length > 0) return; // Skip if we already have mock data
+    
     setIsLoadingFeedbacks(true);
     try {
       console.log("Fetching feedbacks from API...");
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/feedbacks', {
+        timeout: 10000,
         withCredentials: true,
         headers: {
+          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
@@ -424,36 +507,7 @@ export default function MentorPage() {
       
     } catch (error) {
       console.error('Error fetching feedbacks:', error);
-      
-      // If no feedbacks found (404), that's okay - set empty array
-      if (error.response?.status === 404) {
-        setFeedbacks([]);
-      } else {
-        // Fallback to mock data for other errors
-        const mockFeedbacks: Feedback[] = [
-          { 
-            _id: "1",
-            learner: "learner1",
-            mentor: "mentor1",
-            schedule: "schedule1",
-            rating: 5, 
-            comments: "Excellent mentor! Very patient and knowledgeable.", 
-            createdAt: "2024-01-15T00:00:00.000Z",
-            updatedAt: "2024-01-15T00:00:00.000Z"
-          },
-          { 
-            _id: "2",
-            learner: "learner2", 
-            mentor: "mentor1",
-            schedule: "schedule2",
-            rating: 4, 
-            comments: "Very helpful sessions, great explanations.", 
-            createdAt: "2024-01-12T00:00:00.000Z",
-            updatedAt: "2024-01-12T00:00:00.000Z"
-          }
-        ];
-        setFeedbacks(mockFeedbacks);
-      }
+      // Mock data already set in useMockData
     } finally {
       setIsLoadingFeedbacks(false);
     }
@@ -514,8 +568,11 @@ export default function MentorPage() {
     }
   };
 
+  // FIXED: Enhanced toggle function with debugging
   const toggleShowAllCourses = () => {
+    console.log('Toggle clicked, current state:', showAllCourses);
     setShowAllCourses(!showAllCourses);
+    console.log('New state should be:', !showAllCourses);
   };
 
   // Edit Information functions
@@ -584,23 +641,29 @@ export default function MentorPage() {
     );
   };
 
-  // Records component
-  const RecordsComponent = () => (
-    <div className="component-records">
-      <h2>Student Reviews</h2>
-      <div className="reviews-list">
-        {feedbacks.map((feedback) => (
-          <div key={feedback.id} className="review-item">
-            <div className="review-header">
-              <span className="reviewer">{feedback.student}</span>
-              <StarRating rating={feedback.rating} />
-            </div>
-            <p className="review-comment">{feedback.comment}</p>
-          </div>
-        ))}
+  // Loading functions
+  const startLoading = () => setIsLoading(true);
+  const stopLoading = () => setIsLoading(false);
+
+  // Add this Error Display component
+  const ErrorDisplay = () => {
+    if (!apiError) return null;
+    
+    return (
+      <div className="api-error-banner">
+        <div className="error-content">
+          <span className="error-icon">⚠️</span>
+          <span className="error-message">{apiError}</span>
+          <button 
+            className="error-close"
+            onClick={() => setApiError(null)}
+          >
+            ×
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // UPDATED Accessibility Navigation Pad Component with Enhanced Keyboard Navigation
   const AccessibilityNavPad = () => {
@@ -815,21 +878,6 @@ export default function MentorPage() {
 
   // UPDATED renderComponent function - logout as overlay
   const renderComponent = () => {
-    const props = {
-      users: filteredUsers,
-      userData,
-      todaySchedule,
-      upcomingSchedule,
-      feedbacks,
-      files,
-      searchQuery,
-      setSearchQuery,
-      setUserId,
-      mentorData: userData,
-      setFiles,
-      onScheduleCreated: fetchSchedules // Add this to refresh schedules after creation
-    };
-
     const mainContent = (() => {
       switch (activeComponent) {
         case 'main':
@@ -949,6 +997,9 @@ export default function MentorPage() {
 
   return (
     <div className="mentor-page">
+      {/* Error Display Banner */}
+      <ErrorDisplay />
+      
       {/* Loading Overlay */}
       {isLoading && (
         <div className="loading-overlay">
@@ -1060,8 +1111,29 @@ export default function MentorPage() {
             </div>
           </div>
 
+          {/* FIXED: Course Offered Section with Enhanced Click Handling */}
           <div className="course-offered">
             <h1>Course Offered</h1>
+            
+            {/* Temporary debug button - remove after testing */}
+            <button 
+              onClick={() => {
+                console.log('Debug button clicked');
+                setShowAllCourses(true);
+              }}
+              style={{
+                background: 'red',
+                color: 'white',
+                padding: '5px 10px',
+                margin: '5px 0',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '12px'
+              }}
+            >
+              TEST: Show Popup
+            </button>
+            
             <div className="course-grid">
               {displayedCourses.map((card, index) => (
                 <div key={index} className="course-card">
@@ -1075,12 +1147,40 @@ export default function MentorPage() {
               {remainingCoursesCount > 0 && (
                 <div 
                   className="course-card remaining-courses" 
-                  onClick={toggleShowAllCourses}
-                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent event bubbling
+                    console.log('See More clicked - courses:', subjects.length);
+                    toggleShowAllCourses();
+                  }}
+                  style={{ 
+                    cursor: 'pointer',
+                    background: '#f0f0f0',
+                    border: '2px dashed #ccc',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#e0e0e0';
+                    e.currentTarget.style.borderColor = '#007bff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f0f0f0';
+                    e.currentTarget.style.borderColor = '#ccc';
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleShowAllCourses();
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Show all ${subjects.length} courses`}
                 >
                   <div className="lines">
                     <div>
-                      <p>+{remainingCoursesCount}</p>
+                      <p style={{ color: '#007bff', fontWeight: 'bold' }}>
+                        +{remainingCoursesCount} more
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1089,14 +1189,15 @@ export default function MentorPage() {
 
             {showAllCourses && (
               <div className="all-courses-popup">
+                <div className="popup-overlay" onClick={toggleShowAllCourses}></div>
                 <div className="popup-content">
-                  <h3>All Courses Offered</h3>
+                  <h3>All Courses Offered ({subjects.length})</h3>
                   <div className="popup-courses">
-                    {userData.subjects?.map((course, index) => (
+                    {subjects.map((course, index) => (
                       <div key={index} className="popup-course">
                         {course}
                       </div>
-                    )) || []}
+                    ))}
                   </div>
                   <button 
                     className="close-popup"
@@ -1188,9 +1289,9 @@ export default function MentorPage() {
             <div className="form-group">
               <label>Subject:</label>
               <select>
-                {userData.subjects?.map((subject, index) => (
+                {subjects.map((subject, index) => (
                   <option key={index} value={subject}>{subject}</option>
-                )) || []}
+                ))}
               </select>
             </div>
             <div className="form-group">
