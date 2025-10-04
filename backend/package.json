@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "dev": "nodemon ./bin/www"
+    "dev": "nodemon ./bin/www",
+    "createStudent": "node ./scripts/createStudent.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.17.0",

@@ -14,6 +14,7 @@ router.get('/profile', jwtService.authenticateToken('learner'), learnerControlle
 router.get('/mentors', jwtService.authenticateToken('learner'), learnerController.getAllMentors);
 router.get('/mentors/:id', jwtService.authenticateToken('learner'), learnerController.getMentorById);
 router.get('/schedules', jwtService.authenticateToken('learner'), learnerController.getSchedules);
+router.get('/feedback-given', jwtService.authenticateToken('learner'), learnerController.getFeedbacks);
 
 //PATCH routes
 router.patch('/profile/edit', jwtService.authenticateToken('learner'), learnerController.editProfile);

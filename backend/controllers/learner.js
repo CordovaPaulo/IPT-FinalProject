@@ -97,21 +97,29 @@ exports.setSchedule = async (req, res) => {
 
 exports.setFeedback = async (req, res) => {
     const { id } = req.params;
-    const { rating, comments } = req.body;
+    const { schedule, rating, comments } = req.body;
     const decoded = getValuesFromToken(req);
 
     if (!decoded || !decoded.id) {
         return res.status(403).json({ message: 'Invalid token', code: 403 });
     }
 
-    if (!rating || !comments) {
+    if (!rating || !comments || !schedule) {
         return res.status(400).json({ message: 'All fields are required', code: 400 });
     }
 
+    const learnerId = await Learner.findOne({
+        $or: [
+            { _id: decoded.id },
+            { userId: decoded.id }
+        ]
+    });
+
     try {
         const feedback = new Feedback({
-            learner: decoded.id,
+            learner: learnerId._id,
             mentor: id,
+            schedule,
             rating,
             comments
         });
@@ -171,7 +179,7 @@ exports.getSchedules = async (req, res) => {
             // Try different approaches to find mentor and learner
             let mentor = await Mentor.findById(schedule.mentor);
             if (!mentor) {
-                mentor = await Mentor.findOne({ MentorId: schedule.mentor });
+                mentor = await Mentor.findOne({ userId: schedule.mentor });
             }
             if (!mentor) {
                 mentor = await Mentor.findOne({ _id: schedule.mentor });
@@ -197,8 +205,9 @@ exports.getSchedules = async (req, res) => {
                 location: schedule.location,
                 subject: schedule.subject,
                 
-                // Mentor information (photo, name, program, year level)
+                // Mentor information (include id)
                 mentor: {
+                    id: mentor?._id || schedule.mentor, // <- added id
                     name: mentor?.name || 'Unknown Mentor',
                     program: mentor?.program || 'N/A',
                     yearLevel: mentor?.yearLevel || 'N/A',
@@ -418,5 +427,33 @@ exports.reschedSched = async (req, res) => {
     } catch (error) {
         console.error('reschedSched error:', error);
         res.status(500).json({ message: error.message, code: 500 });
+    }
+}
+
+exports.getFeedbacks = async (req, res) => {
+    const decoded = getValuesFromToken(req);
+    if (!decoded || !decoded.id) {
+        return res.status(403).json({ message: 'Invalid token', code: 403 });
+    }
+    try {
+        const learner = await Learner.findOne({
+            $or: [
+                { _id: decoded.id },
+                { userId: decoded.id }
+            ]
+        });
+        if (!learner) {
+            return res.status(404).json({ message: 'Learner not found', code: 404 });
+        }
+
+        const feedbacks = await Feedback.find({ learner: learner._id });
+
+        if (feedbacks.length === 0) {
+            return res.status(404).json({ message: 'No feedbacks found', code: 404 });
+        }
+        res.status(200).json(feedbacks);
+    } catch (error) {
+        console.error('Error fetching feedbacks:', error);
+        res.status(500).json({ message: 'Internal server error', code: 500 });
     }
 }

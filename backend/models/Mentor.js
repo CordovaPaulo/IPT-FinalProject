@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const mentorSchema = new mongoose.Schema({
-    MentorId: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, unique: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, unique: true },
     name: { type: String, required: true },
     email: { type: String, required: true },
     sex: { type: String, required: true, enum: ['male', 'female'] },
@@ -11,7 +11,7 @@ const mentorSchema = new mongoose.Schema({
     bio: { type: String, required: true },
     exp: { type: String, required: true },
     address: { type: String, required: true },
-    modality: { type: String, required: true, enum: ['online', 'offline', 'mixed'] },
+    modality: { type: String, required: true, enum: ['online', 'in-person', 'hybrid'] },
     proficiency: { type: String, required: true, enum: ['beginner', 'intermediate', 'advanced'] },
     subjects: { type: [String], required: true },
     availability: { type: [String], required: true, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] },

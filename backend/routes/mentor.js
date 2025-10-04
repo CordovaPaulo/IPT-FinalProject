@@ -3,14 +3,19 @@ var router = express.Router();
 const mentorController = require('../controllers/mentor');
 const jwtService = require('../service/jwt');
 
+// POST routes
+router.post('/schedule/:id', jwtService.authenticateToken('mentor'), mentorController.setSchedule);
+router.post('/cancel-sched/:id', jwtService.authenticateToken('mentor'), mentorController.cancelSched);
+router.post('/resched-sched/:id', jwtService.authenticateToken('mentor'), mentorController.reschedSched);
 
-//POST routes
+// GET routes
+router.get('/profile', jwtService.authenticateToken('mentor'), mentorController.getProfileInfo);
+router.get('/schedules', jwtService.authenticateToken('mentor'), mentorController.getSchedules);
+router.get('/learners', jwtService.authenticateToken('mentor'), mentorController.getAllLearners);
+router.get('/learners/:id', jwtService.authenticateToken('mentor'), mentorController.getLearnerById);
+router.get('/feedbacks', jwtService.authenticateToken('mentor'), mentorController.getFeedbacks);
 
-//GET routes
-
-//PATCH routes
-router.get('/mentor/learners', jwtService.authenticateToken('mentor'), mentorController.getAllLearners);
-router.get('/mentor/learners/:id', jwtService.authenticateToken('mentor'), mentorController.getLearnerById);
-router.post('/mentor/schedule/:id', jwtService.authenticateToken('mentor'), mentorController.setSchedule);
+// PATCH routes (you can add editProfile later if needed)
+// router.patch('/mentor/profile/edit', jwtService.authenticateToken('mentor'), mentorController.editProfile);
 
 module.exports = router;
