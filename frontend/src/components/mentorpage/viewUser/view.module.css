@@ -80,9 +80,10 @@
   font-size: 1.1rem;
 }
 
+/* Updated Close Button - Border Only */
 .viewCloseBtn {
-  background: none;
-  border: none;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.7);
   color: white;
   font-size: 1.25rem;
   cursor: pointer;
@@ -97,7 +98,9 @@
 }
 
 .viewCloseBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.05);
 }
 
 .viewLowerElement {
@@ -394,17 +397,18 @@
   z-index: 3000;
 }
 
+/* Updated Button Group - Buttons side by side */
 .viewButtonGroup {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   width: 100%;
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .viewCloseBtnNew {
-  background: #fff0f0;
+  background: #fff;
   color: #dc2626;
-  border: 1px solid #fecaca;
+  border: 2px solid #dc2626;
   padding: 0.6rem 1.2rem;
   border-radius: 6px;
   font-weight: 500;
@@ -414,11 +418,14 @@
   gap: 0.5rem;
   transition: all 0.2s;
   font-size: 0.85rem;
+  min-width: 120px;
+  justify-content: center;
 }
 
 .viewCloseBtnNew:hover {
-  background: #fee2e2;
-  border-color: #fca5a5;
+  background: #dc2626;
+  color: white;
+  transform: translateY(-1px);
 }
 
 .viewSendOfferBtn {
@@ -434,6 +441,8 @@
   gap: 0.5rem;
   transition: all 0.2s;
   font-size: 0.85rem;
+  min-width: 120px;
+  justify-content: center;
 }
 
 .viewSendOfferBtn:hover {
@@ -463,59 +472,401 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Responsive Design */
-@media (max-width: 850px) {
+/* =========================================== */
+/* RESPONSIVE DESIGN - TABLET & MOBILE */
+/* =========================================== */
+
+/* Large Tablets (769px - 1024px) */
+@media (max-width: 1024px) {
   .viewModalOverlay {
-    padding: 1rem;
-    justify-content: center; 
+    padding: 1.5rem;
+    justify-content: center;
   }
+  
   .viewWrapper {
-    width: 95%;
-    max-width: 95vw;
-    margin-right: 0; 
+    width: 90%;
+    max-width: 700px;
+    margin-right: 0;
   }
+  
   .viewDetailsSection {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 1.2rem;
+  }
+  
+  .viewInfoGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
 
+/* Tablets (768px and below) */
 @media (max-width: 768px) {
+  .viewModalOverlay {
+    padding: 1rem;
+  }
+  
+  .viewWrapper {
+    width: 95%;
+    max-width: 600px;
+    max-height: 95vh;
+    border-radius: 10px;
+  }
+  
+  .viewUpperElement {
+    padding: 0.8rem 1.2rem;
+    min-height: 55px;
+  }
+  
+  .viewModalTitle {
+    font-size: 1.2rem;
+  }
+  
+  .viewModalTitleIcon {
+    font-size: 1rem;
+  }
+  
+  .viewLowerElement {
+    padding: 1.2rem;
+  }
+  
   .viewLowerUpper {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    gap: 1rem;
   }
+  
   .viewProfileInformation {
     text-align: center;
+    width: 100%;
   }
-  .viewApplicantName,
+  
+  .viewApplicantName {
+    text-align: center;
+    font-size: 1.2rem;
+  }
+  
   .viewInfoItem {
     text-align: center;
   }
-  .viewActionButton {
-    justify-content: center;
+  
+  .viewInfoGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
   }
+  
+  .viewProfileImage {
+    width: 90px;
+    height: 90px;
+  }
+  
+  .viewDetailsCard,
+  .viewBioCard {
+    padding: 0.9rem;
+  }
+  
+  .viewActionButton {
+    padding: 0.8rem;
+  }
+  
+  /* Updated: Buttons remain side by side on tablet */
   .viewButtonGroup {
-    justify-content: center;
-    flex-direction: column-reverse;
-    align-items: stretch;
+    justify-content: flex-end;
+    flex-direction: row;
+    gap: 0.8rem;
+  }
+  
+  .viewCloseBtnNew,
+  .viewSendOfferBtn {
+    min-width: 110px;
+    padding: 0.6rem 1rem;
   }
 }
 
-@media (max-width: 480px) {
-  .viewInfoGrid {
-    grid-template-columns: 1fr;
-  }
-  .viewDetailsCard,
-  .viewBioCard {
+/* Large Mobile Devices (481px - 667px) */
+@media (max-width: 667px) {
+  .viewModalOverlay {
     padding: 0.8rem;
   }
+  
+  .viewWrapper {
+    width: 92%;
+    max-height: 94vh;
+    border-radius: 10px;
+    margin: 0 auto;
+  }
+  
+  .viewUpperElement {
+    padding: 0.7rem 1rem;
+    min-height: 50px;
+  }
+  
+  .viewModalTitle {
+    font-size: 1.1rem;
+    gap: 0.5rem;
+  }
+  
+  .viewCloseBtn {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+    border-width: 1.5px;
+  }
+  
+  .viewLowerElement {
+    padding: 1rem;
+  }
+  
+  .viewInfoGrid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  
   .viewProfileImage {
     width: 80px;
     height: 80px;
   }
+  
+  .viewApplicantName {
+    font-size: 1.1rem;
+    margin: 0.2rem 0 0.8rem 0;
+  }
+  
+  /* Updated: Buttons remain side by side on larger mobile */
+  .viewButtonGroup {
+    justify-content: flex-end;
+    flex-direction: row;
+    gap: 0.6rem;
+  }
+  
+  .viewCloseBtnNew,
+  .viewSendOfferBtn {
+    min-width: 100px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Small Mobile Devices (480px and below) */
+@media (max-width: 480px) {
+  .viewModalOverlay {
+    padding: 0.5rem;
+    align-items: center;
+  }
+  
+  .viewWrapper {
+    width: 94%;
+    max-height: 92vh;
+    border-radius: 8px;
+    margin: 0;
+  }
+  
   .viewUpperElement {
-    padding: 0.8rem 1rem;
+    border-radius: 8px 8px 0 0;
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .viewModalTitle {
+    font-size: 1rem;
+  }
+  
+  .viewModalTitleIcon {
+    font-size: 0.9rem;
+  }
+  
+  .viewCloseBtn {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+    border-width: 1.5px;
+  }
+  
+  .viewLowerElement {
+    padding: 0.8rem;
+  }
+  
+  .viewDetailsCard,
+  .viewBioCard {
+    padding: 0.7rem;
+    border-radius: 6px;
+  }
+  
+  .viewSectionTitle {
+    font-size: 0.9rem;
+    margin-bottom: 0.6rem;
+  }
+  
+  .viewDetailItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    margin-bottom: 0.8rem;
+  }
+  
+  .viewDetailLabel,
+  .viewDetailValue {
+    text-align: left;
+    width: 100%;
+    padding-right: 0;
+  }
+  
+  .viewDetailValue {
+    font-size: 0.8rem;
+  }
+  
+  .viewBioContent {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  
+  .viewActionButton {
+    padding: 0.7rem;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 1) 15%
+    );
+  }
+  
+  /* Updated: Buttons remain side by side on mobile */
+  .viewButtonGroup {
+    justify-content: flex-end;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  .viewCloseBtnNew,
+  .viewSendOfferBtn {
+    min-width: 90px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.75rem;
+    gap: 0.3rem;
+  }
+  
+  /* Confirmation Modal Responsive */
+  .viewConfirmationModal {
+    margin: 1rem;
+    padding: 1.2rem;
+  }
+  
+  .viewModalActions {
+    flex-direction: row;
+    gap: 0.6rem;
+  }
+  
+  .viewModalBtn {
+    min-width: 80px;
+    padding: 0.5rem;
+  }
+}
+
+/* Very Small Mobile Devices (360px and below) */
+@media (max-width: 360px) {
+  .viewModalOverlay {
+    padding: 0.4rem;
+  }
+  
+  .viewWrapper {
+    width: 92%;
+    max-height: 90vh;
+  }
+  
+  .viewUpperElement {
+    padding: 0.5rem 0.8rem;
+  }
+  
+  .viewLowerElement {
+    padding: 0.6rem;
+  }
+  
+  .viewProfileImage {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .viewApplicantName {
+    font-size: 1rem;
+  }
+  
+  .viewInfoLabel,
+  .viewInfoValue,
+  .viewDetailLabel,
+  .viewDetailValue,
+  .viewBioContent {
+    font-size: 0.75rem;
+  }
+  
+  .viewDetailsCard,
+  .viewBioCard {
+    padding: 0.6rem;
+  }
+  
+  /* Updated: Buttons adjust for very small screens but remain side by side */
+  .viewButtonGroup {
+    gap: 0.4rem;
+  }
+  
+  .viewCloseBtnNew,
+  .viewSendOfferBtn {
+    min-width: 85px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Landscape Mode for Mobile */
+@media (max-height: 600px) and (orientation: landscape) {
+  .viewModalOverlay {
+    padding: 0.5rem;
+  }
+  
+  .viewWrapper {
+    max-height: 96vh;
+    width: 90%;
+  }
+  
+  .viewLowerUpper {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .viewProfileInformation {
+    text-align: left;
+  }
+  
+  .viewApplicantName {
+    text-align: left;
+  }
+  
+  .viewProfileImage {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .viewInfoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* Buttons remain side by side in landscape */
+  .viewButtonGroup {
+    justify-content: flex-end;
+    flex-direction: row;
+  }
+}
+
+/* High-DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .viewProfileImage {
+    border-width: 2px;
+  }
+  
+  .viewDivider,
+  .viewDivider2 {
+    border-width: 1px;
+  }
+  
+  .viewCloseBtn {
+    border-width: 1.5px;
   }
 }

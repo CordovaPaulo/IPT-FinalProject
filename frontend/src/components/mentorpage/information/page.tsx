@@ -69,8 +69,13 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
     peNstpSubjects: [] as string[],
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const [dropdownFocusedIndex, setDropdownFocusedIndex] = useState<number>(-1);
+  const [currentDropdown, setCurrentDropdown] = useState<string>('');
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRefs = useRef<(HTMLInputElement | HTMLTextAreaElement | HTMLDivElement | null)[]>([]);
+  const dropdownOptionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Options
   const yearLevelOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
@@ -123,6 +128,12 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
     { field: 'Short Bio', column: 1 },
     { field: 'Tutoring Experience', column: 2 },
   ];
+
+  // Calculate total number of focusable elements
+  const totalFocusableElements = inputFieldPersonalInformation.length + 1 + // +1 for gender
+                                inputFieldProfileInformation.length + 
+                                bioAndExperienceFields.length + 
+                                1; // +1 for save button
 
   // Helper functions
   const capitalizeFirstLetter = (str: string) => {
@@ -392,13 +403,44 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen({});
+        closeAllDropdowns();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Get dropdown options for a specific field
+  const getDropdownOptions = (field: string) => {
+    if (field === 'gender') {
+      return genderOptions;
+    }
+    
+    const personalField = inputFieldPersonalInformation.find(f => toCamelCase(f.field) === field);
+    if (personalField && personalField.options) {
+      return personalField.options;
+    }
+    
+    const profileField = inputFieldProfileInformation.find(f => toCamelCase(f.field) === field);
+    if (profileField && profileField.options) {
+      return profileField.options;
+    }
+    
+    return [];
+  };
+
+  // Get checkbox options for a specific field
+  const getCheckboxOptions = (field: string) => {
+    const profileField = inputFieldProfileInformation.find(f => toCamelCase(f.field) === field);
+    return profileField?.options || [];
+  };
+
+  const closeAllDropdowns = () => {
+    setDropdownOpen({});
+    setCurrentDropdown('');
+    setDropdownFocusedIndex(-1);
+  };
 
   const toggleDropdown = (field: string) => {
     setDropdownOpen(prev => {
@@ -407,6 +449,15 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
         if (key !== field) newState[key] = false;
       });
       newState[field] = !prev[field];
+      
+      if (newState[field]) {
+        setCurrentDropdown(field);
+        setDropdownFocusedIndex(0);
+      } else {
+        setCurrentDropdown('');
+        setDropdownFocusedIndex(-1);
+      }
+      
       return newState;
     });
   };
@@ -431,12 +482,12 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
         setProfileData(prev => ({ ...prev, [field]: value }));
       }
     }
-    setDropdownOpen(prev => ({ ...prev, [field]: false }));
+    closeAllDropdowns();
   };
 
   const selectGender = (gender: string) => {
     setPersonalData(prev => ({ ...prev, gender }));
-    setDropdownOpen(prev => ({ ...prev, gender: false }));
+    closeAllDropdowns();
   };
 
   const handleCourseOfferedChange = (subject: string) => {
@@ -452,6 +503,22 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
       }
       
       return { ...prev, courseOffered: newSubjects };
+    });
+  };
+
+  const handleCheckboxSelection = (field: string, value: string) => {
+    setProfileData(prev => {
+      const currentArray = prev[field as keyof typeof profileData] as string[];
+      const index = currentArray.indexOf(value);
+      let newArray;
+      
+      if (index === -1) {
+        newArray = [...currentArray, value];
+      } else {
+        newArray = currentArray.filter(item => item !== value);
+      }
+      
+      return { ...prev, [field]: newArray };
     });
   };
 
@@ -471,6 +538,126 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
     }
     return value || '';
   };
+
+  // Keyboard navigation handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // If a dropdown is open, handle dropdown navigation
+      if (currentDropdown && dropdownOpen[currentDropdown]) {
+        const dropdownOptions = getDropdownOptions(currentDropdown);
+        const checkboxOptions = getCheckboxOptions(currentDropdown);
+        const optionsCount = dropdownOptions.length || checkboxOptions.length;
+
+        switch (event.key) {
+          case 'ArrowDown':
+            event.preventDefault();
+            setDropdownFocusedIndex(prev => {
+              const nextIndex = (prev + 1) % optionsCount;
+              dropdownOptionRefs.current[nextIndex]?.focus();
+              return nextIndex;
+            });
+            break;
+          
+          case 'ArrowUp':
+            event.preventDefault();
+            setDropdownFocusedIndex(prev => {
+              const nextIndex = prev <= 0 ? optionsCount - 1 : prev - 1;
+              dropdownOptionRefs.current[nextIndex]?.focus();
+              return nextIndex;
+            });
+            break;
+          
+          case 'Enter':
+            event.preventDefault();
+            if (dropdownFocusedIndex >= 0) {
+              if (currentDropdown === 'gender') {
+                selectGender(genderOptions[dropdownFocusedIndex]);
+              } else if (dropdownOptions.length > 0) {
+                selectOption(currentDropdown, dropdownOptions[dropdownFocusedIndex], 
+                  inputFieldPersonalInformation.some(f => toCamelCase(f.field) === currentDropdown) ? 'personal' : 'profile');
+              } else if (checkboxOptions.length > 0) {
+                handleCheckboxSelection(currentDropdown, checkboxOptions[dropdownFocusedIndex].value);
+              }
+            }
+            break;
+          
+          case 'Escape':
+            event.preventDefault();
+            closeAllDropdowns();
+            // Refocus on the field that opened the dropdown
+            if (focusedIndex >= 0) {
+              inputRefs.current[focusedIndex]?.focus();
+            }
+            break;
+          
+          case 'Tab':
+            closeAllDropdowns();
+            break;
+          
+          default:
+            break;
+        }
+        return;
+      }
+
+      // Navigation with arrow keys and Enter only when no dropdown is open
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          setFocusedIndex(prev => {
+            const nextIndex = (prev + 1) % totalFocusableElements;
+            inputRefs.current[nextIndex]?.focus();
+            return nextIndex;
+          });
+          break;
+        
+        case 'ArrowUp':
+          event.preventDefault();
+          setFocusedIndex(prev => {
+            const nextIndex = prev <= 0 ? totalFocusableElements - 1 : prev - 1;
+            inputRefs.current[nextIndex]?.focus();
+            return nextIndex;
+          });
+          break;
+        
+        case 'Enter':
+          if (focusedIndex >= 0 && focusedIndex < totalFocusableElements - 1) {
+            event.preventDefault();
+            // Find which field is focused and open its dropdown if it's a select
+            const fieldIndex = focusedIndex;
+            if (fieldIndex < inputFieldPersonalInformation.length) {
+              // Personal information fields (except gender)
+              const field = inputFieldPersonalInformation[fieldIndex];
+              if (field.type === 'select') {
+                toggleDropdown(toCamelCase(field.field));
+              }
+            } else if (fieldIndex === inputFieldPersonalInformation.length) {
+              // Gender field
+              toggleDropdown('gender');
+            } else if (fieldIndex < inputFieldPersonalInformation.length + 1 + inputFieldProfileInformation.length) {
+              // Profile information fields
+              const profileIndex = fieldIndex - inputFieldPersonalInformation.length - 1;
+              const field = inputFieldProfileInformation[profileIndex];
+              if (field.type === 'select' || field.type === 'checkbox') {
+                toggleDropdown(toCamelCase(field.field));
+              }
+            }
+          } else if (focusedIndex === totalFocusableElements - 1) {
+            // Save button
+            event.preventDefault();
+            saveChanges();
+          }
+          break;
+
+        case 'Escape':
+          closeEditInformation();
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [dropdownOpen, focusedIndex, dropdownFocusedIndex, currentDropdown, totalFocusableElements]);
 
   const validateField = (field: string, value: string) => {
     const trimmedValue = value.trim();
@@ -603,6 +790,13 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
     onCancel();
   };
 
+  // Reset dropdown refs when dropdown changes
+  useEffect(() => {
+    dropdownOptionRefs.current = dropdownOptionRefs.current.slice(0, 
+      getDropdownOptions(currentDropdown).length || getCheckboxOptions(currentDropdown).length
+    );
+  }, [currentDropdown, dropdownOpen]);
+
   return (
     <>
       {/* Background Overlay */}
@@ -631,6 +825,7 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                     {item.type === 'text' ? (
                       <>
                         <input
+                          ref={el => inputRefs.current[index] = el}
                           type="text"
                           value={personalData[toCamelCase(item.field) as keyof typeof personalData] as string}
                           onChange={(e) => {
@@ -638,6 +833,7 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                             setPersonalData(prev => ({ ...prev, [toCamelCase(item.field)]: newValue }));
                             validateField(toCamelCase(item.field), newValue);
                           }}
+                          onFocus={() => setFocusedIndex(index)}
                           className={`${styles.standardInput} ${validationErrors[toCamelCase(item.field)] ? styles.inputError : ''}`}
                           placeholder={getPlaceholder(item.field, 'personal') || `Enter your ${item.field.toLowerCase()}`}
                         />
@@ -650,8 +846,11 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                     ) : item.type === 'select' && item.field !== 'Gender' ? (
                       <div className={styles.customDropdown}>
                         <div
+                          ref={el => inputRefs.current[index] = el}
                           className={styles.dropdownContainer}
                           onClick={() => toggleDropdown(toCamelCase(item.field))}
+                          onFocus={() => setFocusedIndex(index)}
+                          tabIndex={0}
                         >
                           <input
                             type="text"
@@ -667,8 +866,10 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                             {item.options.map((option, i) => (
                               <div
                                 key={i}
-                                className={styles.dropdownOption}
+                                ref={el => dropdownOptionRefs.current[i] = el}
+                                className={`${styles.dropdownOption} ${dropdownFocusedIndex === i ? styles.dropdownFocused : ''}`}
                                 onClick={() => selectOption(toCamelCase(item.field), option, 'personal')}
+                                tabIndex={-1}
                               >
                                 {option}
                               </div>
@@ -686,8 +887,11 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                   <div className={styles.genderSection}>
                     <div className={styles.genderDropdown}>
                       <div
+                        ref={el => inputRefs.current[inputFieldPersonalInformation.length] = el}
                         className={styles.dropdownContainer}
                         onClick={() => toggleDropdown('gender')}
+                        onFocus={() => setFocusedIndex(inputFieldPersonalInformation.length)}
+                        tabIndex={0}
                       >
                         <input
                           type="text"
@@ -700,12 +904,17 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
                       </div>
                       {dropdownOpen.gender && (
                         <div className={`${styles.dropdownOptions} ${styles.genderOptions}`}>
-                          <div className={styles.dropdownOption} onClick={() => selectGender('Female')}>
-                            Female
-                          </div>
-                          <div className={styles.dropdownOption} onClick={() => selectGender('Male')}>
-                            Male
-                          </div>
+                          {genderOptions.map((option, i) => (
+                            <div
+                              key={i}
+                              ref={el => dropdownOptionRefs.current[i] = el}
+                              className={`${styles.dropdownOption} ${dropdownFocusedIndex === i ? styles.dropdownFocused : ''}`}
+                              onClick={() => selectGender(option)}
+                              tabIndex={-1}
+                            >
+                              {option}
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -717,178 +926,209 @@ export default function EditInformationComponent({ userData, onSave, onCancel }:
             <div className={styles.profileInformation}>
               <h1>II. PROFILE INFORMATION</h1>
               <div className={styles.inputWrapper}>
-                {inputFieldProfileInformation.map((item, index) => (
-                  <div key={index} className={styles.inputFields}>
-                    <label>{item.field}</label>
+                {inputFieldProfileInformation.map((item, index) => {
+                  const globalIndex = inputFieldPersonalInformation.length + 1 + index;
+                  return (
+                    <div key={index} className={styles.inputFields}>
+                      <label>{item.field}</label>
 
-                    {item.type === 'select' && item.field !== 'Course Offered' ? (
-                      <div className={styles.customDropdown}>
-                        <div
-                          className={styles.dropdownContainer}
-                          onClick={() => toggleDropdown(toCamelCase(item.field))}
-                        >
-                          <input
-                            type="text"
-                            value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
-                            placeholder={getPlaceholder(item.field, 'profile') || `Select ${item.field.toLowerCase()}`}
-                            readOnly
-                            className={styles.standardInput}
-                          />
-                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
-                        </div>
-                        {dropdownOpen[toCamelCase(item.field)] && (
-                          <div className={styles.dropdownOptions}>
-                            {item.options.map((option, i) => (
-                              <div
-                                key={i}
-                                className={styles.dropdownOption}
-                                onClick={() => selectOption(toCamelCase(item.field), option)}
-                              >
-                                {option}
-                              </div>
-                            ))}
+                      {item.type === 'select' && item.field !== 'Course Offered' ? (
+                        <div className={styles.customDropdown}>
+                          <div
+                            ref={el => inputRefs.current[globalIndex] = el}
+                            className={styles.dropdownContainer}
+                            onClick={() => toggleDropdown(toCamelCase(item.field))}
+                            onFocus={() => setFocusedIndex(globalIndex)}
+                            tabIndex={0}
+                          >
+                            <input
+                              type="text"
+                              value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
+                              placeholder={getPlaceholder(item.field, 'profile') || `Select ${item.field.toLowerCase()}`}
+                              readOnly
+                              className={styles.standardInput}
+                            />
+                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
                           </div>
-                        )}
-                      </div>
-                    ) : item.field === 'Course Offered' ? (
-                      <div className={styles.customDropdown}>
-                        <div
-                          className={styles.dropdownContainer}
-                          onClick={() => toggleDropdown(toCamelCase(item.field))}
-                        >
-                          <input
-                            type="text"
-                            value={getDisplayValue('courseOffered')}
-                            placeholder={getPlaceholder(item.field, 'profile')}
-                            readOnly
-                            className={styles.standardInput}
-                          />
-                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
+                          {dropdownOpen[toCamelCase(item.field)] && (
+                            <div className={styles.dropdownOptions}>
+                              {item.options.map((option, i) => (
+                                <div
+                                  key={i}
+                                  ref={el => dropdownOptionRefs.current[i] = el}
+                                  className={`${styles.dropdownOption} ${dropdownFocusedIndex === i ? styles.dropdownFocused : ''}`}
+                                  onClick={() => selectOption(toCamelCase(item.field), option)}
+                                  tabIndex={-1}
+                                >
+                                  {option}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        {dropdownOpen[toCamelCase(item.field)] && (
-                          <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
-                            {availableSubjects.coreSubjects.length > 0 && (
-                              <div className={styles.categorySection}>
-                                <h4>Core Subjects</h4>
-                                {availableSubjects.coreSubjects.map((option, i) => (
-                                  <div key={`core-${i}`} className={styles.checkboxOption}>
-                                    <input
-                                      type="checkbox"
-                                      id={`core-${i}`}
-                                      value={option}
-                                      checked={profileData.courseOffered.includes(option)}
-                                      onChange={() => handleCourseOfferedChange(option)}
-                                    />
-                                    <label htmlFor={`core-${i}`}>{option}</label>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {availableSubjects.gecSubjects.length > 0 && (
-                              <div className={styles.categorySection}>
-                                <h4>GEC Subjects</h4>
-                                {availableSubjects.gecSubjects.map((option, i) => (
-                                  <div key={`gec-${i}`} className={styles.checkboxOption}>
-                                    <input
-                                      type="checkbox"
-                                      id={`gec-${i}`}
-                                      value={option}
-                                      checked={profileData.courseOffered.includes(option)}
-                                      onChange={() => handleCourseOfferedChange(option)}
-                                    />
-                                    <label htmlFor={`gec-${i}`}>{option}</label>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {availableSubjects.peNstpSubjects.length > 0 && (
-                              <div className={styles.categorySection}>
-                                <h4>NSTP & PE Subjects</h4>
-                                {availableSubjects.peNstpSubjects.map((option, i) => (
-                                  <div key={`pe-${i}`} className={styles.checkboxOption}>
-                                    <input
-                                      type="checkbox"
-                                      id={`pe-${i}`}
-                                      value={option}
-                                      checked={profileData.courseOffered.includes(option)}
-                                      onChange={() => handleCourseOfferedChange(option)}
-                                    />
-                                    <label htmlFor={`pe-${i}`}>{option}</label>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                      ) : item.field === 'Course Offered' ? (
+                        <div className={styles.customDropdown}>
+                          <div
+                            ref={el => inputRefs.current[globalIndex] = el}
+                            className={styles.dropdownContainer}
+                            onClick={() => toggleDropdown(toCamelCase(item.field))}
+                            onFocus={() => setFocusedIndex(globalIndex)}
+                            tabIndex={0}
+                          >
+                            <input
+                              type="text"
+                              value={getDisplayValue('courseOffered')}
+                              placeholder={getPlaceholder(item.field, 'profile')}
+                              readOnly
+                              className={styles.standardInput}
+                            />
+                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
                           </div>
-                        )}
-                      </div>
-                    ) : item.type === 'checkbox' ? (
-                      <div className={styles.customDropdown}>
-                        <div
-                          className={styles.dropdownContainer}
-                          onClick={() => toggleDropdown(toCamelCase(item.field))}
-                        >
-                          <input
-                            type="text"
-                            value={getDisplayValue(toCamelCase(item.field))}
-                            placeholder={getPlaceholder(item.field, 'profile')}
-                            readOnly
-                            className={styles.standardInput}
-                          />
-                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
+                          {dropdownOpen[toCamelCase(item.field)] && (
+                            <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
+                              {availableSubjects.coreSubjects.length > 0 && (
+                                <div className={styles.categorySection}>
+                                  <h4>Core Subjects</h4>
+                                  {availableSubjects.coreSubjects.map((option, i) => (
+                                    <div key={`core-${i}`} className={styles.checkboxOption}>
+                                      <input
+                                        type="checkbox"
+                                        id={`core-${i}`}
+                                        value={option}
+                                        checked={profileData.courseOffered.includes(option)}
+                                        onChange={() => handleCourseOfferedChange(option)}
+                                      />
+                                      <label htmlFor={`core-${i}`}>{option}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {availableSubjects.gecSubjects.length > 0 && (
+                                <div className={styles.categorySection}>
+                                  <h4>GEC Subjects</h4>
+                                  {availableSubjects.gecSubjects.map((option, i) => (
+                                    <div key={`gec-${i}`} className={styles.checkboxOption}>
+                                      <input
+                                        type="checkbox"
+                                        id={`gec-${i}`}
+                                        value={option}
+                                        checked={profileData.courseOffered.includes(option)}
+                                        onChange={() => handleCourseOfferedChange(option)}
+                                      />
+                                      <label htmlFor={`gec-${i}`}>{option}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {availableSubjects.peNstpSubjects.length > 0 && (
+                                <div className={styles.categorySection}>
+                                  <h4>NSTP & PE Subjects</h4>
+                                  {availableSubjects.peNstpSubjects.map((option, i) => (
+                                    <div key={`pe-${i}`} className={styles.checkboxOption}>
+                                      <input
+                                        type="checkbox"
+                                        id={`pe-${i}`}
+                                        value={option}
+                                        checked={profileData.courseOffered.includes(option)}
+                                        onChange={() => handleCourseOfferedChange(option)}
+                                      />
+                                      <label htmlFor={`pe-${i}`}>{option}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {dropdownOpen[toCamelCase(item.field)] && (
-                          <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
-                            {item.options.map((option, i) => (
-                              <div key={i} className={styles.checkboxOption}>
-                                <input
-                                  type="checkbox"
-                                  id={`${toCamelCase(item.field)}-${i}`}
-                                  value={option.value}
-                                  checked={profileData[toCamelCase(item.field) as keyof typeof profileData].includes(option.value)}
-                                  onChange={() => selectOption(toCamelCase(item.field), option.value)}
-                                />
-                                <label htmlFor={`${toCamelCase(item.field)}-${i}`}>
-                                  {option.label}
-                                </label>
-                              </div>
-                            ))}
+                      ) : item.type === 'checkbox' ? (
+                        <div className={styles.customDropdown}>
+                          <div
+                            ref={el => inputRefs.current[globalIndex] = el}
+                            className={styles.dropdownContainer}
+                            onClick={() => toggleDropdown(toCamelCase(item.field))}
+                            onFocus={() => setFocusedIndex(globalIndex)}
+                            tabIndex={0}
+                          >
+                            <input
+                              type="text"
+                              value={getDisplayValue(toCamelCase(item.field))}
+                              placeholder={getPlaceholder(item.field, 'profile')}
+                              readOnly
+                              className={styles.standardInput}
+                            />
+                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
                           </div>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
+                          {dropdownOpen[toCamelCase(item.field)] && (
+                            <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
+                              {item.options.map((option, i) => (
+                                <div 
+                                  key={i} 
+                                  ref={el => dropdownOptionRefs.current[i] = el}
+                                  className={`${styles.checkboxOption} ${dropdownFocusedIndex === i ? styles.dropdownFocused : ''}`}
+                                  tabIndex={-1}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    id={`${toCamelCase(item.field)}-${i}`}
+                                    value={option.value}
+                                    checked={profileData[toCamelCase(item.field) as keyof typeof profileData].includes(option.value)}
+                                    onChange={() => selectOption(toCamelCase(item.field), option.value)}
+                                  />
+                                  <label htmlFor={`${toCamelCase(item.field)}-${i}`}>
+                                    {option.label}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div className={styles.bioExperienceWrapper}>
               <div className={styles.bioExperienceGrid}>
-                {bioAndExperienceFields.map((item, index) => (
-                  <div key={`bio-${index}`} className={styles.inputFields}>
-                    <label>{item.field}</label>
-                    <textarea
-                      value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        setProfileData(prev => ({ ...prev, [toCamelCase(item.field)]: newValue }));
-                        validateField(toCamelCase(item.field), newValue);
-                      }}
-                      className={`${styles.fixedTextarea} ${validationErrors[toCamelCase(item.field)] ? styles.inputError : ''}`}
-                      placeholder={getPlaceholder(item.field, 'profile') || 
-                        (item.field === 'Short Bio' ? 'Tell us about yourself' : 'Describe your tutoring experience')}
-                    />
-                    {validationErrors[toCamelCase(item.field)] && (
-                      <span className={styles.errorMessage}>
-                        {validationErrors[toCamelCase(item.field)]}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {bioAndExperienceFields.map((item, index) => {
+                  const globalIndex = inputFieldPersonalInformation.length + 1 + inputFieldProfileInformation.length + index;
+                  return (
+                    <div key={`bio-${index}`} className={styles.inputFields}>
+                      <label>{item.field}</label>
+                      <textarea
+                        ref={el => inputRefs.current[globalIndex] = el}
+                        value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setProfileData(prev => ({ ...prev, [toCamelCase(item.field)]: newValue }));
+                          validateField(toCamelCase(item.field), newValue);
+                        }}
+                        onFocus={() => setFocusedIndex(globalIndex)}
+                        className={`${styles.fixedTextarea} ${validationErrors[toCamelCase(item.field)] ? styles.inputError : ''}`}
+                        placeholder={getPlaceholder(item.field, 'profile') || 
+                          (item.field === 'Short Bio' ? 'Tell us about yourself' : 'Describe your tutoring experience')}
+                      />
+                      {validationErrors[toCamelCase(item.field)] && (
+                        <span className={styles.errorMessage}>
+                          {validationErrors[toCamelCase(item.field)]}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
           <div className={styles.save}>
-            <button className={styles.saveButton} onClick={saveChanges}>Save Changes</button>
+            <button 
+              ref={el => inputRefs.current[totalFocusableElements - 1] = el}
+              className={styles.saveButton} 
+              onClick={saveChanges}
+              onFocus={() => setFocusedIndex(totalFocusableElements - 1)}
+            >
+              Save Changes
+            </button>
           </div>
         </div>
       </div>

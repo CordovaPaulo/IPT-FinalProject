@@ -216,22 +216,29 @@ button.loading {
   color: #f8f8f8;
 }
 
-/* Responsive */
+/* Tablet Styles (768px - 1199px) - Hide logo, show only login form */
 @media (min-width: 768px) and (max-width: 1199px) {
   main {
-    gap: 3rem;
+    gap: 0;
+    justify-content: center;
   }
 
-  .main-image img {
-    width: 350px;
+  .main-image {
+    display: none; /* Hide logo on tablet */
   }
 
   .main-content {
-    max-width: 380px;
-    padding: 1.5rem;
+    max-width: 400px;
+    padding: 2rem;
+    margin: 0 auto;
+  }
+
+  button {
+    width: 50%;
   }
 }
 
+/* Mobile Styles (max-width: 767px) */
 @media (max-width: 767px) {
   main {
     flex-direction: column;
@@ -253,11 +260,8 @@ button.loading {
   }
 }
 
+/* Small Mobile Styles (max-width: 480px) */
 @media (max-width: 480px) {
-  .main-image img {
-    width: 170px;
-  }
-
   .main-content {
     padding: 1.2rem;
   }
@@ -272,6 +276,7 @@ button.loading {
   }
 }
 
+/* Desktop Styles (min-width: 1200px) */
 @media (min-width: 1200px) {
   main {
     gap: 8rem;

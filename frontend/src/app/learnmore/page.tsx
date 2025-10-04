@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Image from 'next/image';
@@ -77,6 +77,20 @@ export default function LearnMore() {
     },
   ]);
 
+  // Keyboard navigation state
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const [currentSection, setCurrentSection] = useState<string>('main');
+  const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Focusable elements
+  const focusableElements = [
+    { type: 'backButton', index: -1 },
+    ...faqs.map((_, index) => ({ type: 'faq', index })),
+    ...[0, 1, 2, 3].map(index => ({ type: 'icon', index })),
+  ];
+
   const toggleFaq = (index: number) => {
     const updatedFaqs = [...faqs];
     updatedFaqs[index].open = !updatedFaqs[index].open;
@@ -87,12 +101,125 @@ export default function LearnMore() {
     router.push('/');
   };
 
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setFocusedIndex(prev => {
+            const nextIndex = prev < focusableElements.length - 1 ? prev + 1 : 0;
+            scrollToElement(nextIndex);
+            return nextIndex;
+          });
+          break;
+
+        case 'ArrowUp':
+          e.preventDefault();
+          setFocusedIndex(prev => {
+            const nextIndex = prev > 0 ? prev - 1 : focusableElements.length - 1;
+            scrollToElement(nextIndex);
+            return nextIndex;
+          });
+          break;
+
+        case ' ':
+        case 'Enter':
+          e.preventDefault();
+          if (focusedIndex >= 0) {
+            const element = focusableElements[focusedIndex];
+            if (element.type === 'faq') {
+              toggleFaq(element.index);
+            } else if (element.type === 'backButton') {
+              goBack();
+            } else if (element.type === 'icon') {
+              setActiveIcon(element.index + 1);
+              // Trigger hover effect
+              const iconElement = iconRefs.current[element.index];
+              if (iconElement) {
+                iconElement.focus();
+              }
+            }
+          }
+          break;
+
+        case 'Escape':
+          e.preventDefault();
+          if (currentSection !== 'main') {
+            setCurrentSection('main');
+            setFocusedIndex(0);
+          } else if (backButtonRef.current) {
+            backButtonRef.current.focus();
+            setFocusedIndex(0);
+          }
+          break;
+
+        case 'Tab':
+          // Allow default tab behavior but update focused index
+          setTimeout(() => {
+            const activeElement = document.activeElement;
+            const index = focusableElements.findIndex((elem, idx) => {
+              if (elem.type === 'backButton' && activeElement === backButtonRef.current) {
+                return true;
+              }
+              if (elem.type === 'faq' && activeElement === faqRefs.current[elem.index]) {
+                return true;
+              }
+              if (elem.type === 'icon' && activeElement === iconRefs.current[elem.index]) {
+                return true;
+              }
+              return false;
+            });
+            if (index !== -1) {
+              setFocusedIndex(index);
+            }
+          }, 0);
+          break;
+      }
+    };
+
+    const scrollToElement = (index: number) => {
+      const element = focusableElements[index];
+      let targetElement: HTMLElement | null = null;
+
+      if (element.type === 'backButton' && backButtonRef.current) {
+        targetElement = backButtonRef.current;
+      } else if (element.type === 'faq' && faqRefs.current[element.index]) {
+        targetElement = faqRefs.current[element.index]!;
+      } else if (element.type === 'icon' && iconRefs.current[element.index]) {
+        targetElement = iconRefs.current[element.index]!;
+      }
+
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [focusedIndex, focusableElements, currentSection, faqs]);
+
+  // Reset focus when component mounts
+  useEffect(() => {
+    setFocusedIndex(0);
+  }, []);
+
   return (
     <div className="learnmore-container">
       <Navbar />
 
       <div className="system-explanation">
-        <button className="back-button" onClick={goBack}>
+        <button 
+          ref={backButtonRef}
+          className={`back-button ${focusedIndex === 0 ? 'focused' : ''}`}
+          onClick={goBack}
+          onFocus={() => setFocusedIndex(0)}
+        >
           <i className="fas fa-arrow-left back-icon"></i>
         </button>
 
@@ -209,9 +336,13 @@ export default function LearnMore() {
             ].map((text, i) => (
               <div
                 key={i}
-                className="icon-wrapper"
+                ref={el => iconRefs.current[i] = el}
+                className={`icon-wrapper ${focusedIndex === i + faqs.length + 1 ? 'focused' : ''}`}
                 onMouseEnter={() => setActiveIcon(i + 1)}
                 onMouseLeave={() => setActiveIcon(0)}
+                onClick={() => setActiveIcon(i + 1)}
+                onFocus={() => setFocusedIndex(i + faqs.length + 1)}
+                tabIndex={0}
               >
                 <div className="icon-circle">{i + 1}</div>
                 <div className={`icon-text ${activeIcon === i + 1 ? 'active' : ''}`}>
@@ -231,8 +362,11 @@ export default function LearnMore() {
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                className="faq-item"
+                ref={el => faqRefs.current[index] = el}
+                className={`faq-item ${focusedIndex === index + 1 ? 'focused' : ''}`}
                 onClick={() => toggleFaq(index)}
+                onFocus={() => setFocusedIndex(index + 1)}
+                tabIndex={0}
               >
                 <div className="faq-question">
                   {faq.question}

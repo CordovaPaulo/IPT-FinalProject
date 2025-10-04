@@ -1,16 +1,33 @@
 // src/app/auth/signup/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import './Signup.css';
-
 
 export default function SignupPage() {
   const router = useRouter();
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const learnerCardRef = useRef<HTMLDivElement>(null);
+  const mentorCardRef = useRef<HTMLDivElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+
+  const focusableElements = [
+    { ref: backButtonRef, type: 'button' },
+    { ref: learnerCardRef, type: 'card' },
+    { ref: mentorCardRef, type: 'card' }
+  ];
+
+  const modalFocusableElements = [
+    { ref: cancelButtonRef, type: 'button' },
+    { ref: confirmButtonRef, type: 'button' }
+  ];
 
   const scrollToGetStarted = () => {
     router.push('/#get-started');
@@ -39,9 +56,155 @@ export default function SignupPage() {
     setSelectedRole('');
   };
 
+  // Keyboard navigation for main page
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (showConfirmationModal) return;
+
+    switch (e.key) {
+      case 'Tab':
+        e.preventDefault();
+        const nextIndex = (focusedIndex + 1) % focusableElements.length;
+        setFocusedIndex(nextIndex);
+        focusableElements[nextIndex].ref.current?.focus();
+        break;
+
+      case 'ArrowRight':
+        e.preventDefault();
+        if (focusedIndex < focusableElements.length - 1) {
+          const newIndex = focusedIndex + 1;
+          setFocusedIndex(newIndex);
+          focusableElements[newIndex].ref.current?.focus();
+        }
+        break;
+
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (focusedIndex > 0) {
+          const newIndex = focusedIndex - 1;
+          setFocusedIndex(newIndex);
+          focusableElements[newIndex].ref.current?.focus();
+        }
+        break;
+
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (focusedIndex === 0) {
+          // Back button
+          scrollToGetStarted();
+        } else if (focusedIndex === 1) {
+          // Learner card
+          initiateSignUp('learner');
+        } else if (focusedIndex === 2) {
+          // Mentor card
+          initiateSignUp('mentor');
+        }
+        break;
+
+      case 'Escape':
+        if (focusedIndex > 0) {
+          setFocusedIndex(0);
+          backButtonRef.current?.focus();
+        }
+        break;
+    }
+  };
+
+  // Keyboard navigation for modal
+  const handleModalKeyDown = (e: KeyboardEvent) => {
+    if (!showConfirmationModal) return;
+
+    switch (e.key) {
+      case 'Tab':
+        e.preventDefault();
+        const currentModalIndex = modalFocusableElements.findIndex(
+          item => document.activeElement === item.ref.current
+        );
+        const nextModalIndex = (currentModalIndex + 1) % modalFocusableElements.length;
+        modalFocusableElements[nextModalIndex].ref.current?.focus();
+        break;
+
+      case 'ArrowRight':
+        e.preventDefault();
+        const currentRightIndex = modalFocusableElements.findIndex(
+          item => document.activeElement === item.ref.current
+        );
+        if (currentRightIndex < modalFocusableElements.length - 1) {
+          modalFocusableElements[currentRightIndex + 1].ref.current?.focus();
+        }
+        break;
+
+      case 'ArrowLeft':
+        e.preventDefault();
+        const currentLeftIndex = modalFocusableElements.findIndex(
+          item => document.activeElement === item.ref.current
+        );
+        if (currentLeftIndex > 0) {
+          modalFocusableElements[currentLeftIndex - 1].ref.current?.focus();
+        }
+        break;
+
+      case 'Enter':
+        e.preventDefault();
+        if (document.activeElement === cancelButtonRef.current) {
+          cancelSelection();
+        } else if (document.activeElement === confirmButtonRef.current) {
+          confirmSelection();
+        }
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        cancelSelection();
+        break;
+    }
+  };
+
+  // Focus management when modal opens/closes
+  useEffect(() => {
+    if (showConfirmationModal) {
+      // When modal opens, focus cancel button
+      setTimeout(() => {
+        cancelButtonRef.current?.focus();
+      }, 100);
+      document.addEventListener('keydown', handleModalKeyDown);
+    } else {
+      document.removeEventListener('keydown', handleModalKeyDown);
+      // When modal closes, return focus to the element that opened it
+      if (selectedRole === 'learner') {
+        learnerCardRef.current?.focus();
+      } else if (selectedRole === 'mentor') {
+        mentorCardRef.current?.focus();
+      }
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleModalKeyDown);
+    };
+  }, [showConfirmationModal]);
+
+  // Main keyboard event listener
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [focusedIndex, showConfirmationModal]);
+
+  // Auto-focus back button on component mount
+  useEffect(() => {
+    backButtonRef.current?.focus();
+  }, []);
+
   return (
     <div className="signup-container">
-      <button onClick={scrollToGetStarted} className="back-btn">
+      <button 
+        ref={backButtonRef}
+        onClick={scrollToGetStarted} 
+        className="back-btn"
+        onFocus={() => setFocusedIndex(0)}
+        tabIndex={0}
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -66,8 +229,22 @@ export default function SignupPage() {
               <strong> {selectedRole.toUpperCase()}</strong>. Is this correct?
             </p>
             <div className="modal-actions">
-              <button onClick={cancelSelection} className="cancel-btn">Cancel</button>
-              <button onClick={confirmSelection} className="confirm-btn">Confirm</button>
+              <button 
+                ref={cancelButtonRef}
+                onClick={cancelSelection} 
+                className="cancel-btn"
+                tabIndex={0}
+              >
+                Cancel
+              </button>
+              <button 
+                ref={confirmButtonRef}
+                onClick={confirmSelection} 
+                className="confirm-btn"
+                tabIndex={0}
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>
@@ -79,7 +256,21 @@ export default function SignupPage() {
       </div>
 
       <section className="join-section" id="get-started">
-        <div className="join-card learner-card" onClick={() => initiateSignUp('learner')}>
+        <div 
+          ref={learnerCardRef}
+          className="join-card learner-card" 
+          onClick={() => initiateSignUp('learner')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              initiateSignUp('learner');
+            }
+          }}
+          onFocus={() => setFocusedIndex(1)}
+          tabIndex={0}
+          role="button"
+          aria-label="Select Learner role"
+        >
           <div className="card-content">
             <div className="role-title">
               <span>PROCEED AS</span>
@@ -94,7 +285,7 @@ export default function SignupPage() {
                 height={200}
               />
             </div>
-            <button className="join-btn">
+            <button className="join-btn" tabIndex={-1}>
               Get Started
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -111,7 +302,21 @@ export default function SignupPage() {
           </div>
         </div>
 
-        <div className="join-card mentor-card" onClick={() => initiateSignUp('mentor')}>
+        <div 
+          ref={mentorCardRef}
+          className="join-card mentor-card" 
+          onClick={() => initiateSignUp('mentor')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              initiateSignUp('mentor');
+            }
+          }}
+          onFocus={() => setFocusedIndex(2)}
+          tabIndex={0}
+          role="button"
+          aria-label="Select Mentor role"
+        >
           <div className="card-content">
             <div className="role-title">
               <span>PROCEED AS</span>
@@ -126,7 +331,7 @@ export default function SignupPage() {
                 height={200}
               />
             </div>
-            <button className="join-btn">
+            <button className="join-btn" tabIndex={-1}>
               Get Started
               <svg
                 xmlns="http://www.w3.org/2000/svg"

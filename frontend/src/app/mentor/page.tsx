@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainComponent from '@/components/mentorpage/main/page';
 import SessionComponent from '@/components/mentorpage/session/page';
@@ -89,10 +89,78 @@ export default function MentorPage() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
   const [showEditInformation, setShowEditInformation] = useState(false);
+  const [showAccessibilityNav, setShowAccessibilityNav] = useState(false);
+
+  // NEW: Keyboard navigation state
+  const [focusedTopbarIndex, setFocusedTopbarIndex] = useState(0);
+  const [isTopbarFocused, setIsTopbarFocused] = useState(false);
+  const topbarRef = useRef<HTMLDivElement>(null);
+
+  // Define topbar items in order
+  const topbarItems = [
+    { key: 'main', label: 'Learners', icon: '/main.svg' },
+    { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
+    { key: 'reviews', label: 'Reviews', icon: '/records.svg' },
+    { key: 'files', label: 'Files', icon: '/uploadCloud.svg' },
+    { key: 'fileManage', label: 'File Manager', icon: '/files.svg' }
+  ];
 
   // Computed properties
   const displayedCourses = userData.ment.subjects.slice(0, 5);
   const remainingCoursesCount = Math.max(userData.ment.subjects.length - 5, 0);
+
+  // NEW: Keyboard navigation functions for topbar
+  const handleTopbarKeyDown = (e: React.KeyboardEvent) => {
+    if (!isTopbarFocused) return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+        e.preventDefault();
+        navigateTopbar('right');
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        navigateTopbar('left');
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        activateTopbarItem();
+        break;
+      case 'Home':
+        e.preventDefault();
+        setFocusedTopbarIndex(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        setFocusedTopbarIndex(topbarItems.length - 1);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsTopbarFocused(false);
+        break;
+    }
+  };
+
+  const navigateTopbar = (direction: 'left' | 'right') => {
+    if (direction === 'right') {
+      setFocusedTopbarIndex((prev) => (prev + 1) % topbarItems.length);
+    } else {
+      setFocusedTopbarIndex((prev) => (prev - 1 + topbarItems.length) % topbarItems.length);
+    }
+  };
+
+  const activateTopbarItem = () => {
+    const focusedItem = topbarItems[focusedTopbarIndex];
+    switchComponent(focusedItem.key);
+  };
+
+  const focusTopbar = () => {
+    setIsTopbarFocused(true);
+    // Set focus to current active component
+    const currentIndex = topbarItems.findIndex(item => item.key === activeComponent);
+    setFocusedTopbarIndex(currentIndex >= 0 ? currentIndex : 0);
+  };
 
   // API functions
   const loggedUserDets = async () => {
@@ -221,6 +289,11 @@ export default function MentorPage() {
     if (isMobileView) {
       setIsSidebarVisible(false);
     }
+    // Update focused index when component changes via click
+    const newIndex = topbarItems.findIndex(item => item.key === component);
+    if (newIndex >= 0) {
+      setFocusedTopbarIndex(newIndex);
+    }
   };
 
   const toggleShowAllCourses = () => {
@@ -290,6 +363,217 @@ export default function MentorPage() {
       </div>
     </div>
   );
+
+  // UPDATED Accessibility Navigation Pad Component with Enhanced Keyboard Navigation
+  const AccessibilityNavPad = () => {
+    const [isVisible, setIsVisible] = useState(false);
+    const [focusedNavIndex, setFocusedNavIndex] = useState(0);
+
+    // Define navbar items in order
+    const navItems = [
+      { key: 'main', label: 'Learners', icon: '/main.svg' },
+      { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
+      { key: 'reviews', label: 'Reviews', icon: '/records.svg' },
+      { key: 'files', label: 'Files', icon: '/uploadCloud.svg' },
+      { key: 'fileManage', label: 'File Manager', icon: '/files.svg' }
+    ];
+
+    // Keyboard shortcuts handler
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Toggle nav pad with Ctrl + Alt + N
+        if (e.ctrlKey && e.altKey && e.key === 'n') {
+          e.preventDefault();
+          setIsVisible(prev => !prev);
+          // Reset focus to current active component when opening
+          const currentIndex = navItems.findIndex(item => item.key === activeComponent);
+          setFocusedNavIndex(currentIndex >= 0 ? currentIndex : 0);
+        }
+
+        // Navigation shortcuts when nav pad is visible
+        if (isVisible) {
+          switch (e.key) {
+            case 'ArrowLeft':
+              e.preventDefault();
+              navigateNavItems('left');
+              break;
+            case 'ArrowRight':
+              e.preventDefault();
+              navigateNavItems('right');
+              break;
+            case 'Enter':
+            case ' ':
+              e.preventDefault();
+              activateFocusedNavItem();
+              break;
+            case 'Escape':
+              e.preventDefault();
+              setIsVisible(false);
+              break;
+            case 'Home':
+              e.preventDefault();
+              setFocusedNavIndex(0);
+              break;
+            case 'End':
+              e.preventDefault();
+              setFocusedNavIndex(navItems.length - 1);
+              break;
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isVisible, focusedNavIndex, activeComponent]);
+
+    const navigateNavItems = (direction: 'left' | 'right') => {
+      if (direction === 'right') {
+        setFocusedNavIndex((prev) => (prev + 1) % navItems.length);
+      } else {
+        setFocusedNavIndex((prev) => (prev - 1 + navItems.length) % navItems.length);
+      }
+    };
+
+    const activateFocusedNavItem = () => {
+      const focusedItem = navItems[focusedNavIndex];
+      setActiveComponent(focusedItem.key);
+      // Don't close the nav pad on activation, keep it open for continued navigation
+    };
+
+    const quickNavigate = (component: string) => {
+      setActiveComponent(component);
+      const index = navItems.findIndex(item => item.key === component);
+      if (index >= 0) {
+        setFocusedNavIndex(index);
+      }
+    };
+
+    const handleNavPadClose = () => {
+      setIsVisible(false);
+      // Reset focus to currently active component
+      const currentIndex = navItems.findIndex(item => item.key === activeComponent);
+      setFocusedNavIndex(currentIndex >= 0 ? currentIndex : 0);
+    };
+
+    if (!isVisible) return null;
+
+    return (
+      <>
+        <div className="accessibility-nav-pad-overlay" onClick={handleNavPadClose}></div>
+        <div className="accessibility-nav-pad">
+          <div className="nav-pad-header">
+            <h3>Accessibility Navigation</h3>
+            <button 
+              className="close-nav-pad" 
+              onClick={handleNavPadClose}
+              aria-label="Close navigation pad"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div className="nav-pad-controls">
+            {/* Visual Navigation Indicator */}
+            <div className="nav-visual-indicator">
+              <div className="nav-track">
+                {navItems.map((item, index) => (
+                  <div
+                    key={item.key}
+                    className={`nav-point ${index === focusedNavIndex ? 'focused' : ''} ${
+                      item.key === activeComponent ? 'active' : ''
+                    }`}
+                    onClick={() => {
+                      setFocusedNavIndex(index);
+                      activateFocusedNavItem();
+                    }}
+                  >
+                    <div className="nav-point-icon">
+                      <img src={item.icon} alt={item.label} />
+                    </div>
+                    <span className="nav-point-label">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="nav-direction">
+              <button 
+                className="nav-btn left-btn"
+                onClick={() => navigateNavItems('left')}
+                aria-label="Navigate to previous nav item"
+              >
+                <i className="fas fa-arrow-left"></i>
+                <span>Previous</span>
+              </button>
+              
+              <div className="nav-display">
+                <span className="current-nav-item">
+                  {navItems[focusedNavIndex]?.label}
+                </span>
+                <span className="nav-position">
+                  {focusedNavIndex + 1} of {navItems.length}
+                </span>
+              </div>
+              
+              <button 
+                className="nav-btn right-btn"
+                onClick={() => navigateNavItems('right')}
+                aria-label="Navigate to next nav item"
+              >
+                <span>Next</span>
+                <i className="fas fa-arrow-right"></i>
+              </button>
+            </div>
+
+            <div className="nav-activation">
+              <button 
+                className="activate-btn"
+                onClick={activateFocusedNavItem}
+                aria-label={`Activate ${navItems[focusedNavIndex]?.label} section`}
+              >
+                <i className="fas fa-arrow-right-to-bracket"></i>
+                Activate {navItems[focusedNavIndex]?.label}
+              </button>
+            </div>
+
+            <div className="quick-nav-grid">
+              {navItems.map((item, index) => (
+                <button 
+                  key={item.key}
+                  className={`quick-nav-btn ${item.key === activeComponent ? 'active' : ''} ${
+                    index === focusedNavIndex ? 'focused' : ''
+                  }`}
+                  onClick={() => quickNavigate(item.key)}
+                >
+                  <img src={item.icon} alt={item.label} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="nav-shortcuts">
+              <div className="shortcut-item">
+                <kbd>←</kbd> / <kbd>→</kbd>
+                <span>Navigate Nav Items</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>Enter</kbd> / <kbd>Space</kbd>
+                <span>Activate Focused Item</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>Home</kbd> / <kbd>End</kbd>
+                <span>Jump to First/Last</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>ESC</kbd>
+                <span>Close Navigation Pad</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
 
   // UPDATED renderComponent function - logout as overlay
   const renderComponent = () => {
@@ -402,6 +686,19 @@ export default function MentorPage() {
           onCancel={handleCancelEdit}
         />
       )}
+
+      {/* Accessibility Navigation Pad */}
+      <AccessibilityNavPad />
+
+      {/* Accessibility Toggle Button */}
+      <button 
+        className="accessibility-toggle-btn"
+        onClick={() => setShowAccessibilityNav(prev => !prev)}
+        aria-label="Toggle accessibility navigation"
+        title="Accessibility Navigation (Ctrl+Alt+N)"
+      >
+        <i className="fas fa-universal-access"></i>
+      </button>
 
       {/* Mobile Sidebar Toggle Button */}
       {isMobileView && (
@@ -556,58 +853,31 @@ export default function MentorPage() {
         </div>
       </div>
 
-      {/* Topbar */}
+      {/* UPDATED Topbar with keyboard navigation */}
       <div 
+        ref={topbarRef}
         className={`topbar ${
           isMobileView && !isSidebarVisible ? 'topbar-expanded' : ''
-        }`}
+        } ${isTopbarFocused ? 'topbar-focused' : ''}`}
+        tabIndex={0}
+        onKeyDown={handleTopbarKeyDown}
+        onFocus={focusTopbar}
+        onBlur={() => setIsTopbarFocused(false)}
+        onClick={focusTopbar}
       >
         <div className="topbar-left">
-          <div 
-            onClick={() => switchComponent('main')}
-            className={`topbar-option ${
-              activeComponent === 'main' ? 'active' : ''
-            }`}
-          >
-            <img src="/main.svg" alt="Main" className="nav-icon" />
-            <span className="nav-text">Learners</span>
-          </div>
-          <div 
-            onClick={() => switchComponent('session')}
-            className={`topbar-option ${
-              activeComponent === 'session' ? 'active' : ''
-            }`}
-          >
-            <img src="/calendar.svg" alt="Session" className="nav-icon" />
-            <span className="nav-text">Schedules</span>
-          </div>
-          <div 
-            onClick={() => switchComponent('reviews')}
-            className={`topbar-option ${
-              activeComponent === 'reviews' ? 'active' : ''
-            }`}
-          >
-            <img src="/records.svg" alt="Reviews" className="nav-icon" />
-            <span className="nav-text">Reviews</span>
-          </div>
-          <div 
-            onClick={() => switchComponent('files')}
-            className={`topbar-option ${
-              activeComponent === 'files' ? 'active' : ''
-            }`}
-          >
-            <img src="/uploadCloud.svg" alt="Upload" className="nav-icon" />
-            <span className="nav-text">Files</span>
-          </div>
-          <div 
-            onClick={() => switchComponent('fileManage')}
-            className={`topbar-option ${
-              activeComponent === 'fileManage' ? 'active' : ''
-            }`}
-          >
-            <img src="/files.svg" alt="Files" className="nav-icon" />
-            <span className="nav-text">File Manager</span>
-          </div>
+          {topbarItems.map((item, index) => (
+            <div 
+              key={item.key}
+              onClick={() => switchComponent(item.key)}
+              className={`topbar-option ${
+                activeComponent === item.key ? 'active' : ''
+              } ${index === focusedTopbarIndex && isTopbarFocused ? 'focused' : ''}`}
+            >
+              <img src={item.icon} alt={item.label} className="nav-icon" />
+              <span className="nav-text">{item.label}</span>
+            </div>
+          ))}
         </div>
         <div className="topbar-date">
           <i className="fas fa-calendar-alt date-icon"></i>

@@ -1,5 +1,3 @@
-/* offer.module.css */
-
 .offerBooking {
   border-bottom-width: 4px;
   width: 1000px;
@@ -22,8 +20,8 @@
   background: linear-gradient(135deg, #0b2b31, #2b737e);
   color: white;
   padding: 0.75rem 1.25rem;
-  border-top-left-radius: 1.5rem;
-  border-top-right-radius: 1.5rem;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -134,12 +132,13 @@
   color: #495057;
   font-weight: 600;
   font-size: 0.875rem;
-  padding: 0.5rem 1.5rem;
+  padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   user-select: none;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 80px;
 }
 
 .offerTimeBtn:hover {
@@ -165,7 +164,7 @@
 
 .offerModeButtons {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .offerModeBtn {
@@ -173,13 +172,14 @@
   align-items: center;
   gap: 0.5rem;
   border-radius: 9999px;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.875rem;
   font-size: 0.875rem;
   cursor: pointer;
   user-select: none;
   border: 1px solid #ced4da;
   background-color: white;
   transition: all 0.2s;
+  min-width: 100px;
 }
 
 .offerModeBtn:disabled {
@@ -212,7 +212,7 @@
 
 .offerLocationField {
   width: 100%;
-  max-width: 300px;
+  max-width: 280px;
   padding: 0.5rem 0.75rem;
   border: 1px solid #ced4da;
   border-radius: 0.375rem;
@@ -435,7 +435,7 @@
 .offerFooter {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
+  gap: 0.75rem;
   padding: 1rem 1.5rem;
   border-top: 1px solid #dee2e6;
   background-color: white;
@@ -453,11 +453,12 @@
   font-size: 0.875rem;
   border: 1px solid #dc3545;
   border-radius: 0.375rem;
-  padding: 0.5rem 1.25rem;
+  padding: 0.5rem 1rem;
   cursor: pointer;
   user-select: none;
   background: none;
   transition: all 0.2s;
+  min-width: 100px;
 }
 
 .offerBtnCancel:hover {
@@ -470,11 +471,12 @@
   font-weight: 600;
   font-size: 0.875rem;
   border-radius: 0.375rem;
-  padding: 0.5rem 1.25rem;
+  padding: 0.5rem 1rem;
   cursor: pointer;
   user-select: none;
   border: none;
   transition: all 0.2s;
+  min-width: 100px;
 }
 
 .offerBtnProceed:hover {
@@ -528,55 +530,429 @@
   padding: 8px 12px;
 }
 
-/* Responsive adjustments */
-@media (min-width: 768px) {
-  .offerContent {
-    flex-direction: row;
-  }
-}
-
 @media (max-width: 1200px) {
   .offerBooking {
-    width: 100%;
+    width: 92%;
+    max-width: 900px;
+    left: 50%;
     margin: 0;
-    max-height: 100vh;
-    border-radius: 0;
-    left: 50%; 
+    max-height: 92vh;
+    border-radius: 1rem;
+  }
+  
+  .offerContent {
+    padding: 2rem;
+  }
+  
+  .offerRight {
+    margin-left: 0;
+    max-width: 100%;
+  }
+  
+  .offerTimeBtn {
+    padding: 0.5rem 0.875rem;
+    min-width: 75px;
+  }
+  
+  .offerModeBtn {
+    padding: 0.5rem 0.75rem;
+    min-width: 90px;
+  }
+  
+  .offerBtnCancel,
+  .offerBtnProceed {
+    padding: 0.5rem 0.875rem;
+    min-width: 90px;
   }
 }
 
 @media (max-width: 992px) {
+  .offerBooking {
+    width: 94%;
+    max-width: 800px;
+    max-height: 94vh;
+    border-radius: 0.875rem;
+  }
+  
   .offerContent {
     padding: 1.5rem;
+    gap: 1.25rem;
   }
+  
+  .offerProfile {
+    padding: 0.875rem 1.25rem;
+  }
+  
+  .offerProfile img {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+  
   .offerTimeSlots {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem 1.5rem;
+    max-width: 100%;
+  }
+  
+  .offerTimeBtn {
+    padding: 0.5rem 0.75rem;
+    min-width: 70px;
+    font-size: 0.8rem;
+  }
+  
+  .offerModeButtons {
+    gap: 0.75rem;
+  }
+  
+  .offerModeBtn {
+    padding: 0.5rem 0.75rem;
+    min-width: 85px;
+    font-size: 0.8rem;
+  }
+  
+  .offerLocationField {
+    max-width: 100%;
+  }
+  
+  .offerFooter {
+    padding: 0.875rem 1.25rem;
+    gap: 0.625rem;
+  }
+  
+  .offerBtnCancel,
+  .offerBtnProceed {
+    padding: 0.5rem 0.75rem;
+    min-width: 85px;
+    font-size: 0.8rem;
   }
 }
 
 @media (max-width: 768px) {
-  .offerContent {
-    height: calc(100% - 160px);
+  .offerBooking {
+    width: 96%;
+    max-width: 600px;
+    max-height: 96vh;
+    border-radius: 0.75rem;
   }
+  
   .offerHeader {
-    position: sticky;
-    top: 0;
+    padding: 0.625rem 1rem;
   }
+  
+  .offerHeader h1 {
+    font-size: 1rem;
+  }
+  
+  .offerHeader button {
+    font-size: 1.75rem;
+  }
+  
+  .offerProfile {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .offerProfile img {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .offerContent {
+    padding: 1.25rem;
+    height: calc(100% - 150px);
+    flex-direction: column;
+  }
+  
+  .offerLeft, 
+  .offerRight {
+    width: 100%;
+  }
+  
+  .offerTimeSlots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-width: 100%;
+  }
+  
+  .offerTimeBtn {
+    padding: 0.4rem 0.5rem;
+    min-width: 55px;
+    font-size: 0.7rem;
+  }
+  
+  .offerModeButtons {
+    flex-direction: row;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .offerModeBtn {
+    justify-content: center;
+    padding: 0.4rem 0.6rem;
+    min-width: 70px;
+    font-size: 0.75rem;
+  }
+  
+  .offerCalendar {
+    padding: 0.625rem;
+  }
+  
   .offerFooter {
-    position: sticky;
-    bottom: 0;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  .offerBtnCancel,
+  .offerBtnProceed {
+    padding: 0.5rem 0.75rem;
+    min-width: 80px;
+    font-size: 0.8rem;
   }
 }
 
 @media (max-width: 576px) {
   .offerBooking {
-    margin: 0;
-    top: 0;
-    left: 0;
-    transform: none;
-    border-radius: 0;
-    max-height: 100vh;
+    width: 98%;
+    max-width: 480px;
+    max-height: 98vh;
+    border-radius: 0.5rem;
+    margin: 1%;
+  }
+  
+  .offerHeader {
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding: 0.5rem 0.875rem;
+  }
+  
+  .offerHeader h1 {
+    font-size: 0.9rem;
+  }
+  
+  .offerHeader button {
+    font-size: 1.5rem;
+  }
+  
+  .offerProfile {
+    padding: 0.625rem 0.875rem;
+  }
+  
+  .offerProfile img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .offerProfile div p:first-child {
+    font-size: 1rem;
+  }
+  
+  .offerContent {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .offerTimeSlots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+  
+  .offerTimeBtn {
+    padding: 0.35rem 0.4rem;
+    min-width: 50px;
+    font-size: 0.65rem;
+  }
+  
+  .offerModeButtons {
+    gap: 0.4rem;
+  }
+  
+  .offerModeBtn {
+    padding: 0.35rem 0.5rem;
+    min-width: 65px;
+    font-size: 0.7rem;
+  }
+  
+  .offerCalendar {
+    padding: 0.5rem;
+  }
+  
+  .offerFooter {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+  }
+  
+  .offerBtnCancel,
+  .offerBtnProceed {
+    padding: 0.5rem 0.625rem;
+    min-width: 75px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .offerBooking {
+    width: 96%;
+    max-height: 96vh;
+    margin: 2%;
+  }
+  
+  .offerContent {
+    padding: 0.875rem;
+  }
+  
+  .offerTimeSlots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+  
+  .offerTimeBtn {
+    padding: 0.4rem 0.5rem;
+    min-width: auto;
+    font-size: 0.7rem;
+  }
+  
+  .offerModeButtons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .offerModeBtn {
+    padding: 0.5rem 0.75rem;
+    min-width: auto;
+    font-size: 0.75rem;
     width: 100%;
+    justify-content: center;
+  }
+  
+  .offerFooter {
+    gap: 0.375rem;
+  }
+  
+  .offerBtnCancel,
+  .offerBtnProceed {
+    padding: 0.5rem 0.5rem;
+    min-width: 70px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .offerBooking {
+    width: 94%;
+    max-height: 94vh;
+    margin: 3%;
+  }
+  
+  .offerHeader {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .offerHeader h1 {
+    font-size: 0.85rem;
+  }
+  
+  .offerContent {
+    padding: 0.75rem;
+  }
+  
+  .offerProfile {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .offerProfile img {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  
+  .offerTimeHeader h2 {
+    font-size: 0.8rem;
+  }
+  
+  .offerModeHeader {
+    font-size: 0.8rem;
+  }
+  
+  .offerTimeSlots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.3rem;
+  }
+  
+  .offerTimeBtn {
+    padding: 0.35rem 0.4rem;
+    min-width: 45px;
+    font-size: 0.6rem;
+  }
+  
+  .offerModeButtons {
+    gap: 0.4rem;
+  }
+  
+  .offerModeBtn {
+    padding: 0.4rem 0.6rem;
+    min-width: auto;
+    font-size: 0.65rem;
+  }
+  
+  .offerFooter {
+    padding: 0.625rem 0.75rem;
+    gap: 0.25rem;
+  }
+  
+  .offerBtnCancel,
+  .offerBtnProceed {
+    padding: 0.5rem 0.375rem;
+    min-width: 65px;
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .offerBooking {
+    max-height: 98vh;
+    width: 98%;
+  }
+  
+  .offerContent {
+    padding: 1rem;
+    gap: 1rem;
+    height: calc(100% - 120px);
+  }
+  
+  .offerProfile {
+    padding: 0.5rem 1rem;
+  }
+  
+  .offerProfile img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .offerTimeSlots {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+  
+  .offerTimeBtn {
+    padding: 0.3rem 0.4rem;
+    min-width: 50px;
+    font-size: 0.65rem;
+  }
+  
+  .offerModeButtons {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  .offerModeBtn {
+    padding: 0.4rem 0.6rem;
+    min-width: 70px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .offerProfile img {
+    border-width: 1.5px;
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
-import './Schedule.css'; // Import the CSS file
+import './Schedule.module.css';
 
 function getCookie(name: string) {
   const value = `; ${document.cookie}`;

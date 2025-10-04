@@ -192,18 +192,50 @@
   font-size: 1.5rem;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Tablet Responsive Design */
+@media (max-width: 1024px) {
   .mainSearchContainer {
-    justify-content: flex-start;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    padding: 0 1rem;
+  }
+
+  .mainSearchInput {
+    width: 100%;
+    max-width: 500px;
+    margin-right: 0.75rem;
+    flex: 1;
+  }
+
+  .mainSearchInput:focus {
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .mainUserGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.25rem;
+    padding: 0 1rem;
+  }
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 768px) {
+  .mainWrapper {
+    padding: 1rem;
+  }
+
+  .mainSearchContainer {
+    justify-content: center;
     margin-bottom: 1rem;
-    padding-left: 0.5rem;
+    padding: 0 0.5rem;
   }
 
   .mainSearchInput {
     width: 100%;
     max-width: 400px;
     margin-right: 0.75rem;
+    flex: 1;
   }
 
   .mainSearchInput:focus {
@@ -212,8 +244,9 @@
   }
 
   .mainUserGrid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1rem;
+    padding: 0 0.5rem;
   }
 
   .mainUserCard {
@@ -249,19 +282,41 @@
   }
 }
 
+/* Small Mobile Responsive Design */
 @media (max-width: 480px) {
   .mainWrapper {
-    padding: 1rem 1rem;
-    width: 90%;
+    padding: 0.75rem;
+    width: 100%;
   }
 
   .mainSearchContainer {
-    padding-left: 0.25rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+    padding: 0 0.25rem;
+  }
+
+  .mainSearchInput {
+    width: 100%;
+    max-width: 320px;
+    margin-right: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.875rem;
+  }
+
+  .mainSearchInput:focus {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .mainSearchButton {
+    width: 32px;
+    height: 32px;
   }
 
   .mainUserGrid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 0.75rem;
+    padding: 0 0.25rem;
   }
 
   .mainUserCard img {
@@ -274,6 +329,11 @@
     margin: 0.5rem 0 0.3rem;
   }
 
+  .mainUpperElement,
+  .mainLowerElement {
+    padding: 0.875rem;
+  }
+
   .mainStars {
     margin: 0.3rem 0;
   }
@@ -284,9 +344,28 @@
 
   .mainSeeMoreBtn {
     margin-top: 0.75rem;
+    padding: 0.35rem 0.875rem;
+    font-size: 0.7rem;
   }
 
   .mainButtonGroup {
     gap: 0.3rem;
+    width: 80%;
+  }
+}
+
+/* Extra Small Mobile Responsive Design */
+@media (max-width: 360px) {
+  .mainUserGrid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .mainSearchInput {
+    max-width: 280px;
+  }
+
+  .mainSearchInput:focus {
+    max-width: 280px;
   }
 }

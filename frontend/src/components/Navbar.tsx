@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 
 export default function Navbar() {
@@ -11,6 +11,7 @@ export default function Navbar() {
   const [isLoginClicked, setIsLoginClicked] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [clickedLink, setClickedLink] = useState<string | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
 
   const links = [
     { name: 'Home', href: '#home' },
@@ -19,12 +20,34 @@ export default function Navbar() {
     { name: 'Get Started', href: '#get-started' },
   ];
 
+  const navItems = [...links, { name: 'Login', href: '#login', isButton: true }];
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+    if (!isMenuOpen) {
+      // When opening menu, focus first item
+      setTimeout(() => {
+        setFocusedIndex(0);
+        const firstLink = document.querySelector('[data-index="0"]') as HTMLElement;
+        if (firstLink) {
+          firstLink.focus();
+        }
+      }, 100);
+    } else {
+      setFocusedIndex(-1);
+    }
   };
 
   const closeMenu = () => {
     setIsMenuOpen(false);
+    setFocusedIndex(-1);
+    // Return focus to hamburger button when closing menu
+    setTimeout(() => {
+      if (hamburgerRef.current) {
+        hamburgerRef.current.focus();
+      }
+    }, 100);
   };
 
   const goToLogin = () => {
@@ -33,14 +56,16 @@ export default function Navbar() {
     router.push('/auth/login');
   };
 
-  const handleLinkClick = (link: { name: string; href: string }) => {
+  const handleLinkClick = (link: { name: string; href: string; isButton?: boolean }) => {
+    if (link.isButton) {
+      goToLogin();
+      return;
+    }
+
     if (pathname !== '/') {
-      // Navigate to home page first
       router.push('/');
-      // The scroll will be handled by the useEffect below
       sessionStorage.setItem('scrollToSection', link.href);
     } else {
-      // Already on home page, just scroll to section
       scrollToSection(link.href);
     }
 
@@ -93,15 +118,107 @@ export default function Navbar() {
     }
   };
 
+  // Handle keyboard navigation for arrow keys
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (!isMenuOpen) {
+      // Handle navigation when menu is closed (desktop)
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const currentIndex = navItems.findIndex(item => item.name === activeLink);
+        let newIndex;
+
+        if (event.key === 'ArrowLeft') {
+          newIndex = currentIndex <= 0 ? navItems.length - 1 : currentIndex - 1;
+        } else {
+          newIndex = currentIndex >= navItems.length - 1 ? 0 : currentIndex + 1;
+        }
+
+        const newItem = navItems[newIndex];
+        setActiveLink(newItem.name);
+
+        if (newItem.isButton) {
+          // Focus login button
+          const loginButton = document.querySelector('.nav-button') as HTMLElement;
+          if (loginButton) {
+            loginButton.focus();
+          }
+        } else {
+          // Focus nav link and scroll to section
+          const linkElement = document.querySelector(`[data-index="${newIndex}"]`) as HTMLElement;
+          if (linkElement) {
+            linkElement.focus();
+          }
+          scrollToSection(newItem.href);
+        }
+      }
+      return;
+    }
+
+    // Handle navigation when menu is open (mobile/tablet)
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        setFocusedIndex(prev => {
+          const newIndex = prev <= 0 ? navItems.length - 1 : prev - 1;
+          focusNavItem(newIndex);
+          return newIndex;
+        });
+        break;
+
+      case 'ArrowRight':
+        event.preventDefault();
+        setFocusedIndex(prev => {
+          const newIndex = prev >= navItems.length - 1 ? 0 : prev + 1;
+          focusNavItem(newIndex);
+          return newIndex;
+        });
+        break;
+
+      case 'Enter':
+        if (focusedIndex >= 0 && focusedIndex < navItems.length) {
+          event.preventDefault();
+          handleLinkClick(navItems[focusedIndex]);
+        }
+        break;
+
+      case 'Escape':
+        closeMenu();
+        break;
+    }
+  };
+
+  const focusNavItem = (index: number) => {
+    if (index < links.length) {
+      // Focus navigation link
+      const linkElement = document.querySelector(`[data-index="${index}"]`) as HTMLElement;
+      if (linkElement) {
+        linkElement.focus();
+      }
+    } else if (index === links.length) {
+      // Focus login button
+      const loginButton = document.querySelector('.nav-button') as HTMLElement;
+      if (loginButton) {
+        loginButton.focus();
+      }
+    }
+  };
+
+  // Handle individual item key down for better accessibility
+  const handleItemKeyDown = (event: React.KeyboardEvent, index: number) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleLinkClick(navItems[index]);
+    }
+  };
+
   useEffect(() => {
     // Check if we're on login page
-      setIsLoginClicked(pathname === '/auth/login');    
+    setIsLoginClicked(pathname === '/auth/login');    
     // Set up scroll listener if on home page
     if (pathname === '/') {
       window.addEventListener('scroll', handleScroll);
       handleScroll(); // Check initial position
       
-      // Check if we need to scroll to a section after navigation
       const scrollToSectionId = sessionStorage.getItem('scrollToSection');
       if (scrollToSectionId) {
         scrollToSection(scrollToSectionId);
@@ -110,12 +227,21 @@ export default function Navbar() {
     }
 
     document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [pathname, isMenuOpen]);
+  }, [pathname, isMenuOpen, focusedIndex, activeLink]);
+
+  // Reset focused index when menu closes
+  useEffect(() => {
+    if (!isMenuOpen) {
+      setFocusedIndex(-1);
+    }
+  }, [isMenuOpen]);
 
   return (
     <header>
@@ -130,33 +256,46 @@ export default function Navbar() {
       </div>
 
       <button
+        ref={hamburgerRef}
         className="hamburger"
         onClick={toggleMenu}
         aria-label="Toggle navigation"
+        aria-expanded={isMenuOpen}
+        aria-controls="header-nav"
       >
         <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
         <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
         <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
       </button>
 
-      <nav className={`header-nav ${isMenuOpen ? 'active' : ''}`}>
+      <nav 
+        id="header-nav"
+        className={`header-nav ${isMenuOpen ? 'active' : ''}`}
+        role="navigation"
+        aria-label="Main navigation"
+      >
         <div className="nav-links">
-          {links.map((link) => (
+          {links.map((link, index) => (
             <a
               key={link.name}
               href={link.href}
+              data-index={index}
               className={`
                 nav-link 
                 ${activeLink === link.name ? 'active' : ''}
                 ${clickedLink === link.name ? 'clicked' : ''}
+                ${focusedIndex === index ? 'focused' : ''}
               `}
               onClick={(e) => {
                 e.preventDefault();
                 handleLinkClick(link);
               }}
+              onKeyDown={(e) => handleItemKeyDown(e, index)}
               onMouseDown={() => setClickedLink(link.name)}
               onMouseUp={() => setClickedLink(null)}
               onMouseLeave={() => setClickedLink(null)}
+              onFocus={() => setFocusedIndex(index)}
+              tabIndex={isMenuOpen || !isMenuOpen ? 0 : -1}
             >
               <span className="link-text">{link.name}</span>
               <span className="link-underline"></span>
@@ -164,8 +303,11 @@ export default function Navbar() {
           ))}
         </div>
         <button
-          className={`nav-button ${isLoginClicked ? 'clicked' : ''}`}
+          className={`nav-button ${isLoginClicked ? 'clicked' : ''} ${focusedIndex === links.length ? 'focused' : ''}`}
           onClick={goToLogin}
+          onKeyDown={(e) => handleItemKeyDown(e, links.length)}
+          onFocus={() => setFocusedIndex(links.length)}
+          tabIndex={isMenuOpen || !isMenuOpen ? 0 : -1}
         >
           <svg className="login-icon" viewBox="0 0 24 24" width="18" height="18">
             <path
@@ -182,6 +324,7 @@ export default function Navbar() {
         <div 
           className="nav-overlay" 
           onClick={closeMenu}
+          tabIndex={-1}
         />
       )}
 
@@ -208,6 +351,7 @@ export default function Navbar() {
           align-items: center;
           gap: 0.5rem;
           z-index: 110;
+          flex-shrink: 0;
         }
 
         .header-logo span {
@@ -216,6 +360,7 @@ export default function Navbar() {
           color: #0e8ca3;
         }
 
+        /* Improved Hamburger Styles */
         .hamburger {
           display: flex;
           flex-direction: column;
@@ -227,6 +372,9 @@ export default function Navbar() {
           cursor: pointer;
           padding: 0;
           z-index: 110;
+          position: relative;
+          margin-left: auto;
+          flex-shrink: 0;
         }
 
         .hamburger-line {
@@ -236,6 +384,7 @@ export default function Navbar() {
           background: #0e8ca3;
           border-radius: 3px;
           transition: all 0.3s ease;
+          transform-origin: center;
         }
 
         .hamburger-line:nth-child(1).active {
@@ -244,6 +393,7 @@ export default function Navbar() {
 
         .hamburger-line:nth-child(2).active {
           opacity: 0;
+          transform: scale(0);
         }
 
         .hamburger-line:nth-child(3).active {
@@ -256,10 +406,9 @@ export default function Navbar() {
           position: fixed;
           top: 0;
           right: -120%;
-          width: 90%;
+          width: 100%;
           height: 100%;
           background-color: rgb(220, 226, 230);
-          border-radius: 25px 0 0 25px;
           padding: 6rem 1.5rem 2rem;
           transition: right 0.3s ease;
           z-index: 105;
@@ -290,6 +439,15 @@ export default function Navbar() {
           flex-direction: column;
           align-items: center;
           cursor: pointer;
+          border: 2px solid transparent;
+          border-radius: 4px;
+          outline: none;
+        }
+
+        .nav-link:focus,
+        .nav-link.focused {
+          border-color: transparent;
+          outline-offset: 1px;
         }
 
         .link-text {
@@ -337,6 +495,14 @@ export default function Navbar() {
           gap: 0.5rem;
           transition: all 0.3s ease;
           width: fit-content;
+          outline: none;
+        }
+
+        .nav-button:focus,
+        .nav-button.focused {
+          background: #0e8ca3;
+          color: white;
+          outline-offset: 1px;
         }
 
         .login-icon {
@@ -364,7 +530,48 @@ export default function Navbar() {
           z-index: 104;
         }
 
-        @media (min-width: 768px) {
+        /* Mobile and Tablet Styles */
+        @media (max-width: 1023px) {
+          .hamburger {
+            display: flex;
+          }
+
+          .header-nav {
+            position: fixed;
+            right: -120%;
+            width: 100%;
+            height: 100%;
+            background-color: rgb(220, 226, 230);
+            padding: 6rem 1.5rem 2rem;
+            flex-direction: column;
+          }
+
+          .header-nav.active {
+            right: 0;
+          }
+
+          .nav-links {
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+          }
+
+          .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 1.1rem;
+          }
+
+          .nav-button {
+            margin: 13rem auto 0;
+          }
+
+          .nav-overlay {
+            display: block;
+          }
+        }
+
+        /* Desktop Styles (1024px and up) */
+        @media (min-width: 1024px) {
           .hamburger {
             display: none;
           }
@@ -419,6 +626,78 @@ export default function Navbar() {
 
           .nav-overlay {
             display: none;
+          }
+        }
+
+        /* Tablet Styles (768px - 1023px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .hamburger {
+            display: flex;
+          }
+
+          .header-nav {
+            position: fixed;
+            right: -120%;
+            width: 100%;
+            height: 100%;
+            background-color: rgb(220, 226, 230);
+            padding: 6rem 1.5rem 2rem;
+            flex-direction: column;
+          }
+
+          .header-nav.active {
+            right: 0;
+          }
+
+          .nav-links {
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+          }
+
+          .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 1.1rem;
+          }
+
+          .nav-button {
+            margin: 13rem auto 0;
+          }
+
+          .nav-overlay {
+            display: block;
+          }
+        }
+
+        /* Small Mobile Styles (480px and below) */
+        @media (max-width: 480px) {
+          header {
+            padding: 1rem 1.5rem;
+          }
+
+          .hamburger {
+            width: 28px;
+            height: 20px;
+          }
+
+          .hamburger-line {
+            height: 2.5px;
+          }
+
+          .hamburger-line:nth-child(1).active {
+            transform: translateY(8.5px) rotate(45deg);
+          }
+
+          .hamburger-line:nth-child(3).active {
+            transform: translateY(-8.5px) rotate(-45deg);
+          }
+
+          .header-logo span {
+            font-size: 1.3rem;
+          }
+
+          .header-nav {
+            padding: 5rem 1rem 2rem;
           }
         }
       `}</style>

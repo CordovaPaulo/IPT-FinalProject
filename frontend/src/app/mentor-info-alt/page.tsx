@@ -127,6 +127,26 @@ const MentorInfo = () => {
   // Refs
   const profileInputRef = useRef<HTMLInputElement>(null);
   const credentialInputRef = useRef<HTMLInputElement>(null);
+
+  // Refs for keyboard navigation
+  const addressRef = useRef<HTMLInputElement>(null);
+  const contactNumberRef = useRef<HTMLInputElement>(null);
+  const genderRef = useRef<HTMLDivElement>(null);
+  const yearLevelRef = useRef<HTMLDivElement>(null);
+  const programRef = useRef<HTMLDivElement>(null);
+  const profileUploadRef = useRef<HTMLDivElement>(null);
+  const credentialsUploadRef = useRef<HTMLDivElement>(null);
+  const availabilityRef = useRef<HTMLDivElement>(null);
+  const subjectsRef = useRef<HTMLDivElement>(null);
+  const teachingStyleRef = useRef<HTMLDivElement>(null);
+  const modalityRef = useRef<HTMLDivElement>(null);
+  const sessionDurationRef = useRef<HTMLDivElement>(null);
+  const proficiencyRef = useRef<HTMLDivElement>(null);
+  const bioRef = useRef<HTMLTextAreaElement>(null);
+  const experienceRef = useRef<HTMLTextAreaElement>(null);
+  const nextButtonRef = useRef<HTMLButtonElement>(null);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const prevStepButtonRef = useRef<HTMLButtonElement>(null);
   
   // Computed values
   const availabilityDaysDisplay = selectedDays.join(', ') || 'Select available days';
@@ -151,6 +171,204 @@ const MentorInfo = () => {
       minLength: 50,
       maxLength: 500,
       message: 'Experience should be between 50-500 characters'
+    }
+  };
+
+  // Previous step function
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+  
+  // Keyboard navigation function
+  const handleKeyNavigation = (e: KeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+      return;
+    }
+
+    const currentActiveElement = document.activeElement;
+    const allFocusableElements = getFocusableElements();
+    
+    if (allFocusableElements.length === 0) return;
+
+    const currentIndex = allFocusableElements.indexOf(currentActiveElement as HTMLElement);
+    let nextIndex = -1;
+
+    if (e.key === 'ArrowDown') {
+      nextIndex = currentIndex < allFocusableElements.length - 1 ? currentIndex + 1 : 0;
+    } else if (e.key === 'ArrowUp') {
+      nextIndex = currentIndex > 0 ? currentIndex - 1 : allFocusableElements.length - 1;
+    } else if (e.key === 'ArrowLeft') {
+      // Handle left arrow navigation specifically for step 1
+      if (currentStep === 1) {
+        if (currentActiveElement === nextButtonRef.current) {
+          e.preventDefault();
+          backButtonRef.current?.focus();
+          return;
+        }
+      } else if (currentStep === 2) {
+        if (currentActiveElement === nextButtonRef.current) {
+          e.preventDefault();
+          prevStepButtonRef.current?.focus();
+          return;
+        } else if (currentActiveElement === prevStepButtonRef.current) {
+          e.preventDefault();
+          // In step 2, focus should go to the last form element when pressing left from prev button
+          const formElements = getFocusableElements().filter(el => 
+            el !== backButtonRef.current && 
+            el !== prevStepButtonRef.current && 
+            el !== nextButtonRef.current
+          );
+          if (formElements.length > 0) {
+            formElements[formElements.length - 1]?.focus();
+          }
+          return;
+        }
+      }
+    } else if (e.key === 'ArrowRight') {
+      // Handle right arrow navigation specifically for step 1
+      if (currentStep === 1) {
+        if (currentActiveElement === backButtonRef.current) {
+          e.preventDefault();
+          nextButtonRef.current?.focus();
+          return;
+        }
+      } else if (currentStep === 2) {
+        if (currentActiveElement === prevStepButtonRef.current) {
+          e.preventDefault();
+          nextButtonRef.current?.focus();
+          return;
+        } else if (currentActiveElement === backButtonRef.current) {
+          e.preventDefault();
+          // In step 2, focus should go to the first form element when pressing right from back button
+          const formElements = getFocusableElements().filter(el => 
+            el !== backButtonRef.current && 
+            el !== prevStepButtonRef.current && 
+            el !== nextButtonRef.current
+          );
+          if (formElements.length > 0) {
+            formElements[0]?.focus();
+          }
+          return;
+        }
+      }
+    }
+
+    if (nextIndex !== -1) {
+      e.preventDefault();
+      allFocusableElements[nextIndex]?.focus();
+    }
+  };
+
+  // Get all focusable elements in current step
+  const getFocusableElements = (): HTMLElement[] => {
+    const focusableSelectors = [
+      'input:not([disabled])',
+      'textarea:not([disabled])',
+      'button:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+      '.dropdown-container',
+      '.dropdown-trigger',
+      '.upload-controls',
+      '.choose-file-container',
+      '.file-link'
+    ].join(',');
+
+    const currentStepElement = document.querySelector('.form-container');
+    if (!currentStepElement) return [];
+
+    const elements = Array.from(currentStepElement.querySelectorAll(focusableSelectors)) as HTMLElement[];
+    
+    if (nextButtonRef.current) {
+      elements.push(nextButtonRef.current);
+    }
+    if (backButtonRef.current) {
+      elements.push(backButtonRef.current);
+    }
+    if (prevStepButtonRef.current && currentStep === 2) {
+      elements.push(prevStepButtonRef.current);
+    }
+
+    return elements.filter(el => {
+      const style = window.getComputedStyle(el);
+      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    });
+  };
+
+  // Focus management for dropdowns
+  const focusFirstDropdownOption = (dropdownElement: HTMLElement) => {
+    const firstOption = dropdownElement.querySelector('.dropdown-option') as HTMLElement;
+    firstOption?.focus();
+  };
+
+  // Handle dropdown keyboard navigation
+  const handleDropdownKeyNavigation = (e: React.KeyboardEvent, dropdownType: keyof DropdownOpenState) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!dropdownOpen[dropdownType]) {
+        toggleDropdown(dropdownType);
+        setTimeout(() => {
+          const dropdownElement = document.querySelector(`.${dropdownType}-dropdown`) as HTMLElement;
+          if (dropdownElement) {
+            focusFirstDropdownOption(dropdownElement);
+          }
+        }, 0);
+      }
+    } else if (e.key === 'Escape' && dropdownOpen[dropdownType]) {
+      e.preventDefault();
+      setDropdownOpen(prev => ({ ...prev, [dropdownType]: false }));
+    }
+  };
+
+  // Handle subjects dropdown keyboard navigation
+  const handleSubjectsKeyNavigation = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!showCategories) {
+        toggleSubjectDropdown();
+      }
+    } else if (e.key === 'Escape' && (showCategories || showSubjectsDropdown)) {
+      e.preventDefault();
+      setShowCategories(false);
+      setShowSubjectsDropdown(false);
+    }
+  };
+
+  // Handle checkbox keyboard navigation
+  const handleCheckboxKeyNavigation = (e: React.KeyboardEvent, 
+    type: 'day' | 'style' | 'subject', 
+    value: string, 
+    currentState: string[], 
+    setState: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (currentState.includes(value)) {
+        setState(currentState.filter(item => item !== value));
+      } else {
+        setState([...currentState, value]);
+      }
+    }
+  };
+
+  // Handle file upload keyboard navigation
+  const handleUploadKeyNavigation = (e: React.KeyboardEvent, uploadType: 'profile' | 'credentials') => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (uploadType === 'profile') {
+        uploadProfilePicture();
+      } else {
+        uploadCredentials();
+      }
+    }
+  };
+
+  // Handle file list keyboard navigation
+  const handleFileListKeyNavigation = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleFileList();
     }
   };
   
@@ -283,28 +501,183 @@ const MentorInfo = () => {
   };
   
   const updateAvailableSubjects = () => {
-    // This would be populated based on the selected program
-    // For brevity, I'm leaving the implementation similar to the Vue version
     switch (program) {
       case 'Bachelor of Science in Information Technology (BSIT)':
         setAvailableSubjects({
           coreSubjects: [
             'Application Development and Emerging Technologies',
             'Business Analytics',
-            // ... other subjects
+            'Computer Programming 1',
+            'Computer Programming 2',
+            'Data Structures and Algorithms',
+            'Digital Design with Multimedia Systems',
+            'Discrete Structures 1',
+            'Event Driven Programming',
+            'Fundamentals of Database Systems',
+            'Information Assurance and Security 1',
+            'Information Assurance and Security 2',
+            'Information Management 1',
+            'Integrative Programming and Technologies',
+            'Introduction to Computing',
+            'Introduction to Human-Computer Interaction',
+            'IT Elective 1',
+            'IT Elective 2',
+            'IT Elective 3',
+            'IT Elective 4',
+            'IT Elective 5',
+            'IT Research Methods',
+            'IT Seminars and Educational Trips',
+            'Networking 1',
+            'Networking 2',
+            'Object-Oriented Programming',
+            'PC Troubleshooting with Basic Electronics',
+            'Platform Technologies',
+            'Quantitative Methods (Inc. Modelling & Simulation)',
+            'Social Issues and Professional Practice in Computing',
+            'System Administration and Maintenance',
+            'Systems Integration and Architecture 1',
           ],
           gecSubjects: [
             'Art Appreciation',
             'Ethics',
-            // ... other subjects
+            'Mathematics in the Modern World',
+            'People and Earth\'s Ecosystem',
+            'Purposive Communication',
+            'Reading Visual Arts',
+            'Readings in Philippine History with Indigenous People Studies',
+            'Science, Technology and Society',
+            'The Contemporary World with Peace Studies',
+            'The Entrepreneurial Mind',
+            'The Life and Works of Rizal',
+            'Understanding the Self',
           ],
           peNstpSubjects: [
             'National Service Training Program with Anti-Smoking and Environmental Education',
-            // ... other subjects
+            'National Service Training Program with GAD and Peace Education',
+            'Physical Activities Toward Health and Fitness 1 (PATHFit 1): Movement Competency',
+            'Physical Activities Toward Health and Fitness 2 (PATHFit 2): Exercise-Based Fitness Activities',
+            'Physical Activities Toward Health and Fitness 3 (PATHFit 3)',
+            'Physical Activities Toward Health and Fitness 4 (PATHFit 4)',
           ]
         });
         break;
-      // Other cases...
+
+      case 'Bachelor of Science in Computer Science (BSCS)':
+        setAvailableSubjects({
+          coreSubjects: [
+            'Computer Programming 1',
+            'Computer Programming 2',
+            'Data Structures and Algorithms',
+            'Algorithms and Complexity 1',
+            'Software Engineering 1',
+            'Software Engineering 2',
+            'Operating Systems',
+            'Object-Oriented Programming',
+            'Information Management 1',
+            'Discrete Structures 1',
+            'Discrete Structures 2',
+            'Principles of Statistics and Probability',
+            'Graphics and Visual Computing',
+            'Automata Theory',
+            'Intelligent Systems',
+            'Programming Languages',
+            'Parallel and Distributed Computing',
+            'Architecture and Organization',
+            'Information Assurance and Security',
+            'CS Thesis Writing 1',
+            'CS Thesis Writing 2',
+            'CS Elective 1',
+            'CS Elective 2',
+            'CS Elective 3',
+            'CS Elective 4',
+            'CS Elective 5',
+            'CS Seminars and Educational Trips',
+          ],
+          gecSubjects: [
+            'Introduction to Computing',
+            'PC Troubleshooting with Basic Electronics',
+            'Understanding the SELF',
+            'Readings in Philippine History with Indigenous People Studies',
+            'The Life and Works of Jose Rizal',
+            'People and Earth\'s Ecosystem',
+            'Mathematics in the Modern World',
+            'Science, Technology and Society',
+            'Reading Visual Arts',
+            'Art Appreciation',
+            'Purposive Communication',
+            'Ethics',
+            'The Contemporary World With Peace Studies',
+          ],
+          peNstpSubjects: [
+            'National Service Training Program 1',
+            'National Service Training Program 2',
+            'Physical Activities Toward Health and Fitness 1 (PATHFit 1): Movement Competency',
+            'Physical Activities Toward Health and Fitness 2 (PATHFit 2): Exercise-Based Fitness Activities',
+            'Physical Activities Toward Health and Fitness 3 (PATHFit 3)',
+            'Physical Activities Toward Health and Fitness 4 (PATHFit 4)',
+          ]
+        });
+        break;
+
+      case 'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)':
+        setAvailableSubjects({
+          coreSubjects: [
+            'Introduction to EM Computing',
+            'Computer Programming 1',
+            'PC Troubleshooting with Basic Electronics',
+            'Computer Programming 2',
+            'Usability, HCI, UI Design',
+            'Free Hand and Digital Drawing',
+            'Data Structures and Algorithms',
+            'Information Management 1',
+            'Introduction to Game Design and Development',
+            'Computer Graphics Programming',
+            'Image and Video Processing',
+            'Script Writing and Storyboard Design',
+            'Applications Development and Emerging Technologies',
+            'Principles of 2D Animation',
+            'Audio Design and Sound Engineering Modelling and Rigging',
+            'Texture and Mapping',
+            'Social Issues and Professional Practice in Computing',
+            'Lighting and Effects',
+            'Principles of 3D Animation',
+            'Design and Production Process',
+            'Advanced Sound Production',
+            'Advanced 2D Animation',
+            'EMC Professional Elective 1',
+            'Research Methods',
+            'Advanced 3D Animation and Scripting',
+            'Compositing and Rendering',
+            'EMC Professional Elective 2',
+            'Animation Design and Production',
+            'EMC Professional Elective 3',
+            'Computing Seminars and Educational Trips',
+          ],
+          gecSubjects: [
+            'Art Appreciation',
+            'Ethics',
+            'Mathematics in the Modern World',
+            'People and Earth\'s Ecosystem',
+            'Purposive Communication',
+            'Reading Visual Arts',
+            'Readings in Philippine History with Indigenous People Studies',
+            'Science, Technology and Society',
+            'The Contemporary World with Peace Studies',
+            'The Entrepreneurial Mind',
+            'The Life and Works of Rizal',
+            'Understanding the Self',
+          ],
+          peNstpSubjects: [
+            'National Service Training Program with Anti-Smoking and Environmental Education',
+            'National Service Training Program with GAD and Peace Education',
+            'Physical Activities Toward Health and Fitness 1 (PATHFit 1): Movement Competency',
+            'Physical Activities Toward Health and Fitness 2 (PATHFit 2): Exercise-Based Fitness Activities',
+            'Physical Activities Toward Health and Fitness 3 (PATHFit 3)',
+            'Physical Activities Toward Health and Fitness 4 (PATHFit 4)',
+          ]
+        });
+        break;
+
       default:
         setAvailableSubjects({
           coreSubjects: [],
@@ -443,8 +816,8 @@ const MentorInfo = () => {
       }
 
       // Add credentials (multiple files)
-      if (credentialsInputRef.current?.files) {
-        Array.from(credentialsInputRef.current.files).forEach(file => {
+      if (credentialInputRef.current?.files) {
+        Array.from(credentialInputRef.current.files).forEach(file => {
           formData.append('credentials', file);
         });
       }
@@ -497,6 +870,13 @@ const MentorInfo = () => {
   useEffect(() => {
     updateSelectedCounts();
   }, [selectedSubjects]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyNavigation);
+    return () => {
+      document.removeEventListener('keydown', handleKeyNavigation);
+    };
+  }, [currentStep]);
   
   return (
     <div className="mentorinfo-container">
@@ -506,7 +886,12 @@ const MentorInfo = () => {
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
       </Head>
       
-      <button onClick={scrollToGetStarted} className="back-btn">
+      <button 
+        ref={backButtonRef}
+        onClick={() => router.push('/auth/signup')} 
+        className="back-btn"
+        tabIndex={0}
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -535,6 +920,7 @@ const MentorInfo = () => {
             <div className="personal-field">
               <label className="personal-label required" htmlFor="address">ADDRESS</label>
               <input
+                ref={addressRef}
                 type="text"
                 id="address"
                 value={address}
@@ -546,6 +932,7 @@ const MentorInfo = () => {
                 placeholder="Enter your address"
                 disabled={isSubmitting}
                 className={`personal-input ${validationErrors.address ? 'error' : ''}`}
+                tabIndex={0}
               />
               {validationErrors.address && (
                 <span className="validation-message">
@@ -559,6 +946,7 @@ const MentorInfo = () => {
                 CONTACT NUMBER
               </label>
               <input
+                ref={contactNumberRef}
                 type="text"
                 id="contact-number"
                 value={contactNumber}
@@ -572,6 +960,7 @@ const MentorInfo = () => {
                 disabled={isSubmitting}
                 className={`personal-input ${validationErrors.contactNumber ? 'error' : ''}`}
                 maxLength={11}
+                tabIndex={0}
               />
               {validationErrors.contactNumber && (
                 <span className="validation-message">
@@ -584,7 +973,12 @@ const MentorInfo = () => {
               <label className="personal-label required" htmlFor="gender">
                 SEX AT BIRTH
               </label>
-              <div className="gender-dropdown">
+              <div 
+                ref={genderRef}
+                className="gender-dropdown"
+                tabIndex={0}
+                onKeyDown={(e) => handleDropdownKeyNavigation(e, 'gender')}
+              >
                 <div className="dropdown-container" onClick={() => toggleDropdown('gender')}>
                   <input
                     type="text"
@@ -593,21 +987,42 @@ const MentorInfo = () => {
                     disabled={isSubmitting}
                     className="personal-input"
                     readOnly
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.gender && (
                   <div className="dropdown-options">
-                    <div className="dropdown-option" onClick={() => {
-                      setGender('Female');
-                      setDropdownOpen({ ...dropdownOpen, gender: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setGender('Female');
+                        setDropdownOpen({ ...dropdownOpen, gender: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setGender('Female');
+                          setDropdownOpen({ ...dropdownOpen, gender: false });
+                        }
+                      }}
+                    >
                       Female
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setGender('Male');
-                      setDropdownOpen({ ...dropdownOpen, gender: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setGender('Male');
+                        setDropdownOpen({ ...dropdownOpen, gender: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setGender('Male');
+                          setDropdownOpen({ ...dropdownOpen, gender: false });
+                        }
+                      }}
+                    >
                       Male
                     </div>
                   </div>
@@ -622,7 +1037,12 @@ const MentorInfo = () => {
 
             <div className="personal-field">
               <label className="personal-label" htmlFor="year-level">YEAR LEVEL </label>
-              <div className="year-dropdown">
+              <div 
+                ref={yearLevelRef}
+                className="year-dropdown"
+                tabIndex={0}
+                onKeyDown={(e) => handleDropdownKeyNavigation(e, 'yearLevel')}
+              >
                 <div className="dropdown-container" onClick={() => toggleDropdown('yearLevel')}>
                   <input
                     type="text"
@@ -631,33 +1051,74 @@ const MentorInfo = () => {
                     disabled={isSubmitting}
                     className="personal-input"
                     readOnly
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.yearLevel && (
                   <div className="dropdown-options">
-                    <div className="dropdown-option" onClick={() => {
-                      setYearLevel('1st Year');
-                      setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setYearLevel('1st Year');
+                        setDropdownOpen({ ...dropdownOpen, yearLevel: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setYearLevel('1st Year');
+                          setDropdownOpen({ ...dropdownOpen, yearLevel: false });
+                        }
+                      }}
+                    >
                       1st Year
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setYearLevel('2nd Year');
-                      setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setYearLevel('2nd Year');
+                        setDropdownOpen({ ...dropdownOpen, yearLevel: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setYearLevel('2nd Year');
+                          setDropdownOpen({ ...dropdownOpen, yearLevel: false });
+                        }
+                      }}
+                    >
                       2nd Year
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setYearLevel('3rd Year');
-                      setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setYearLevel('3rd Year');
+                        setDropdownOpen({ ...dropdownOpen, yearLevel: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setYearLevel('3rd Year');
+                          setDropdownOpen({ ...dropdownOpen, yearLevel: false });
+                        }
+                      }}
+                    >
                       3rd Year
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setYearLevel('4th Year');
-                      setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setYearLevel('4th Year');
+                        setDropdownOpen({ ...dropdownOpen, yearLevel: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setYearLevel('4th Year');
+                          setDropdownOpen({ ...dropdownOpen, yearLevel: false });
+                        }
+                      }}
+                    >
                       4th Year
                     </div>
                   </div>
@@ -667,7 +1128,12 @@ const MentorInfo = () => {
             
             <div className="personal-field">
               <label className="personal-label" htmlFor="program">PROGRAM </label>
-              <div className="program-dropdown">
+              <div 
+                ref={programRef}
+                className="program-dropdown"
+                tabIndex={0}
+                onKeyDown={(e) => handleDropdownKeyNavigation(e, 'program')}
+              >
                 <div className="dropdown-container" onClick={() => toggleDropdown('program')}>
                   <input
                     type="text"
@@ -676,6 +1142,7 @@ const MentorInfo = () => {
                     className="personal-input"
                     disabled={isSubmitting}
                     readOnly
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
@@ -688,6 +1155,13 @@ const MentorInfo = () => {
                         onClick={() => {
                           setProgram(programOption);
                           setDropdownOpen({ ...dropdownOpen, program: false });
+                        }}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            setProgram(programOption);
+                            setDropdownOpen({ ...dropdownOpen, program: false });
+                          }
                         }}
                       >
                         {programOption}
@@ -709,7 +1183,13 @@ const MentorInfo = () => {
             <div className="upload-container">
               <div className="profile-picture-upload">
                 <label className="profile-label">PROFILE PICTURE</label>
-                <div className="upload-controls" onClick={uploadProfilePicture}>
+                <div 
+                  ref={profileUploadRef}
+                  className="upload-controls" 
+                  onClick={uploadProfilePicture}
+                  tabIndex={0}
+                  onKeyDown={(e) => handleUploadKeyNavigation(e, 'profile')}
+                >
                   <div className="profile-preview-container">
                     {profileImage ? (
                       <img
@@ -751,7 +1231,12 @@ const MentorInfo = () => {
 
               <div className="credentials-upload">
                 <label className="profile-label">CREDENTIALS</label>
-                <div className="upload-controls">
+                <div 
+                  ref={credentialsUploadRef}
+                  className="upload-controls"
+                  tabIndex={0}
+                  onKeyDown={(e) => handleUploadKeyNavigation(e, 'credentials')}
+                >
                   <i className="fas fa-file-upload upload-icon"></i>
                   <div className="choose-file-container" onClick={uploadCredentials}>
                     <span>Upload Credentials</span>
@@ -765,7 +1250,13 @@ const MentorInfo = () => {
                     style={{ display: 'none' }}
                     onChange={handleCredentialUpload}
                   />
-                  <a href="#" onClick={(e) => { e.preventDefault(); toggleFileList(); }} className="file-link">
+                  <a 
+                    href="#" 
+                    onClick={(e) => { e.preventDefault(); toggleFileList(); }} 
+                    className="file-link"
+                    tabIndex={0}
+                    onKeyDown={handleFileListKeyNavigation}
+                  >
                     View Uploaded Files ({credentials.length})
                   </a>
                 </div>
@@ -778,7 +1269,12 @@ const MentorInfo = () => {
               <label className="profile-label" htmlFor="availability-days">
                 DAYS OF AVAILABILITY
               </label>
-              <div className="availability-dropdown">
+              <div 
+                ref={availabilityRef}
+                className="availability-dropdown"
+                tabIndex={0}
+                onKeyDown={(e) => handleDropdownKeyNavigation(e, 'availability')}
+              >
                 <div className="dropdown-container" onClick={() => toggleDropdown('availability')}>
                   <input
                     type="text"
@@ -788,6 +1284,7 @@ const MentorInfo = () => {
                     disabled={isSubmitting}
                     className="profile-input"
                     readOnly
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
@@ -808,6 +1305,8 @@ const MentorInfo = () => {
                             }
                           }}
                           onClick={(e) => e.stopPropagation()}
+                          tabIndex={0}
+                          onKeyDown={(e) => handleCheckboxKeyNavigation(e, 'day', day, selectedDays, setSelectedDays)}
                         />
                         <label htmlFor={`day-${day}`}>{day}</label>
                       </div>
@@ -819,7 +1318,12 @@ const MentorInfo = () => {
 
             <div className="profile-field">
               <label className="profile-label required">SUBJECTS OFFERED</label>
-              <div className="dropdown-wrapper">
+              <div 
+                ref={subjectsRef}
+                className="dropdown-wrapper"
+                tabIndex={0}
+                onKeyDown={handleSubjectsKeyNavigation}
+              >
                 <div className="dropdown-trigger" onClick={toggleSubjectDropdown}>
                   <input
                     type="text"
@@ -831,6 +1335,7 @@ const MentorInfo = () => {
                     readOnly
                     disabled={isSubmitting}
                     className={`profile-input ${validationErrors.selectedSubjects ? 'error' : ''}`}
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
@@ -842,6 +1347,12 @@ const MentorInfo = () => {
                         key={category.type}
                         className="dropdown-item"
                         onClick={() => selectCategory(category)}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            selectCategory(category);
+                          }
+                        }}
                       >
                         {category.name}
                         {selectedSubjectsCount[category.type as keyof typeof selectedSubjectsCount] > 0 && (
@@ -871,6 +1382,8 @@ const MentorInfo = () => {
                                 setSelectedSubjects(selectedSubjects.filter(s => s !== subject));
                               }
                             }}
+                            tabIndex={0}
+                            onKeyDown={(e) => handleCheckboxKeyNavigation(e, 'subject', subject, selectedSubjects, setSelectedSubjects)}
                           />
                           <label htmlFor={subject}>{subject}</label>
                         </div>
@@ -894,7 +1407,12 @@ const MentorInfo = () => {
               <label className="profile-label" htmlFor="teaching-style">
                 TEACHING STYLE
               </label>
-              <div className="teaching-style-dropdown">
+              <div 
+                ref={teachingStyleRef}
+                className="teaching-style-dropdown"
+                tabIndex={0}
+                onKeyDown={(e) => handleDropdownKeyNavigation(e, 'learningStyle')}
+              >
                 <div className="dropdown-container" onClick={() => toggleDropdown('learningStyle')}>
                   <input
                     type="text"
@@ -904,6 +1422,7 @@ const MentorInfo = () => {
                     placeholder="Select teaching style(s)"
                     className="profile-input"
                     readOnly
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
@@ -923,6 +1442,8 @@ const MentorInfo = () => {
                             }
                           }}
                           onClick={(e) => e.stopPropagation()}
+                          tabIndex={0}
+                          onKeyDown={(e) => handleCheckboxKeyNavigation(e, 'style', style, selectedSessionStyles, setSelectedSessionStyles)}
                         />
                         <label htmlFor={`style-${style}`}>{style}</label>
                       </div>
@@ -936,7 +1457,12 @@ const MentorInfo = () => {
               <label className="profile-label required" htmlFor="modality">
                 TEACHING MODALITY
               </label>
-              <div className="subjmodality-dropdown">
+              <div 
+                ref={modalityRef}
+                className="subjmodality-dropdown"
+                tabIndex={0}
+                onKeyDown={(e) => handleDropdownKeyNavigation(e, 'modality')}
+              >
                 <div className="dropdown-container" onClick={() => toggleDropdown('modality')}>
                   <input
                     type="text"
@@ -945,27 +1471,58 @@ const MentorInfo = () => {
                     placeholder="Select teaching modality"
                     className="profile-input"
                     readOnly
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.modality && (
                   <div className="dropdown-options">
-                    <div className="dropdown-option" onClick={() => {
-                      setModality('Online');
-                      setDropdownOpen({ ...dropdownOpen, modality: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setModality('Online');
+                        setDropdownOpen({ ...dropdownOpen, modality: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setModality('Online');
+                          setDropdownOpen({ ...dropdownOpen, modality: false });
+                        }
+                      }}
+                    >
                       Online
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setModality('In-person');
-                      setDropdownOpen({ ...dropdownOpen, modality: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setModality('In-person');
+                        setDropdownOpen({ ...dropdownOpen, modality: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setModality('In-person');
+                          setDropdownOpen({ ...dropdownOpen, modality: false });
+                        }
+                      }}
+                    >
                       In-person
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setModality('Hybrid');
-                      setDropdownOpen({ ...dropdownOpen, modality: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setModality('Hybrid');
+                        setDropdownOpen({ ...dropdownOpen, modality: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setModality('Hybrid');
+                          setDropdownOpen({ ...dropdownOpen, modality: false });
+                        }
+                      }}
+                    >
                       Hybrid
                     </div>
                   </div>
@@ -977,7 +1534,12 @@ const MentorInfo = () => {
               <label className="profile-label" htmlFor="session-duration">
                 PREFERRED SESSION DURATION
               </label>
-              <div className="session-duration-dropdown">
+              <div 
+                ref={sessionDurationRef}
+                className="session-duration-dropdown"
+                tabIndex={0}
+                onKeyDown={(e) => handleDropdownKeyNavigation(e, 'sessionDuration')}
+              >
                 <div className="dropdown-container" onClick={() => toggleDropdown('sessionDuration')}>
                   <input
                     type="text"
@@ -986,27 +1548,58 @@ const MentorInfo = () => {
                     placeholder="Select duration"
                     className="profile-input"
                     readOnly
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.sessionDuration && (
                   <div className="dropdown-options">
-                    <div className="dropdown-option" onClick={() => {
-                      setSessionDuration('1 hour');
-                      setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setSessionDuration('1 hour');
+                        setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setSessionDuration('1 hour');
+                          setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
+                        }
+                      }}
+                    >
                       1 hour
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setSessionDuration('2 hours');
-                      setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setSessionDuration('2 hours');
+                        setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setSessionDuration('2 hours');
+                          setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
+                        }
+                      }}
+                    >
                       2 hours
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setSessionDuration('3 hours');
-                      setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setSessionDuration('3 hours');
+                        setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setSessionDuration('3 hours');
+                          setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
+                        }
+                      }}
+                    >
                       3 hours
                     </div>
                   </div>
@@ -1018,7 +1611,12 @@ const MentorInfo = () => {
               <label className="profile-label" htmlFor="proficiency">
                 PROFICIENCY LEVEL
               </label>
-              <div className="proficiency-dropdown">
+              <div 
+                ref={proficiencyRef}
+                className="proficiency-dropdown"
+                tabIndex={0}
+                onKeyDown={(e) => handleDropdownKeyNavigation(e, 'proficiency')}
+              >
                 <div className="dropdown-container" onClick={() => toggleDropdown('proficiency')}>
                   <input
                     type="text"
@@ -1027,27 +1625,58 @@ const MentorInfo = () => {
                     placeholder="Select proficiency level"
                     className="profile-input"
                     readOnly
+                    tabIndex={-1}
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.proficiency && (
                   <div className="dropdown-options">
-                    <div className="dropdown-option" onClick={() => {
-                      setProficiency('Beginner');
-                      setDropdownOpen({ ...dropdownOpen, proficiency: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setProficiency('Beginner');
+                        setDropdownOpen({ ...dropdownOpen, proficiency: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setProficiency('Beginner');
+                          setDropdownOpen({ ...dropdownOpen, proficiency: false });
+                        }
+                      }}
+                    >
                       Beginner
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setProficiency('Intermediate');
-                      setDropdownOpen({ ...dropdownOpen, proficiency: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setProficiency('Intermediate');
+                        setDropdownOpen({ ...dropdownOpen, proficiency: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setProficiency('Intermediate');
+                          setDropdownOpen({ ...dropdownOpen, proficiency: false });
+                        }
+                      }}
+                    >
                       Intermediate
                     </div>
-                    <div className="dropdown-option" onClick={() => {
-                      setProficiency('Advanced');
-                      setDropdownOpen({ ...dropdownOpen, proficiency: false });
-                    }}>
+                    <div 
+                      className="dropdown-option" 
+                      onClick={() => {
+                        setProficiency('Advanced');
+                        setDropdownOpen({ ...dropdownOpen, proficiency: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setProficiency('Advanced');
+                          setDropdownOpen({ ...dropdownOpen, proficiency: false });
+                        }
+                      }}
+                    >
                       Advanced
                     </div>
                   </div>
@@ -1058,6 +1687,7 @@ const MentorInfo = () => {
             <div className="profile-field">
               <label className="profile-label required" htmlFor="bio">SHORT BIO</label>
               <textarea
+                ref={bioRef}
                 id="bio"
                 value={bio}
                 onChange={(e) => {
@@ -1069,6 +1699,7 @@ const MentorInfo = () => {
                 placeholder="Tell us about yourself (50-500 characters)"
                 rows={4}
                 className={`profile-textarea ${validationErrors.bio ? 'error' : ''}`}
+                tabIndex={0}
               ></textarea>
               {validationErrors.bio && (
                 <span className="validation-message">
@@ -1082,6 +1713,7 @@ const MentorInfo = () => {
                 TUTORING EXPERIENCE
               </label>
               <textarea
+                ref={experienceRef}
                 id="experience"
                 value={experience}
                 onChange={(e) => {
@@ -1093,6 +1725,7 @@ const MentorInfo = () => {
                 placeholder="Describe your tutoring experience (50-500 characters)"
                 rows={4}
                 className={`profile-textarea ${validationErrors.experience ? 'error' : ''}`}
+                tabIndex={0}
               ></textarea>
               {validationErrors.experience && (
                 <span className="validation-message">
@@ -1104,24 +1737,28 @@ const MentorInfo = () => {
         )}
       </div>
 
-      {/* Step Indicator */}
-      <div className="step-indicator-container">
-        <div className="step-indicator">
-          {Array.from({ length: totalSteps }, (_, i) => i + 1).map(step => (
-            <div
-              key={step}
-              className={`step ${step === currentStep ? 'active' : ''} ${step < currentStep ? 'completed' : ''}`}
-              onClick={() => goToStep(step)}
-            ></div>
-          ))}
-        </div>
-
+      {/* Buttons Container - Step indicator removed */}
+      <div className="next-button-container">
+        {currentStep === 2 && (
+          <button
+            ref={prevStepButtonRef}
+            className="prev-step-button"
+            onClick={prevStep}
+            disabled={isSubmitting}
+            tabIndex={0}
+          >
+            PREVIOUS
+          </button>
+        )}
         <button
+          ref={nextButtonRef}
           className={`next-button ${isSubmitting ? 'loading' : ''} ${isButtonActive ? 'active' : ''}`}
           onClick={nextStep}
           onMouseDown={() => !isSubmitting && setIsButtonActive(true)}
           onMouseUp={() => setIsButtonActive(false)}
           onMouseLeave={() => setIsButtonActive(false)}
+          disabled={isSubmitting}
+          tabIndex={0}
         >
           {isSubmitting ? (
             <span className="loading-spinner"></span>

@@ -263,10 +263,10 @@
 
 .sessionModalHeader {
   padding: 1.2rem 1.5rem;
-  background-color: #3b9aa9;
+  background-color: #257c89;
   color: white;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 }
@@ -276,7 +276,7 @@
   font-size: 1.2rem;
   font-weight: 600;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
-  color: rgb(36, 56, 92);
+  color: white;
 }
 
 .sessionModalBody {
@@ -353,40 +353,350 @@
   background-color: #d32f2f;
 }
 
-/* Responsive Design */
+/* Tablet Responsive Design */
 @media (max-width: 1024px) {
+  .sessionWrapper {
+    width: 95%;
+    margin: 1.5rem auto;
+    margin-left: 1.5rem;
+    height: 35rem;
+    padding: 0 0.8rem;
+  }
+
+  .sessionTableHeader {
+    padding: 1.2rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .sessionTableTitle {
+    font-size: 1.4rem;
+  }
+
+  .sessionLowerElement {
+    gap: 1rem;
+    padding: 0.6rem;
+  }
+
   .sessionGrid {
     grid-template-columns: 1fr;
     grid-gap: 1rem;
+    padding: 0 0.3rem;
   }
+
+  .sessionCard {
+    padding: 0 0.3rem 0.6rem 0.3rem;
+    gap: 0.6rem;
+  }
+
+  .sessionCard h1 {
+    font-size: 1.3rem;
+    padding-left: 0.3rem;
+  }
+
+  .sessionTodayCard,
+  .sessionUpcomingCard {
+    padding: 0.8rem 0.7rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .sessionCardHeader h1 {
+    font-size: 1.2rem;
+  }
+
+  .sessionInfo {
+    gap: 0.5rem;
+  }
+
+  .sessionInfo h2 {
+    font-size: 0.85rem;
+  }
+
+  .sessionInfo p {
+    font-size: 0.8rem;
+  }
+
   .sessionModalContent {
     width: 85%;
+    max-width: 420px;
   }
 }
 
+/* Mobile Responsive Design */
 @media (max-width: 768px) {
   .sessionWrapper {
-    width: 95%;
+    width: 92%;
     margin: 1rem auto;
-    padding: 0.3rem;
+    margin-left: 1rem;
+    height: 45rem; 
+    padding: 0 0.5rem;
+    border-radius: 15px;
   }
+
+  .sessionTableHeader {
+    padding: 1rem;
+    padding-bottom: 1.2rem;
+  }
+
+  .sessionTableTitle {
+    font-size: 1.2rem;
+    gap: 0.6rem;
+  }
+
+  .sessionHeaderIcon {
+    font-size: 1.1rem;
+  }
+
+  .sessionLowerElement {
+    gap: 0.8rem;
+    padding: 0.4rem;
+  }
+
+  .sessionGrid {
+    grid-gap: 0.8rem;
+    padding: 0 0.2rem;
+  }
+
+  .sessionCard {
+    padding: 0 0.2rem 0.4rem 0.2rem;
+    gap: 0.5rem;
+  }
+
+  .sessionCard h1 {
+    font-size: 1.1rem;
+    padding-left: 0.2rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .sessionTodayCard,
+  .sessionUpcomingCard {
+    padding: 0.7rem 0.6rem;
+    margin-bottom: 0.5rem;
+    border-left-width: 4px;
+  }
+
+  .sessionCardHeader h1 {
+    font-size: 1rem;
+    margin-right: 0.3rem;
+  }
+
+  .sessionPopupMenu {
+    min-width: 120px;
+  }
+
+  .sessionPopupOption {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .sessionOptionText {
+    font-size: 0.75rem;
+  }
+
+  .sessionInfo {
+    gap: 0.4rem;
+    margin: 0.15rem 0;
+  }
+
+  .sessionInfo h2 {
+    font-size: 0.8rem;
+  }
+
+  .sessionInfo p {
+    font-size: 0.75rem;
+  }
+
   .sessionModalContent {
     width: 90%;
+    max-width: 380px;
+  }
+
+  .sessionModalHeader {
+    padding: 1rem 1.2rem;
+  }
+
+  .sessionModalHeader h3 {
+    font-size: 1.1rem;
+  }
+
+  .sessionModalBody {
+    padding: 1.2rem;
+  }
+
+  .sessionModalBody p {
+    font-size: 0.9rem;
+  }
+
+  .sessionModalFooter {
+    padding: 0.8rem 1.2rem;
+    gap: 8px;
+  }
+
+  .sessionModalButton {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
   }
 }
 
-@media (max-width: 576px) {
+/* Small Mobile Responsive Design */
+@media (max-width: 480px) {
+  .sessionWrapper {
+    width: 90%;
+    margin: 0.8rem auto;
+    height: 40rem; 
+    padding: 0 0.3rem;
+    border-radius: 12px;
+  }
+
+  .sessionTableHeader {
+    padding: 0.8rem;
+    padding-bottom: 1rem;
+  }
+
+  .sessionTableTitle {
+    font-size: 1.1rem;
+    gap: 0.5rem;
+  }
+
+  .sessionHeaderIcon {
+    font-size: 1rem;
+  }
+
+  .sessionLowerElement {
+    gap: 0.6rem;
+    padding: 0.3rem;
+  }
+
+  .sessionGrid {
+    grid-gap: 0.6rem;
+    padding: 0 0.1rem;
+  }
+
+  .sessionCard {
+    padding: 0 0.1rem 0.3rem 0.1rem;
+    gap: 0.4rem;
+  }
+
+  .sessionCard h1 {
+    font-size: 1rem;
+    padding-left: 0.1rem;
+  }
+
+  .sessionTodayCard,
+  .sessionUpcomingCard {
+    padding: 0.6rem 0.5rem;
+    margin-bottom: 0.4rem;
+    border-left-width: 3px;
+  }
+
+  .sessionCardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+
+  .sessionCardHeader h1 {
+    font-size: 0.9rem;
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .sessionEllipsisContainer {
+    align-self: flex-end;
+  }
+
+  .sessionPopupMenu {
+    min-width: 110px;
+    right: -10px;
+  }
+
+  .sessionInfo {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .sessionInfo h2 {
+    font-size: 0.75rem;
+  }
+
+  .sessionInfo p {
+    font-size: 0.7rem;
+  }
+
   .sessionModalContent {
     width: 95%;
     max-width: 100%;
+    margin: 0 1rem;
   }
+
+  .sessionModalHeader {
+    padding: 0.8rem 1rem;
+  }
+
+  .sessionModalHeader h3 {
+    font-size: 1rem;
+  }
+
+  .sessionModalBody {
+    padding: 1rem;
+  }
+
+  .sessionModalBody p {
+    font-size: 0.85rem;
+    margin-bottom: 0.8rem;
+  }
+
   .sessionModalFooter {
     flex-direction: column;
     gap: 0.5rem;
+    padding: 0.8rem 1rem;
   }
+
   .sessionModalButton {
     width: 100%;
     margin: 0;
     justify-content: center;
+    padding: 0.6rem 1rem;
+  }
+}
+
+/* Extra Small Mobile Design */
+@media (max-width: 360px) {
+  .sessionWrapper {
+    width: 88%;
+    margin: 0.5rem auto;
+    height: 35rem; 
+  }
+
+  .sessionTableTitle {
+    font-size: 1rem;
+  }
+
+  .sessionCard h1 {
+    font-size: 0.9rem;
+  }
+
+  .sessionTodayCard,
+  .sessionUpcomingCard {
+    padding: 0.5rem 0.4rem;
+  }
+
+  .sessionCardHeader h1 {
+    font-size: 0.85rem;
+  }
+
+  .sessionInfo h2 {
+    font-size: 0.7rem;
+  }
+
+  .sessionInfo p {
+    font-size: 0.65rem;
+  }
+
+  .sessionPopupMenu {
+    min-width: 100px;
+  }
+
+  .sessionOptionText {
+    font-size: 0.7rem;
   }
 }
