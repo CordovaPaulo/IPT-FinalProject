@@ -4,9 +4,10 @@
 import { useState, useEffect } from 'react';
 import Offer from '../offer/page';
 import styles from './view.module.css';
+import api from '@/lib/axios'; // Import your axios instance
 
 interface ViewUserProps {
-  userId: number;
+  userId: string; // Changed from number to string to match the ID type
   mentorData: any;
   onClose: () => void;
 }
@@ -27,7 +28,15 @@ interface UserInfo {
   prefSessDur: string;
   goals: string;
   image: string;
-  id: number;
+  id: string; // Changed from number to string
+}
+
+// Helper to get cookie value
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
 }
 
 export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps) {
@@ -52,7 +61,7 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
     prefSessDur: '',
     goals: '',
     image: '',
-    id: 0
+    id: ''
   });
 
   const [imageUrl, setImageUrl] = useState<string>('');
@@ -78,62 +87,76 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
     }
   };
 
-  const fetchUserInfo = async (id: number) => {
+  const fetchUserInfo = async (id: string) => {
     try {
       setIsLoading(true);
+      console.log('Fetching learner details for ID:', id);
 
-      // Replace with your actual API endpoint
-      const response = await fetch(`/api/mentor/users/${id}`, {
+      const token = getCookie('MindMateToken');
+      
+      // Use the correct API endpoint: /api/mentor/learners/:id
+      const response = await api.get(`/api/mentor/learners/${id}`, {
+        withCredentials: true,
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
-      if (!response.ok) throw new Error('Failed to fetch user info');
-
-      const data = await response.json();
+      console.log('Learner details API Response:', response.data);
       
+      const data = response.data;
+      
+      // Map the API response to your UserInfo interface
+      // Adjust these mappings based on the actual API response structure
       setUserInfo({
-        name: data.user.name || '',
-        year: data.user_info?.year || '',
-        course: data.user_info?.course || '',
-        gender: data.user_info?.gender || '',
-        phoneNum: data.user_info?.phoneNum || '',
-        email: data.user?.email || '',
-        address: data.user_info?.address || '',
-        bio: data.user_info?.bio || '',
-        subjects: data.user_info?.subjects || [],
-        learn_modality: data.user_info?.learn_modality || '',
-        learn_sty: data.user_info?.learn_sty || [],
-        availability: data.user_info?.availability || [],
-        prefSessDur: data.user_info?.prefSessDur || '',
-        goals: data.user_info?.goals || '',
-        image: data.user_info?.image || '',
-        id: data.user?.id || 0
+        name: data.name || '',
+        year: data.yearLevel || '',
+        course: data.program || '',
+        gender: data.sex || '',
+        phoneNum: data.phoneNumber || '',
+        email: data.email || '',
+        address: data.address || '',
+        bio: data.bio || '',
+        subjects: data.subjects || [],
+        learn_modality: data.modality || '',
+        learn_sty: data.style || [],
+        availability: data.availability || [],
+        prefSessDur: data.sessionDur || '',
+        goals: data.goals || '',
+        image: data.image || '',
+        id: data._id || data.id || ''
       });
 
-      setImageUrl(data.image_url || '');
+      // Set image URL
+      setImageUrl(data.image || '');
 
       // Prepare data for offer component
       const offerData = [
-        data.user?.id || 0, // userSchoolId
-        userId, // userId
-        data.user?.name || '', // userName
-        data.user_info?.year || '', // userYear
-        data.user_info?.course || '', // userCourse
-        data.user_info?.prefSessDur || '', // userSessionDur
-        data.user_info?.learn_modality || '', // userModality
-        data.user_info?.learn_sty || [], // userLearnStyle
-        data.user_info?.availability || [], // userAvailability
-        data.user_info?.learn_modality || '', // userLearnModality
-        data.user_info?.image || '', // userProfilePic
-        data.user_info?.subjects || [], // userSubjects
+        data._id || data.id || '', // learner ID
+        userId, // userId (same as learner ID in this case)
+        data.name || '', // userName
+        data.yearLevel || '', // userYear
+        data.program || '', // userCourse
+        data.sessionDur || '', // userSessionDur
+        data.modality || '', // userModality
+        data.style || [], // userLearnStyle
+        data.availability || [], // userAvailability
+        data.modality || '', // userLearnModality (duplicate)
+        data.image || '', // userProfilePic
+        data.subjects || [], // userSubjects
       ];
       
       setUserDeetsForOffer(offerData);
+      
     } catch (error) {
-      console.error("Error fetching user info:", error);
+      console.error("Error fetching learner details:", error);
+      
+      // Handle specific error cases
+      if (error.response?.status === 404) {
+        console.error("Learner not found");
+      } else if (error.response?.status === 403) {
+        console.error("Not authorized to view this learner");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -163,6 +186,7 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
     return (
       <div className={styles.viewLoadingContainer}>
         <div className={styles.viewSpinner}></div>
+        <p>Loading learner details...</p>
       </div>
     );
   }
@@ -176,6 +200,13 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
             <i className={`fas fa-user-graduate ${styles.viewModalTitleIcon}`}></i>
             Learner Profile
           </h3>
+          <button 
+            className={styles.viewCloseBtn} 
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            <i className="fas fa-times"></i>
+          </button>
         </div>
 
         {/* Modal Body */}
@@ -184,7 +215,7 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
           <div className={styles.viewLowerUpper}>
             <div className={styles.viewProfileImageContainer}>
               <img
-                src={imageUrl || 'https://placehold.co/600x400'}
+                src={imageUrl || userInfo.image || 'https://placehold.co/600x400'}
                 alt="Profile Image"
                 className={styles.viewProfileImage}
                 onError={(e) => {
@@ -310,7 +341,7 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
                   className={styles.viewCloseBtnNew} 
                   onClick={onClose}
                 >
-                Close
+                  Close
                 </button>
                 <button 
                   className={styles.viewSendOfferBtn} 

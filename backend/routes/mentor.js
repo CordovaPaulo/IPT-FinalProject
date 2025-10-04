@@ -14,6 +14,7 @@ router.get('/schedules', jwtService.authenticateToken('mentor'), mentorControlle
 router.get('/learners', jwtService.authenticateToken('mentor'), mentorController.getAllLearners);
 router.get('/learners/:id', jwtService.authenticateToken('mentor'), mentorController.getLearnerById);
 router.get('/feedbacks', jwtService.authenticateToken('mentor'), mentorController.getFeedbacks);
+router.get('/feedbacks/reviewer/:id', jwtService.authenticateToken('mentor'), mentorController.getReviewer);
 
 // PATCH routes (you can add editProfile later if needed)
 // router.patch('/mentor/profile/edit', jwtService.authenticateToken('mentor'), mentorController.editProfile);

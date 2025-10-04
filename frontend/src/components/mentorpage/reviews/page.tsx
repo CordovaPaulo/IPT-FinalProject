@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import styles from './reviews.module.css'; // Correct import
+import styles from './reviews.module.css';
+import api from '@/lib/axios'; // Make sure you have your axios instance here
 
 interface Reviewer {
   name: string;
@@ -11,14 +12,23 @@ interface Reviewer {
 }
 
 interface Feedback {
-  id: number;
+  id: string;
   rating: number;
   comment: string;
+  reviewerId: string;
   reviewer?: Reviewer;
 }
 
 interface ReviewsComponentProps {
   feedbacks?: Feedback[];
+}
+
+// Helper to get cookie value
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
 }
 
 export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentProps) {
@@ -29,46 +39,74 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
 
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-  const sampleData: Feedback[] = [
-    {
-      id: 1,
-      rating: 5,
-      comment: "Excellent mentor! Very patient and knowledgeable. The sessions were well-structured and helped me understand complex topics easily.",
-      reviewer: {
-        name: "Alice Johnson",
-        course: "Computer Science (CS)",
-        year: "2nd Year",
-        image: "alice.jpg"
-      }
-    },
-    {
-      id: 2,
-      rating: 4,
-      comment: "Very helpful sessions with great explanations. The mentor was professional and provided valuable insights.",
-      reviewer: {
-        name: "Bob Smith",
-        course: "Information Technology (IT)",
-        year: "1st Year",
-        image: "bob.jpg"
-      }
-    },
-    {
-      id: 3,
-      rating: 5,
-      comment: "Outstanding teaching methodology. The mentor made difficult concepts easy to understand with practical examples.",
-      reviewer: {
-        name: "Carol Davis",
-        course: "Software Engineering (SE)",
-        year: "3rd Year",
-        image: "carol.jpg"
-      }
+  // Fetch feedbacks and reviewers from API
+  const fetchReviewer = async () => {
+    try {
+      const token = getCookie('MindMateToken');
+      // Fetch feedbacks
+      const feedbackRes = await api.get('/api/mentor/feedbacks', {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        withCredentials: true,
+      });
+
+      const feedbacksData = feedbackRes.data || [];
+
+      // For each feedback, fetch the learner (reviewer) details using the learner field
+      const reviewerPromises = feedbacksData.map((fb: any) =>
+        api.get(`/api/mentor/learners/${fb.learner}`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          withCredentials: true,
+        }).then(res => ({
+          id: fb.learner,
+          name: res.data.name,
+          course: res.data.program,
+          year: res.data.yearLevel,
+          image: res.data.image,
+        }))
+        .catch(() => ({
+          id: fb.learner,
+          name: 'Unknown',
+          course: 'N/A',
+          year: 'N/A',
+          image: '',
+        }))
+      );
+
+      const reviewersData = await Promise.all(reviewerPromises);
+
+      // Map reviewer data to feedbacks
+      const feedbacksWithReviewer = feedbacksData.map((fb: any) => {
+        const reviewer = reviewersData.find((r: any) => r.id === fb.learner);
+        return {
+          id: fb._id || fb.id,
+          rating: fb.rating,
+          comment: fb.comments || fb.comment,
+          reviewerId: fb.learner,
+          reviewer: reviewer
+            ? {
+                name: reviewer.name,
+                course: reviewer.course,
+                year: reviewer.year,
+                image: reviewer.image,
+              }
+            : undefined,
+        };
+      });
+
+      setRecords(feedbacksWithReviewer);
+    } catch (error) {
+      console.error('Error fetching feedbacks or reviewers:', error);
+      setRecords([]);
     }
-  ];
+  };
 
   useEffect(() => {
-    const dataToUse = sampleData;
-    setRecords(dataToUse);
-  }, [feedbacks]);
+    fetchReviewer();
+  }, []);
 
   const viewFeedback = (record: Feedback) => {
     setIsFeedback(true);
@@ -84,10 +122,8 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
     if (!record.reviewer) {
       return false;
     }
-
     const reviewer = record.reviewer;
     const searchTerm = searchQuery.toLowerCase();
-    
     return (
       (reviewer.name?.toLowerCase() || '').includes(searchTerm) ||
       (reviewer.course?.toLowerCase() || '').includes(searchTerm) ||
@@ -95,33 +131,24 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
     );
   });
 
-  const StarRating = ({ rating }: { rating: number }) => {
-    return (
-      <div className={styles.reviewsStars}>
-        {[...Array(5)].map((_, i) => (
-          <span key={i} className={styles.reviewsStar}>
-            {i < rating ? (
-              <span className={styles.reviewsFilled}>★</span>
-            ) : (
-              <span>☆</span>
-            )}
-          </span>
-        ))}
-      </div>
-    );
-  };
+  const StarRating = ({ rating }: { rating: number }) => (
+    <div className={styles.reviewsStars}>
+      {[...Array(5)].map((_, i) => (
+        <span key={i} className={styles.reviewsStar}>
+          {i < rating ? (
+            <span className={styles.reviewsFilled}>★</span>
+          ) : (
+            <span>☆</span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
 
-  const getReviewerName = (reviewer?: Reviewer) => {
-    return reviewer?.name || 'Unknown Learner';
-  };
-
-  const getReviewerCourse = (reviewer?: Reviewer) => {
-    return reviewer?.course ? reviewer.course.match(/\(([^)]+)\)/)?.[1] : 'N/A';
-  };
-
-  const getReviewerYear = (reviewer?: Reviewer) => {
-    return reviewer?.year || 'N/A';
-  };
+  const getReviewerName = (reviewer?: Reviewer) => reviewer?.name || 'Unknown Learner';
+  const getReviewerCourse = (reviewer?: Reviewer) =>
+    reviewer?.course ? reviewer.course.match(/\(([^)]+)\)/)?.[1] || reviewer.course : 'N/A';
+  const getReviewerYear = (reviewer?: Reviewer) => reviewer?.year || 'N/A';
 
   return (
     <div className={styles.reviewsTableContainer}>

@@ -402,3 +402,26 @@ exports.getProfileInfo = async (req, res) => {
         res.status(500).json({ message: error.message, code: 500 });
     }
 }
+
+exports.getReviewer = async (req, res) => {
+    const { id } = req.params;
+    if (!id) {
+        return res.status(400).json({ message: 'Learner id is null', code: 400 });
+    }
+    const decoded = getValuesFromToken(req);
+    if (!decoded || !decoded.id) {
+        return res.status(403).json({ message: 'Invalid token', code: 403 });
+    }
+
+    try {
+        const learner = await Learner.findOne({ $or: [ {userId: id, }, {_id: id} ] });
+        if (!learner) {
+            return res.status(404).json({ message: 'Learner not found', code: 404 });
+        }
+
+        res.status(200).json({ reviewer: learner.reviewer });
+    } catch (error) {
+        console.error('Error in getReviewer:', error);
+        res.status(500).json({ message: error.message, code: 500 });
+    }
+}

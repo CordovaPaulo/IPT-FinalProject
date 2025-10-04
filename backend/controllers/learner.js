@@ -97,14 +97,14 @@ exports.setSchedule = async (req, res) => {
 
 exports.setFeedback = async (req, res) => {
     const { id } = req.params;
-    const { schedule, rating, comments } = req.body;
+    const { rating, comments } = req.body;
     const decoded = getValuesFromToken(req);
 
     if (!decoded || !decoded.id) {
         return res.status(403).json({ message: 'Invalid token', code: 403 });
     }
 
-    if (!rating || !comments || !schedule) {
+    if (!rating || !comments ) {
         return res.status(400).json({ message: 'All fields are required', code: 400 });
     }
 
@@ -115,11 +115,13 @@ exports.setFeedback = async (req, res) => {
         ]
     });
 
+    const sched = await Schedule.findOne({ _id: id });
+
     try {
         const feedback = new Feedback({
             learner: learnerId._id,
-            mentor: id,
-            schedule,
+            mentor: sched.mentor,
+            schedule: sched._id,
             rating,
             comments
         });

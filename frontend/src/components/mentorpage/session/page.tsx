@@ -13,18 +13,29 @@ import {
   faMapMarkerAlt 
 } from '@fortawesome/free-solid-svg-icons';
 import RescheduleDialog from '../RescheduleDialog/page';
+import api from '@/lib/axios';
 import styles from './session.module.css';
 
+// Updated interface to match API response
 interface SessionItem {
-  id: number;
+  id: string; // Changed from number to string
   subject: string;
   date: string;
   time: string;
   location: string;
   learner: {
-    user: {
-      name: string;
-    };
+    id: string;
+    name: string; // Direct name, not nested in user object
+    image: string;
+    program: string;
+    yearLevel: string;
+  };
+  mentor?: {
+    id: string;
+    name: string;
+    image: string;
+    program: string;
+    yearLevel: string;
   };
 }
 
@@ -33,10 +44,18 @@ interface SessionComponentProps {
   upcomingSchedule?: SessionItem[];
 }
 
+// Helper to get cookie value
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
 export default function SessionComponent({ schedule = [], upcomingSchedule = [] }: SessionComponentProps) {
   const [todaySchedule, setTodaySchedule] = useState<SessionItem[]>([]);
   const [upcommingSchedule, setUpcommingSchedule] = useState<SessionItem[]>([]);
-  const [selectedSessionID, setSelectedSessionID] = useState<number | null>(null);
+  const [selectedSessionID, setSelectedSessionID] = useState<string | null>(null); // Changed to string
   const [activePopup, setActivePopup] = useState<{ type: string | null; index: number | null }>({ type: null, index: null });
   const [showRemindConfirmation, setShowRemindConfirmation] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -48,6 +67,9 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
 
   // Initialize schedules
   useEffect(() => {
+    console.log('SessionComponent received schedule:', schedule);
+    console.log('SessionComponent received upcomingSchedule:', upcomingSchedule);
+    
     setTodaySchedule(schedule);
     setUpcommingSchedule(upcomingSchedule);
   }, [schedule, upcomingSchedule]);
@@ -73,23 +95,28 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
 
   const sendReminder = async (item: SessionItem) => {
     try {
-      // Replace with your actual API call
-      const response = await fetch(`/api/send/session/reminder/${item.id}`, {
-        method: 'POST',
+      const token = getCookie('MindMateToken');
+      
+      // Use your actual API endpoint for sending reminders
+      const response = await api.post(`/api/mentor/schedule/remind/${item.id}`, {}, {
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         console.log('Reminder sent successfully!');
         // You can add toast notification here
+        alert('Reminder sent successfully!');
       } else {
         console.error('Failed to send reminder.');
+        alert('Failed to send reminder.');
       }
     } catch (error) {
       console.error('Error sending reminder:', error);
+      alert('Error sending reminder. Please try again.');
     } finally {
       setShowRemindConfirmation(false);
     }
@@ -97,25 +124,30 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
 
   const cancelSession = async (item: SessionItem) => {
     try {
-      // Replace with your actual API call
-      const response = await fetch(`/api/send/session/cancel/${item.id}`, {
-        method: 'POST',
+      const token = getCookie('MindMateToken');
+      
+      // Use your actual API endpoint for cancelling sessions
+      const response = await api.post(`/api/mentor/cancel-sched/${item.id}`, {}, {
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         console.log('Session cancelled successfully!');
         // Remove from schedules
         setTodaySchedule(prev => prev.filter(session => session.id !== item.id));
         setUpcommingSchedule(prev => prev.filter(session => session.id !== item.id));
+        alert('Session cancelled successfully!');
       } else {
         console.error('Failed to cancel session.');
+        alert('Failed to cancel session.');
       }
     } catch (error) {
       console.error('Error cancelling session:', error);
+      alert('Error cancelling session. Please try again.');
     } finally {
       setShowCancelConfirmation(false);
     }
@@ -125,28 +157,29 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
     try {
       if (!selectedItem) return;
 
+      const token = getCookie('MindMateToken');
+
       // Format date and time
-      const formattedDate = selectedDate.toLocaleDateString('en-US');
+      const formattedDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
       const formattedTime = selectedDate.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
       });
 
-      // Replace with your actual API call
-      const response = await fetch(`/api/resched/${selectedItem.id}`, {
-        method: 'PATCH',
+      // Use your actual API endpoint for rescheduling
+      const response = await api.post(`/api/mentor/resched-sched/${selectedItem.id}`, {
+        date: formattedDate,
+        time: formattedTime,
+      }, {
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          date: formattedDate,
-          time: formattedTime,
-        }),
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         console.log('Session rescheduled successfully!');
         
         // Update the local state with new session details
@@ -164,11 +197,14 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
         ));
         
         setReschedIsOpen(false);
+        alert('Session rescheduled successfully!');
       } else {
         console.error('Failed to reschedule session.');
+        alert('Failed to reschedule session.');
       }
     } catch (error) {
       console.error('Error rescheduling session:', error);
+      alert('Error rescheduling session. Please try again.');
     }
   };
 
@@ -201,6 +237,26 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
     setActivePopup({ type: null, index: null });
   };
 
+  // Helper function to format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  // Helper function to format time for display
+  const formatTime = (timeString: string) => {
+    // If time is in HH:MM format, convert to 12-hour format
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
   return (
     <div className={styles.sessionWrapper}>
       {/* Header Section */}
@@ -218,64 +274,70 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
           <div className={styles.sessionCard}>
             <h1>TODAY</h1>
             <div className={styles.sessionCardContent}>
-              {todaySchedule.map((item, index) => (
-                <div key={item.id} className={styles.sessionTodayCard}>
-                  <div className={styles.sessionCardHeader}>
-                    <h1>{item.subject}</h1>
-                    <div 
-                      className={styles.sessionEllipsisContainer} 
-                      ref={el => todayPopupRefs.current[index] = el}
-                    >
-                      <FontAwesomeIcon 
-                        icon={faEllipsisH}
-                        style={{ cursor: 'pointer', color: '#066678', fontSize: '1.2rem' }}
-                        onClick={(e) => togglePopup('today', index, e)}
-                      />
-                      {activePopup.type === `today-${index}` && (
-                        <div className={styles.sessionPopupMenu} onClick={(e) => e.stopPropagation()}>
-                          <div 
-                            className={styles.sessionPopupOption}
-                            onClick={(e) => handleOptionClick('remind', item, e)}
-                          >
-                            <FontAwesomeIcon icon={faBell} className={styles.sessionOptionIcon} />
-                            <p className={styles.sessionOptionText}>Remind</p>
+              {todaySchedule.length > 0 ? (
+                todaySchedule.map((item, index) => (
+                  <div key={item.id} className={styles.sessionTodayCard}>
+                    <div className={styles.sessionCardHeader}>
+                      <h1>{item.subject}</h1>
+                      <div 
+                        className={styles.sessionEllipsisContainer} 
+                        ref={el => todayPopupRefs.current[index] = el}
+                      >
+                        <FontAwesomeIcon 
+                          icon={faEllipsisH}
+                          style={{ cursor: 'pointer', color: '#066678', fontSize: '1.2rem' }}
+                          onClick={(e) => togglePopup('today', index, e)}
+                        />
+                        {activePopup.type === `today-${index}` && (
+                          <div className={styles.sessionPopupMenu} onClick={(e) => e.stopPropagation()}>
+                            <div 
+                              className={styles.sessionPopupOption}
+                              onClick={(e) => handleOptionClick('remind', item, e)}
+                            >
+                              <FontAwesomeIcon icon={faBell} className={styles.sessionOptionIcon} />
+                              <p className={styles.sessionOptionText}>Remind</p>
+                            </div>
+                            <div 
+                              className={styles.sessionPopupOption}
+                              onClick={(e) => handleOptionClick('reschedule', item, e)}
+                            >
+                              <FontAwesomeIcon icon={faCalendarAlt} className={styles.sessionOptionIcon} />
+                              <p className={styles.sessionOptionText}>Reschedule</p>
+                            </div>
+                            <div 
+                              className={styles.sessionPopupOption}
+                              onClick={(e) => handleOptionClick('cancel', item, e)}
+                            >
+                              <FontAwesomeIcon icon={faTimes} className={styles.sessionOptionIcon} />
+                              <p className={styles.sessionOptionText}>Cancel Session</p>
+                            </div>
                           </div>
-                          <div 
-                            className={styles.sessionPopupOption}
-                            onClick={(e) => handleOptionClick('reschedule', item, e)}
-                          >
-                            <FontAwesomeIcon icon={faCalendarAlt} className={styles.sessionOptionIcon} />
-                            <p className={styles.sessionOptionText}>Reschedule</p>
-                          </div>
-                          <div 
-                            className={styles.sessionPopupOption}
-                            onClick={(e) => handleOptionClick('cancel', item, e)}
-                          >
-                            <FontAwesomeIcon icon={faTimes} className={styles.sessionOptionIcon} />
-                            <p className={styles.sessionOptionText}>Cancel Session</p>
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    </div>
+                    <div className={styles.sessionInfo}>
+                      <FontAwesomeIcon icon={faUser} style={{ color: '#533566', fontSize: '1.2rem' }} />
+                      <h2>{item.learner?.name || "Unknown User"}</h2>
+                    </div>
+                    <div className={styles.sessionInfo}>
+                      <FontAwesomeIcon icon={faCalendarAlt} style={{ color: '#0084ce', fontSize: '1.2rem' }} />
+                      <p>{formatDate(item.date)}</p>
+                    </div>
+                    <div className={styles.sessionInfo}>
+                      <FontAwesomeIcon icon={faClock} style={{ color: '#f8312f', fontSize: '1.2rem' }} />
+                      <p>{formatTime(item.time)}</p>
+                    </div>
+                    <div className={styles.sessionInfo}>
+                      <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: '#f72197', fontSize: '1.2rem' }} />
+                      <p>{item.location}</p>
                     </div>
                   </div>
-                  <div className={styles.sessionInfo}>
-                    <FontAwesomeIcon icon={faUser} style={{ color: '#533566', fontSize: '1.2rem' }} />
-                    <h2>{item.learner?.user?.name ?? "Unknown User"}</h2>
-                  </div>
-                  <div className={styles.sessionInfo}>
-                    <FontAwesomeIcon icon={faCalendarAlt} style={{ color: '#0084ce', fontSize: '1.2rem' }} />
-                    <p>{item.date}</p>
-                  </div>
-                  <div className={styles.sessionInfo}>
-                    <FontAwesomeIcon icon={faClock} style={{ color: '#f8312f', fontSize: '1.2rem' }} />
-                    <p>{item.time}</p>
-                  </div>
-                  <div className={styles.sessionInfo}>
-                    <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: '#f72197', fontSize: '1.2rem' }} />
-                    <p>{item.location}</p>
-                  </div>
+                ))
+              ) : (
+                <div className={styles.noScheduleMessage}>
+                  <p>No sessions scheduled for today</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -283,64 +345,70 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
           <div className={styles.sessionCard}>
             <h1>UPCOMING</h1>
             <div className={styles.sessionCardContent}>
-              {upcommingSchedule.map((item, index) => (
-                <div key={item.id} className={styles.sessionUpcomingCard}>
-                  <div className={styles.sessionCardHeader}>
-                    <h1>{item.subject}</h1>
-                    <div 
-                      className={styles.sessionEllipsisContainer} 
-                      ref={el => upcomingPopupRefs.current[index] = el}
-                    >
-                      <FontAwesomeIcon 
-                        icon={faEllipsisH}
-                        style={{ cursor: 'pointer', color: '#066678', fontSize: '1.2rem' }}
-                        onClick={(e) => togglePopup('upcoming', index, e)}
-                      />
-                      {activePopup.type === `upcoming-${index}` && (
-                        <div className={styles.sessionPopupMenu} onClick={(e) => e.stopPropagation()}>
-                          <div 
-                            className={styles.sessionPopupOption}
-                            onClick={(e) => handleOptionClick('remind', item, e)}
-                          >
-                            <FontAwesomeIcon icon={faBell} className={styles.sessionOptionIcon} />
-                            <p className={styles.sessionOptionText}>Remind</p>
+              {upcommingSchedule.length > 0 ? (
+                upcommingSchedule.map((item, index) => (
+                  <div key={item.id} className={styles.sessionUpcomingCard}>
+                    <div className={styles.sessionCardHeader}>
+                      <h1>{item.subject}</h1>
+                      <div 
+                        className={styles.sessionEllipsisContainer} 
+                        ref={el => upcomingPopupRefs.current[index] = el}
+                      >
+                        <FontAwesomeIcon 
+                          icon={faEllipsisH}
+                          style={{ cursor: 'pointer', color: '#066678', fontSize: '1.2rem' }}
+                          onClick={(e) => togglePopup('upcoming', index, e)}
+                        />
+                        {activePopup.type === `upcoming-${index}` && (
+                          <div className={styles.sessionPopupMenu} onClick={(e) => e.stopPropagation()}>
+                            <div 
+                              className={styles.sessionPopupOption}
+                              onClick={(e) => handleOptionClick('remind', item, e)}
+                            >
+                              <FontAwesomeIcon icon={faBell} className={styles.sessionOptionIcon} />
+                              <p className={styles.sessionOptionText}>Remind</p>
+                            </div>
+                            <div 
+                              className={styles.sessionPopupOption}
+                              onClick={(e) => handleOptionClick('reschedule', item, e)}
+                            >
+                              <FontAwesomeIcon icon={faCalendarAlt} className={styles.sessionOptionIcon} />
+                              <p className={styles.sessionOptionText}>Reschedule</p>
+                            </div>
+                            <div 
+                              className={styles.sessionPopupOption}
+                              onClick={(e) => handleOptionClick('cancel', item, e)}
+                            >
+                              <FontAwesomeIcon icon={faTimes} className={styles.sessionOptionIcon} />
+                              <p className={styles.sessionOptionText}>Cancel</p>
+                            </div>
                           </div>
-                          <div 
-                            className={styles.sessionPopupOption}
-                            onClick={(e) => handleOptionClick('reschedule', item, e)}
-                          >
-                            <FontAwesomeIcon icon={faCalendarAlt} className={styles.sessionOptionIcon} />
-                            <p className={styles.sessionOptionText}>Reschedule</p>
-                          </div>
-                          <div 
-                            className={styles.sessionPopupOption}
-                            onClick={(e) => handleOptionClick('cancel', item, e)}
-                          >
-                            <FontAwesomeIcon icon={faTimes} className={styles.sessionOptionIcon} />
-                            <p className={styles.sessionOptionText}>Cancel</p>
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    </div>
+                    <div className={styles.sessionInfo}>
+                      <FontAwesomeIcon icon={faUser} style={{ color: '#533566', fontSize: '1.2rem' }} />
+                      <h2>{item.learner?.name || "Unknown User"}</h2>
+                    </div>
+                    <div className={styles.sessionInfo}>
+                      <FontAwesomeIcon icon={faCalendarAlt} style={{ color: '#0084ce', fontSize: '1.2rem' }} />
+                      <p>{formatDate(item.date)}</p>
+                    </div>
+                    <div className={styles.sessionInfo}>
+                      <FontAwesomeIcon icon={faClock} style={{ color: '#f8312f', fontSize: '1.2rem' }} />
+                      <p>{formatTime(item.time)}</p>
+                    </div>
+                    <div className={styles.sessionInfo}>
+                      <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: '#f72197', fontSize: '1.2rem' }} />
+                      <p>{item.location}</p>
                     </div>
                   </div>
-                  <div className={styles.sessionInfo}>
-                    <FontAwesomeIcon icon={faUser} style={{ color: '#533566', fontSize: '1.2rem' }} />
-                    <h2>{item.learner.user.name}</h2>
-                  </div>
-                  <div className={styles.sessionInfo}>
-                    <FontAwesomeIcon icon={faCalendarAlt} style={{ color: '#0084ce', fontSize: '1.2rem' }} />
-                    <p>{item.date}</p>
-                  </div>
-                  <div className={styles.sessionInfo}>
-                    <FontAwesomeIcon icon={faClock} style={{ color: '#f8312f', fontSize: '1.2rem' }} />
-                    <p>{item.time}</p>
-                  </div>
-                  <div className={styles.sessionInfo}>
-                    <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: '#f72197', fontSize: '1.2rem' }} />
-                    <p>{item.location}</p>
-                  </div>
+                ))
+              ) : (
+                <div className={styles.noScheduleMessage}>
+                  <p>No upcoming sessions scheduled</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -357,7 +425,7 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
               <p>
                 Are you sure you want to send a reminder for
                 <strong> {selectedItem?.subject} </strong> to
-                <strong> {selectedItem?.learner.user.name}</strong>?
+                <strong> {selectedItem?.learner?.name}</strong>?
               </p>
             </div>
             <div className={styles.sessionModalFooter}>
@@ -389,7 +457,7 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
               <p>
                 Are you sure you want to cancel
                 <strong> {selectedItem?.subject} </strong> with
-                <strong> {selectedItem?.learner.user.name}</strong>?
+                <strong> {selectedItem?.learner?.name}</strong>?
               </p>
               <p className={styles.sessionWarningText}>This action cannot be undone.</p>
             </div>

@@ -200,12 +200,19 @@ const MentorInfo = () => {
     
     if (currentStep === 1) {
       if (!gender) errors.gender = 'Gender is required';
+      if (!yearLevel) errors.yearLevel = 'Year level is required'; // Added missing validation
+      if (!program) errors.program = 'Program is required'; // Added missing validation
       if (!contactNumber || contactNumber.length !== 11) errors.contactNumber = 'Valid Contact Number is required (11 digits)';
       if (!address.trim()) errors.address = 'Address is required';
     }
     
     if (currentStep === 2) {
       if (selectedSubjects.length === 0) errors.selectedSubjects = 'At least one subject is required';
+      if (!modality) errors.modality = 'Teaching modality is required'; // Added missing validation
+      if (!proficiency) errors.proficiency = 'Proficiency level is required'; // Added missing validation
+      if (!sessionDuration) errors.sessionDuration = 'Session duration is required'; // Added missing validation
+      if (selectedDays.length === 0) errors.selectedDays = 'At least one day of availability is required'; // Added missing validation
+      if (selectedSessionStyles.length === 0) errors.selectedSessionStyles = 'At least one teaching style is required'; // Added missing validation
       if (!bio.trim()) errors.bio = 'Short Bio is required';
       if (!experience.trim()) errors.experience = 'Tutoring experience is required';
     }
@@ -516,7 +523,7 @@ const MentorInfo = () => {
       // Create FormData object
       const formData = new FormData();
 
-      // Map dropdown values to backend enums
+      // Map dropdown values to backend enums (CORRECTED to match your backend validation)
       const mapProgram = (program: string) => {
         const programMap: { [key: string]: string } = {
           'Bachelor of Science in Information Technology (BSIT)': 'BSIT',
@@ -540,8 +547,8 @@ const MentorInfo = () => {
       const mapModality = (modality: string) => {
         const modalityMap: { [key: string]: string } = {
           'Online': 'online',
-          'Offline': 'offline',
-          'Mixed': 'mixed'
+          'In-person': 'in-person', // Backend expects 'in-person'
+          'Hybrid': 'hybrid'        // Backend expects 'hybrid'
         };
         return modalityMap[modality] || modality.toLowerCase();
       };
@@ -565,6 +572,7 @@ const MentorInfo = () => {
       };
 
       const mapAvailability = (days: string[]) => days.map(day => day.toLowerCase());
+    
       const mapLearningStyle = (styles: string[]) => {
         const styleMap: { [key: string]: string } = {
           'Lecture-Based': 'lecture-based',
@@ -577,13 +585,13 @@ const MentorInfo = () => {
         return styles.map(style => styleMap[style] || style.toLowerCase().replace(/\s+/g, '-'));
       };
 
-      // Append all required fields
+      // Append all required fields to match backend expectations exactly
       formData.append('sex', gender.toLowerCase());
       formData.append('program', mapProgram(program));
       formData.append('yearLevel', mapYearLevel(yearLevel));
       formData.append('phoneNumber', contactNumber);
       formData.append('bio', bio);
-      formData.append('exp', experience); // experience field required
+      formData.append('exp', experience); // Backend expects 'exp' not 'experience'
       formData.append('address', address);
       formData.append('modality', mapModality(modality));
       formData.append('proficiency', mapProficiency(proficiency));
@@ -592,34 +600,49 @@ const MentorInfo = () => {
       formData.append('availability', JSON.stringify(mapAvailability(selectedDays)));
       formData.append('style', JSON.stringify(mapLearningStyle(selectedSessionStyles)));
 
-      // Add profile image if selected
+      // Handle profile image properly
       if (profileInputRef.current?.files?.[0]) {
         formData.append('image', profileInputRef.current.files[0]);
+      } else {
+        // Backend checks for null value specifically
+        formData.append('image', 'null');
       }
 
-      // Add credentials (multiple files)
-      if (credentialInputRef.current?.files) {
+      // Handle credentials - append multiple files with same field name
+      if (credentialInputRef.current?.files && credentialInputRef.current.files.length > 0) {
         Array.from(credentialInputRef.current.files).forEach(file => {
           formData.append('credentials', file);
         });
       }
 
-      // Get MindMateToken from cookie
+      // Get token from cookie (matching backend token extraction)
       const token = getCookie('MindMateToken');
 
-      // Send request to mentor signup endpoint with Authorization header
+      // Send request with proper headers
       const response = await api.post('/api/auth/mentor/signup', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          // Backend checks Authorization header first, then cookies
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
       console.log('Mentor signup successful:', response.data);
-      router.push('/mentor');
-    } catch (error) {
+      setShowStatusPopup(true);
+    } catch (error: any) {
       console.error('Mentor signup error:', error);
-      alert('There was an error submitting your information. Please try again.');
+      
+      // Enhanced error handling matching backend error responses
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.validOptions) {
+          alert(`Error: ${errorData.message}\nValid options: ${errorData.validOptions.join(', ')}`);
+        } else {
+          alert(`Error: ${errorData.message || 'Unknown error occurred'}`);
+        }
+      } else {
+        alert('There was an error submitting your information. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
       setIsButtonActive(false);
@@ -1098,7 +1121,7 @@ const MentorInfo = () => {
                     value={modality}
                     disabled={isSubmitting}
                     placeholder="Select teaching modality"
-                    className="profile-input"
+                    className={`profile-input ${validationErrors.modality ? 'error' : ''}`}
                     readOnly
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
@@ -1125,6 +1148,11 @@ const MentorInfo = () => {
                     </div>
                   </div>
                 )}
+                {validationErrors.modality && (
+                  <span className="validation-message">
+                    {validationErrors.modality}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1139,7 +1167,7 @@ const MentorInfo = () => {
                     value={sessionDuration}
                     disabled={isSubmitting}
                     placeholder="Select duration"
-                    className="profile-input"
+                    className={`profile-input ${validationErrors.sessionDuration ? 'error' : ''}`}
                     readOnly
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
@@ -1166,6 +1194,11 @@ const MentorInfo = () => {
                     </div>
                   </div>
                 )}
+                {validationErrors.sessionDuration && (
+                  <span className="validation-message">
+                    {validationErrors.sessionDuration}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1180,7 +1213,7 @@ const MentorInfo = () => {
                     value={proficiency}
                     disabled={isSubmitting}
                     placeholder="Select proficiency level"
-                    className="profile-input"
+                    className={`profile-input ${validationErrors.proficiency ? 'error' : ''}`}
                     readOnly
                   />
                   <i className="fas fa-chevron-down dropdown-icon"></i>
@@ -1206,6 +1239,11 @@ const MentorInfo = () => {
                       Advanced
                     </div>
                   </div>
+                )}
+                {validationErrors.proficiency && (
+                  <span className="validation-message">
+                    {validationErrors.proficiency}
+                  </span>
                 )}
               </div>
             </div>
