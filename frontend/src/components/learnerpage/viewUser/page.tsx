@@ -324,7 +324,7 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
                   className={styles.closeBtnNew} 
                   onClick={onClose}
                 >
-                  <i className="fas fa-times"></i> Close
+                 Close
                 </button>
                 <button 
                   className={styles.sendOfferBtn} 
