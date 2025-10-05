@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // Added useRef
 import { useRouter } from 'next/navigation';
 import MainComponent from '@/components/learnerpage/main/page';
 import SessionComponent from '@/components/learnerpage/session/page';
@@ -117,7 +117,7 @@ const transformSchedulesForReview = (schedules: any[]): any[] => {
         name: schedule.mentor?.name || "Unknown Mentor"
       },
       year: schedule.mentor?.yearLevel || "Professor",
-      course: schedule.mentor?.program || `${schedule.subject} (${schedule.subject?.substring(0, 3).toUpperCase()})`,
+      course: schedule.mentor?.program || `${schedule.subject?.substring(0, 3).toUpperCase()})`,
       image: schedule.mentor?.image || "https://placehold.co/600x400"
     },
     learner: {
@@ -194,8 +194,73 @@ export default function LearnerPage() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
+  // NEW: Keyboard navigation state for topbar
+  const [focusedTopbarIndex, setFocusedTopbarIndex] = useState(0);
+  const [isTopbarFocused, setIsTopbarFocused] = useState(false);
+  const topbarRef = useRef<HTMLDivElement>(null);
+
+  // Define topbar items in order
+  const topbarItems = [
+    { key: 'main', label: 'Mentors', icon: '/main.svg' },
+    { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
+    { key: 'records', label: 'Reviews', icon: '/records.svg' }
+  ];
+
   const startLoading = () => setIsLoading(true);
   const stopLoading = () => setIsLoading(false);
+
+  // NEW: Keyboard navigation functions for topbar
+  const handleTopbarKeyDown = (e: React.KeyboardEvent) => {
+    if (!isTopbarFocused) return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+        e.preventDefault();
+        navigateTopbar('right');
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        navigateTopbar('left');
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        activateTopbarItem();
+        break;
+      case 'Home':
+        e.preventDefault();
+        setFocusedTopbarIndex(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        setFocusedTopbarIndex(topbarItems.length - 1);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsTopbarFocused(false);
+        break;
+    }
+  };
+
+  const navigateTopbar = (direction: 'left' | 'right') => {
+    if (direction === 'right') {
+      setFocusedTopbarIndex((prev) => (prev + 1) % topbarItems.length);
+    } else {
+      setFocusedTopbarIndex((prev) => (prev - 1 + topbarItems.length) % topbarItems.length);
+    }
+  };
+
+  const activateTopbarItem = () => {
+    const focusedItem = topbarItems[focusedTopbarIndex];
+    switchComponent(focusedItem.key);
+  };
+
+  const focusTopbar = () => {
+    setIsTopbarFocused(true);
+    // Set focus to current active component
+    const currentIndex = topbarItems.findIndex(item => item.key === activeComponent);
+    setFocusedTopbarIndex(currentIndex >= 0 ? currentIndex : 0);
+  };
 
   const sessionInfo = async () => {
     try {
@@ -591,6 +656,21 @@ export default function LearnerPage() {
     }
   };
 
+  const switchComponent = (component: string) => {
+    console.log('Switching to component:', component);
+    if (activeComponent !== component) {
+      setActiveComponent(component);
+      if (isMobileView) {
+        setIsSidebarVisible(false);
+      }
+      // Update focused index when component changes via click
+      const newIndex = topbarItems.findIndex(item => item.key === component);
+      if (newIndex >= 0) {
+        setFocusedTopbarIndex(newIndex);
+      }
+    }
+  };
+
   useEffect(() => {
     const initializeData = async () => {
       startLoading();
@@ -628,16 +708,6 @@ export default function LearnerPage() {
   useEffect(() => {
     console.log("Current userData state:", userData);
   }, [userData]);
-
-  const switchComponent = (component: string) => {
-    console.log('Switching to component:', component);
-    if (activeComponent !== component) {
-      setActiveComponent(component);
-      if (isMobileView) {
-        setIsSidebarVisible(false);
-      }
-    }
-  };
 
   const renderComponent = () => {
     const transformedSchedForReview = transformSchedulesForReview(schedForReview);
@@ -822,29 +892,31 @@ export default function LearnerPage() {
         </div>
       </div>
 
-      <div className={`topbar ${isMobileView && !isSidebarVisible ? 'topbar-expanded' : ''}`}>
+      {/* UPDATED Topbar with keyboard navigation */}
+      <div 
+        ref={topbarRef}
+        className={`topbar ${
+          isMobileView && !isSidebarVisible ? 'topbar-expanded' : ''
+        } ${isTopbarFocused ? 'topbar-focused' : ''}`}
+        tabIndex={0}
+        onKeyDown={handleTopbarKeyDown}
+        onFocus={focusTopbar}
+        onBlur={() => setIsTopbarFocused(false)}
+        onClick={focusTopbar}
+      >
         <div className="topbar-left">
-          <div
-            onClick={() => switchComponent('main')}
-            className={`topbar-option ${activeComponent === 'main' ? 'active' : ''}`}
-          >
-            <img src="/main.svg" alt="Main" className="nav-icon" />
-            <span className="nav-text">Mentors</span>
-          </div>
-          <div
-            onClick={() => switchComponent('session')}
-            className={`topbar-option ${activeComponent === 'session' ? 'active' : ''}`}
-          >
-            <img src="/calendar.svg" alt="Session" className="nav-icon" />
-            <span className="nav-text">Schedules</span>
-          </div>
-          <div
-            onClick={() => switchComponent('records')}
-            className={`topbar-option ${activeComponent === 'records' ? 'active' : ''}`}
-          >
-            <img src="/records.svg" alt="Records" className="nav-icon" />
-            <span className="nav-text">Reviews</span>
-          </div>
+          {topbarItems.map((item, index) => (
+            <div 
+              key={item.key}
+              onClick={() => switchComponent(item.key)}
+              className={`topbar-option ${
+                activeComponent === item.key ? 'active' : ''
+              } ${index === focusedTopbarIndex && isTopbarFocused ? 'focused' : ''}`}
+            >
+              <img src={item.icon} alt={item.label} className="nav-icon" />
+              <span className="nav-text">{item.label}</span>
+            </div>
+          ))}
         </div>
         <div className="topbar-date">
           {new Date().toLocaleDateString('en-US', {

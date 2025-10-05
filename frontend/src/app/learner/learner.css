@@ -454,10 +454,12 @@
   gap: 10px;
 }
 
+/* Hover state - light gray background */
 .topbar-option:hover {
   background-color: #f5f5f5;
 }
 
+/* Active state - blue background */
 .topbar-option.active {
   background-color: #e6f7ff;
 }
@@ -470,6 +472,28 @@
   right: 0;
   height: 3px;
   background-color: #006981;
+}
+
+/* Keyboard focus state - same as hover (light gray) */
+.topbar-option.focused {
+  background-color: #f5f5f5 !important;
+}
+
+.topbar-option.focused .nav-text {
+  color: #004d5a !important;
+}
+
+.topbar-option.focused .nav-icon {
+  transform: scale(1.1);
+}
+
+/* Combined states */
+.topbar-option.active.focused {
+  background-color: #e6f7ff !important; /* Keep active blue when focused */
+}
+
+.topbar-option.focused:hover {
+  background-color: #f5f5f5 !important; /* Keep same color when focused and hovered */
 }
 
 .nav-icon {
@@ -552,6 +576,42 @@
 
 .sidebar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
+}
+
+/* Topbar Focus States for Keyboard Navigation */
+.topbar-focused {
+  outline: 2px solid #006981;
+  outline-offset: 2px;
+}
+
+/* Mobile responsive focus states */
+@media (max-width: 768px) {
+  .topbar-option.focused {
+    background-color: #f5f5f5 !important;
+  }
+  
+  .topbar-focused {
+    outline: 1px solid #006981;
+    outline-offset: 1px;
+  }
+}
+
+/* Smooth transitions for focus states */
+.topbar-option {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Ensure focus states work with existing active states */
+.topbar-option.active {
+  position: relative;
+}
+
+.topbar-option.active::after {
+  z-index: 1;
+}
+
+.topbar-option.focused {
+  z-index: 2;
 }
 
 /* Responsive adjustments */
