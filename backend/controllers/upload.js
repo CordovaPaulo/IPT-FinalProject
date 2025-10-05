@@ -114,3 +114,25 @@ exports.uploadLearningMaterials = async (req, res) => {
         res.status(500).json({ message: 'Learning materials upload failed.' });
     }
 };
+
+// New: simple helpers used by mentor controller
+const { getFileMetadata, deleteFile, listFilesInFolderByPath } = require('../service/drive');
+
+// New: list files for a user under a parent folder (e.g., "learning_materials/{username}")
+exports.listDriveFilesForUser = async (username, parentFolder = 'learning_materials') => {
+  if (!username) throw new Error('username is required');
+  const folderPath = `${parentFolder}/${username}`;
+  const { folderId, files } = await listFilesInFolderByPath(folderPath);
+  return { folderId, folderPath, files };
+};
+
+exports.getDriveFileMetadata = async (fileId) => {
+  if (!fileId) throw new Error('fileId is required');
+  return await getFileMetadata(fileId);
+};
+
+exports.deleteDriveFile = async (fileId) => {
+  if (!fileId) throw new Error('fileId is required');
+  await deleteFile(fileId);
+  return { deleted: true };
+};

@@ -4,6 +4,8 @@ const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Feedback = require('../models/feedback');
 const { getValuesFromToken } = require('../service/jwt');
+const mailingController = require('./mailing'); // added
+const uploadController = require('./upload');   // already present
 
 exports.getAllLearners = async (req, res) => {
   try {
@@ -106,6 +108,7 @@ exports.getFeedbacks = async (req, res) => {
 exports.cancelSched = async (req, res) => {
     const { id } = req.params;
     const decoded = getValuesFromToken(req);
+   const { reason = '' } = req.body; // optional reason from client
 
     if (!decoded || !decoded.id) {
         return res.status(403).json({ message: 'Invalid token', code: 403 });
@@ -141,7 +144,18 @@ exports.cancelSched = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to cancel this schedule', code: 403 });
         }
 
-        await Schedule.findByIdAndDelete(id);
+        const mailResult = await mailingController.sendCancellationByMentor(id, mentor._id || decoded.id, reason);
+        
+        if (!mailResult) {
+            console.log('Error sending cancellation email (mentor):', mailResult);
+        }
+
+        // Delete the schedule
+        const scheduleFound = await Schedule.findByIdAndDelete(id);
+
+        if (!scheduleFound) {
+            return res.status(404).json({ message: 'Schedule not found or already deleted', code: 404 });
+        }
 
         // Notify the learner if socket.io is available (optional)
         try {
@@ -161,7 +175,7 @@ exports.cancelSched = async (req, res) => {
             console.error('Socket emit error (cancelSched):', emitErr);
         }
 
-        res.status(200).json({ message: 'Schedule canceled', code: 200 });
+        res.status(200).json({ message: 'Schedule canceled', mailing: mailResult, code: 200 });
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
     }
@@ -260,6 +274,19 @@ exports.reschedSched = async (req, res) => {
         } catch (emitErr) {
             console.error('Socket emit error (reschedSched):', emitErr);
         }
+
+        // send reschedule email to learner
+       try {
+         await mailingController.sendRescheduleByMentor(
+           id,
+           mentor._id || decoded.id,
+           schedule.date,
+           schedule.time,
+           schedule.location
+         );
+       } catch (mailErr) {
+         console.error('Error sending reschedule email (mentor):', mailErr);
+       }
 
         res.status(200).json({ message: 'Schedule rescheduled', schedule, code: 200 });
     } catch (error) {
@@ -425,3 +452,195 @@ exports.getReviewer = async (req, res) => {
         res.status(500).json({ message: error.message, code: 500 });
     }
 }
+
+// optional endpoint: mentor sends a manual reminder for a schedule
+exports.sendReminder = async (req, res) => {
+  const { id } = req.params; // schedule id
+  const decoded = getValuesFromToken(req);
+  if (!decoded || !decoded.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+  try {
+    // verify mentor
+    const mentor = await Mentor.findOne({ $or: [{ _id: decoded.id }, { userId: decoded.id }] });
+    if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    await mailingController.sendScheduleReminder(id, mentor._id || decoded.id);
+    res.status(200).json({ message: 'Reminder sent', code: 200 });
+  } catch (error) {
+    console.error('Error sending reminder (mentor):', error);
+    res.status(500).json({ message: error.message, code: 500 });
+  }
+}
+
+// View/preview a learning material
+exports.getLearningMaterial = async (req, res) => {
+  const { fileId } = req.params;
+  const decoded = getValuesFromToken(req);
+  if (!decoded?.id) return res.status(403).json({ message: 'Invalid token', code: 403 });
+
+  try {
+    const mentor = await Mentor.findOne({ $or: [{ _id: decoded.id }, { userId: decoded.id }] });
+    if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    if (!fileId) return res.status(400).json({ message: 'fileId is required', code: 400 });
+
+    const meta = await uploadController.getDriveFileMetadata(fileId);
+    return res.status(200).json(meta);
+  } catch (error) {
+    console.error('getLearningMaterial error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
+
+// Delete a learning material
+exports.deleteLearningMaterial = async (req, res) => {
+  const { fileId } = req.params;
+  const decoded = getValuesFromToken(req);
+  if (!decoded?.id) return res.status(403).json({ message: 'Invalid token', code: 403 });
+
+  try {
+    const mentor = await Mentor.findOne({ $or: [{ _id: decoded.id }, { userId: decoded.id }] });
+    if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    if (!fileId) return res.status(400).json({ message: 'fileId is required', code: 400 });
+
+    await uploadController.deleteDriveFile(fileId);
+    return res.status(200).json({ message: 'File deleted', id: fileId, code: 200 });
+  } catch (error) {
+    console.error('deleteLearningMaterial error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
+
+// Fetch all learning materials for the authenticated mentor
+exports.getLearningMaterialsList = async (req, res) => {
+  const decoded = getValuesFromToken(req);
+  if (!decoded?.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+  try {
+    const mentor = await Mentor.findOne({ $or: [{ _id: decoded.id }, { userId: decoded.id }] });
+    if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+
+    const username = decoded.username;
+    if (!username) return res.status(400).json({ message: 'Username missing in token', code: 400 });
+
+    const data = await uploadController.listDriveFilesForUser(username, 'learning_materials');
+    return res.status(200).json({
+      folderId: data.folderId,
+      folderPath: data.folderPath,
+      files: data.files,
+    });
+  } catch (error) {
+    console.error('getLearningMaterialsList error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
+
+exports.sendOffer = async (req, res) => {
+    const { learnerId } = req.params;
+    const decoded = getValuesFromToken(req);
+    if (!decoded?.id) return res.status(403).json({ message: 'Invalid token', code: 403 });
+
+    const { date, time, location, subject, message } = req.body;
+
+    if ( !date || !time || !location || !subject ) {
+        return res.status(400).json({ message: 'learnerId, date, time, location, subject are required', code: 400 });
+    }
+
+    try {
+        // verify mentor
+        const mentor = await Mentor.findOne({ $or: [{ _id: decoded.id }, { userId: decoded.id }] });
+        if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+
+        // fetch learner
+        let learner = await Learner.findById(learnerId);
+        if (!learner) learner = await Learner.findOne({ _id: learnerId });
+        if (!learner) return res.status(404).json({ message: 'Learner not found', learner: learnerId, code: 404 });
+
+        // resolve recipient email
+        let toEmail = learner.email;
+        if (!toEmail && learner.userId) {
+        const u = await User.findById(learner.userId);
+        toEmail = u?.email || null;
+        }
+        if (!toEmail) return res.status(400).json({ message: 'Learner email not found', code: 400 });
+
+        // build accept offer link (tokenized payload in query)
+        const appBase =
+        process.env.FRONTEND_URL ||
+        process.env.APP_URL ||
+        'http://localhost:3001';
+        const offerPayload = {
+        offerId: Date.now().toString(), // simple unique id; replace with DB id if you persist offers
+        mentorId: String(mentor._id),
+        learnerId: String(learner._id),
+        date,
+        time,
+        location,
+        subject
+        };
+        const token = Buffer.from(JSON.stringify(offerPayload)).toString('base64url');
+        const acceptLink = `${appBase}/api/learner/offers/accept?token=${token}`;
+
+        // email contents
+        const emailSubject = `Offer: ${subject} with ${mentor.name}`;
+        const emailText = `
+    Hello ${learner.name},
+
+    ${mentor.name} has sent you an offer for a study session.
+
+    Details:
+    - Subject: ${subject}
+    - Date: ${new Date(date).toLocaleDateString()}
+    - Time: ${time}
+    - Location: ${location}
+    ${message ? `\nMessage from mentor:\n${message}\n` : ''}
+
+    Accept the offer:
+    ${acceptLink}
+
+    If you did not expect this email, you can ignore it.
+
+    Best regards,
+    MindMate Team
+        `.trim();
+
+        const emailHtml = `
+    <p>Hello ${learner.name},</p>
+    <p><strong>${mentor.name}</strong> has sent you an offer for a study session.</p>
+    <ul>
+    <li><strong>Subject:</strong> ${subject}</li>
+    <li><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</li>
+    <li><strong>Time:</strong> ${time}</li>
+    <li><strong>Location:</strong> ${location}</li>
+    </ul>
+    ${message ? `<p><strong>Message from mentor:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>` : ''}
+    <p>
+    <a href="${acceptLink}" style="background:#1a73e8;color:#fff;padding:10px 16px;text-decoration:none;border-radius:6px;display:inline-block;">
+        Accept Offer
+    </a>
+    </p>
+    <p>If you did not expect this email, you can ignore it.</p>
+    <p>Best regards,<br/>MindMate Team</p>
+    `.trim();
+
+        const mailResult = await mailingController.sendEmailNotification(
+        toEmail,
+        emailSubject,
+        emailText,
+        emailHtml
+        );
+
+        if (!mailResult) {
+        return res.status(500).json({ message: 'Failed to send offer email', code: 500 });
+        }
+
+        return res.status(200).json({
+        message: 'Offer email sent',
+        acceptLink, // included for testing; remove in production if not needed
+        code: 200
+        });
+    } catch (error) {
+        console.error('sendOffer error:', error);
+        return res.status(500).json({ message: error.message, code: 500 });
+    }
+};

@@ -8,6 +8,7 @@ const uploadController = require('./upload');
 const cloudinary = require('../service/cloudinary');
 const streamifier = require('streamifier');
 const { setCookie } = require('./cookie');
+const mailingController = require('./mailing'); // add
 
 
 exports.learnerSignup = async (req, res) => {
@@ -402,5 +403,115 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error('[LOGIN ERROR]', err);
     return res.status(500).json({ message: 'Internal server error', detail: err.message });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email, username } = req.body || {};
+    if (!email && !username) {
+      return res.status(400).json({ message: 'email or username is required', code: 400 });
+    }
+
+    const user = await User.findOne(
+      email ? { email } : { username }
+    );
+
+    // Always respond success to prevent user enumeration
+    if (!user) {
+      return res.status(200).json({ message: 'If the account exists, a reset link has been sent.', code: 200 });
+    }
+
+    // Sign short-lived reset token
+    const resetToken = jwt.sign(
+      { id: user._id, type: 'password_reset' },
+      process.env.RESET_TOKEN_SECRET || process.env.JWT_SECRET,
+      { expiresIn: '30m' }
+    );
+
+    const appBase =
+      process.env.FRONTEND_URL ||
+      process.env.APP_URL ||
+      'http://localhost:3001';
+
+    // Link for your frontend reset page; backend verify also available
+    const resetLink = `${appBase}/api/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+    const subject = 'Password Reset Request';
+    const text = `
+Hi ${user.username},
+
+We received a request to reset your password. Click the link below to set a new password. This link expires in 30 minutes.
+
+${resetLink}
+
+If you did not request this, you can ignore this email.
+
+MindMate Team
+    `.trim();
+    const html = `
+<p>Hi ${user.username},</p>
+<p>We received a request to reset your password. Click the button below to set a new password. This link expires in <b>30 minutes</b>.</p>
+<p><a href="${resetLink}" style="background:#1a73e8;color:#fff;padding:10px 16px;text-decoration:none;border-radius:6px;">Reset Password</a></p>
+<p>Or open this link: <br/><a href="${resetLink}">${resetLink}</a></p>
+<p>If you did not request this, you can ignore this email.</p>
+<p>MindMate Team</p>
+`.trim();
+
+    await mailingController.sendEmailNotification(user.email, subject, text, html);
+
+    return res.status(200).json({ message: 'If the account exists, a reset link has been sent.', code: 200 });
+  } catch (err) {
+    console.error('[FORGOT PASSWORD]', err);
+    return res.status(500).json({ message: 'Internal server error', code: 500 });
+  }
+};
+
+// Verify a reset token (optional helper for frontend)
+exports.verifyResetToken = async (req, res) => {
+  try {
+    const token = req.query?.token || req.body?.token;
+    if (!token) return res.status(400).json({ message: 'token is required', code: 400 });
+
+    const payload = jwt.verify(token, process.env.RESET_TOKEN_SECRET || process.env.JWT_SECRET);
+    if (payload?.type !== 'password_reset') {
+      return res.status(400).json({ message: 'Invalid token type', code: 400 });
+    }
+    return res.status(200).json({ valid: true, userId: payload.id, code: 200 });
+  } catch (err) {
+    return res.status(400).json({ message: 'Invalid or expired token', code: 400 });
+  }
+};
+
+// Reset password using a valid token
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword, confirmPassword } = req.body || {};
+    if (!token || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'token, newPassword and confirmPassword are required', code: 400 });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match', code: 400 });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters', code: 400 });
+    }
+
+    const payload = jwt.verify(token, process.env.RESET_TOKEN_SECRET || process.env.JWT_SECRET);
+    if (payload?.type !== 'password_reset') {
+      return res.status(400).json({ message: 'Invalid token type', code: 400 });
+    }
+
+    const user = await User.findById(payload.id);
+    if (!user) return res.status(404).json({ message: 'User not found', code: 404 });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+
+    return res.status(200).json({ message: 'Password has been reset successfully', code: 200 });
+  } catch (err) {
+    console.error('[RESET PASSWORD]', err);
+    return res.status(400).json({ message: 'Invalid or expired token', code: 400 });
   }
 };

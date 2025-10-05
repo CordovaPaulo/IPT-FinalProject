@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Feedback = require('../models/feedback');
 const { getValuesFromToken } = require('../service/jwt');
+const mailingController = require('./mailing');
 
 exports.getAllMentors = async (req, res) => {
   try {
@@ -89,6 +90,18 @@ exports.setSchedule = async (req, res) => {
         });
 
         await schedule.save();
+        // optionally notify mentor about new booking by learner (email)
+        try {
+          await mailingController.sendRescheduleByLearner( // reuse reschedule-by-learner to notify mentor of a new booking might be odd
+            schedule._id,
+            learner._id,
+            schedule.date,
+            schedule.time,
+            schedule.location
+          );
+        } catch (mailErr) {
+          console.error('Error sending booking notification email (learner->mentor):', mailErr);
+        }
         res.status(201).json(schedule);
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
@@ -299,138 +312,176 @@ exports.editProfile = async (req, res) => {
 }
 
 exports.cancelSched = async (req, res) => {
-    const { id } = req.params;
-    const decoded = getValuesFromToken(req);
+  const { id } = req.params;
+  const decoded = getValuesFromToken(req);
+  const { reason = '' } = req.body;
 
-    if (!decoded || !decoded.id) {
-        return res.status(403).json({ message: 'Invalid token', code: 403 });
+  if (!decoded?.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+  if (!id) {
+    return res.status(400).json({ message: 'Schedule id is required', code: 400 });
+  }
+
+  try {
+    // find learner from token
+    const learner = await Learner.findOne({
+      $or: [{ _id: decoded.id }, { userId: decoded.id }]
+    });
+    if (!learner) {
+      return res.status(404).json({ message: 'Learner not found', code: 404 });
     }
 
-    if (!id) {
-        return res.status(400).json({ message: 'Schedule id is required', code: 400 });
+    const schedule = await Schedule.findById(id);
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found', code: 404 });
     }
 
+    // authorize: schedule must belong to this learner
+    const ownsSchedule =
+      String(schedule.learner) === String(learner._id) ||
+      String(schedule.learner) === String(learner.userId);
+
+    if (!ownsSchedule) {
+      return res.status(403).json({ message: 'Not authorized to cancel this schedule', code: 403 });
+    }
+
+    // delete (or update status if you prefer soft delete)
+    await Schedule.findByIdAndDelete(id);
+
+    // optional socket emit
     try {
-        const schedule = await Schedule.findById(id);
-        if (!schedule) {
-            return res.status(404).json({ message: 'Schedule not found', code: 404 });
-        }
-
-        // const requesterId = String(decoded.id);
-        // const schedLearnerId = String(schedule.learner);
-        // const schedMentorId = String(schedule.mentor);
-
-        // // only the learner or the mentor involved can cancel
-        // if (requesterId !== schedLearnerId && requesterId !== schedMentorId) {
-        //     return res.status(403).json({ message: 'Not authorized to cancel this schedule', code: 403 });
-        // }
-
-        await Schedule.findByIdAndDelete(id);
-
-        // notify the other party if socket.io is available (optional)
-        try {
-            const io = req.app && req.app.get('io');
-            if (io) {
-                const otherId = requesterId === schedLearnerId ? schedMentorId : schedLearnerId;
-                io.to(String(otherId)).emit('scheduleCanceled', {
-                    scheduleId: id,
-                    canceledBy: requesterId,
-                    date: schedule.date,
-                    time: schedule.time,
-                    subject: schedule.subject,
-                });
-            }
-        } catch (emitErr) {
-            // do not fail the request if emit fails
-            console.error('Socket emit error (cancelSched):', emitErr);
-        }
-
-        res.status(200).json({ message: 'Schedule canceled', code: 200 });
-    } catch (error) {
-        res.status(500).json({ message: error.message, code: 500 });
+      const io = req.app?.get && req.app.get('io');
+      if (io) {
+        io.to(String(schedule.mentor)).emit('scheduleCanceled', {
+          scheduleId: id,
+          canceledBy: String(learner._id),
+          date: schedule.date,
+          time: schedule.time,
+          subject: schedule.subject
+        });
+      }
+    } catch (emitErr) {
+      console.error('Socket emit error (learner.cancelSched):', emitErr);
     }
-}
+
+    // send email to mentor
+    try {
+      await mailingController.sendCancellationByLearner(id, String(learner._id), reason);
+    } catch (mailErr) {
+      console.error('Error sending cancellation email (learner):', mailErr);
+    }
+
+    return res.status(200).json({ message: 'Schedule canceled', code: 200 });
+  } catch (error) {
+    console.error('cancelSched error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
 
 exports.reschedSched = async (req, res) => {
-    const { id } = req.params;
-    const { date, time, location, subject } = req.body;
-    const decoded = getValuesFromToken(req);
+  const { id } = req.params;
+  const { date, time, location, subject } = req.body;
+  const decoded = getValuesFromToken(req);
 
-    if (!decoded || !decoded.id) {
-        return res.status(403).json({ message: 'Invalid token', code: 403 });
+  if (!decoded?.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+  if (!id) {
+    return res.status(400).json({ message: 'Schedule id is required', code: 400 });
+  }
+  if (!date && !time && !location && !subject) {
+    return res.status(400).json({ message: 'Provide at least one of date, time, location, subject', code: 400 });
+  }
+
+  try {
+    // find learner from token
+    const learner = await Learner.findOne({
+      $or: [{ _id: decoded.id }, { userId: decoded.id }]
+    });
+    if (!learner) {
+      return res.status(404).json({ message: 'Learner not found', code: 404 });
     }
 
-    if (!id) {
-        return res.status(400).json({ message: 'Schedule id is required', code: 400 });
+    const schedule = await Schedule.findById(id);
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found', code: 404 });
     }
 
-    if (!date && !time && !location && !subject) {
-        return res.status(400).json({ message: 'At least one field (date, time, location, subject) is required to reschedule', code: 400 });
+    // authorize
+    const ownsSchedule =
+      String(schedule.learner) === String(learner._id) ||
+      String(schedule.learner) === String(learner.userId);
+
+    if (!ownsSchedule) {
+      return res.status(403).json({ message: 'Not authorized to reschedule this schedule', code: 403 });
     }
 
+    // validations (simple examples)
+    if (time && (time < '06:00' || time > '22:00')) {
+      return res.status(400).json({ message: 'Time must be between 06:00 and 22:00', code: 400 });
+    }
+    if (date) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const newDate = new Date(date); newDate.setHours(0,0,0,0);
+      if (newDate < today) {
+        return res.status(400).json({ message: 'Date must be today or later', code: 400 });
+      }
+    }
+
+    const oldValues = {
+      date: schedule.date,
+      time: schedule.time,
+      location: schedule.location,
+      subject: schedule.subject
+    };
+
+    if (date) schedule.date = new Date(date);
+    if (time) schedule.time = time;
+    if (location) schedule.location = location;
+    if (subject) schedule.subject = subject;
+
+    await schedule.save();
+
+    // optional socket emit
     try {
-        const schedule = await Schedule.findById(id);
-        if (!schedule) {
-            return res.status(404).json({ message: 'Schedule not found', code: 404 });
-        }
-
-        // const requesterId = String(decoded.id);
-        // const schedLearnerId = String(schedule.learner);
-        // const schedMentorId = String(schedule.mentor);
-
-        // // only the learner or the mentor involved can reschedule
-        // if (requesterId !== schedLearnerId && requesterId !== schedMentorId) {
-        //     return res.status(403).json({ message: 'Not authorized to reschedule this schedule', code: 403 });
-        // }
-
-        // keep old values for notification
-        const oldValues = {
+      const io = req.app?.get && req.app.get('io');
+      if (io) {
+        io.to(String(schedule.mentor)).emit('scheduleRescheduled', {
+          scheduleId: id,
+          rescheduledBy: String(learner._id),
+          old: oldValues,
+          updated: {
             date: schedule.date,
             time: schedule.time,
             location: schedule.location,
             subject: schedule.subject
-        };
-
-        // apply updates
-        if (date) schedule.date = new Date(date);
-        if (time) schedule.time = time;
-        if (location) schedule.location = location;
-        if (subject) schedule.subject = subject;
-
-        await schedule.save();
-
-        // notify the other party if socket.io is available (optional)
-        try {
-            const io = req.app && req.app.get('io');
-            if (io) {
-                const otherId = requesterId === schedLearnerId ? schedMentorId : schedLearnerId;
-                io.to(String(otherId)).emit('scheduleRescheduled', {
-                    scheduleId: id,
-                    rescheduledBy: requesterId,
-                    old: {
-                        date: oldValues.date,
-                        time: oldValues.time,
-                        location: oldValues.location,
-                        subject: oldValues.subject
-                    },
-                    updated: {
-                        date: schedule.date,
-                        time: schedule.time,
-                        location: schedule.location,
-                        subject: schedule.subject
-                    }
-                });
-            }
-        } catch (emitErr) {
-            console.error('Socket emit error (reschedSched):', emitErr);
-        }
-
-        res.status(200).json({ message: 'Schedule rescheduled', schedule, code: 200 });
-    } catch (error) {
-        console.error('reschedSched error:', error);
-        res.status(500).json({ message: error.message, code: 500 });
+          }
+        });
+      }
+    } catch (emitErr) {
+      console.error('Socket emit error (learner.reschedSched):', emitErr);
     }
-}
+
+    // email mentor
+    try {
+      await mailingController.sendRescheduleByLearner(
+        id,
+        String(learner._id),
+        schedule.date,
+        schedule.time,
+        schedule.location
+      );
+    } catch (mailErr) {
+      console.error('Error sending reschedule email (learner):', mailErr);
+    }
+
+    return res.status(200).json({ message: 'Schedule rescheduled', schedule, code: 200 });
+  } catch (error) {
+    console.error('reschedSched error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
 
 exports.getFeedbacks = async (req, res) => {
     const decoded = getValuesFromToken(req);
@@ -459,3 +510,113 @@ exports.getFeedbacks = async (req, res) => {
         res.status(500).json({ message: 'Internal server error', code: 500 });
     }
 }
+
+exports.acceptOffer = async (req, res) => {
+  try {
+    // 1) Read offer token from query or body (sendOffer builds base64url JSON token)
+    const token = req.query?.token || req.body?.token;
+    if (!token) {
+      return res.status(400).json({ message: 'token is required', code: 400 });
+    }
+
+    // 2) Decode token (base64url -> JSON)
+    let payload;
+    try {
+      const json = Buffer.from(token, 'base64url').toString('utf8');
+      payload = JSON.parse(json);
+    } catch {
+      return res.status(400).json({ message: 'Invalid offer token', code: 400 });
+    }
+
+    const required = ['mentorId', 'learnerId', 'date', 'time', 'location', 'subject'];
+    const missing = required.filter(k => !payload[k]);
+    if (missing.length) {
+      return res.status(400).json({ message: `Missing fields in token: ${missing.join(', ')}`, code: 400 });
+    }
+
+    // 3) If Authorization header is present, ensure it matches the token's learnerId. If not present, continue.
+    const maybeDecoded = (() => {
+      try { return getValuesFromToken(req); } catch { return null; }
+    })();
+    if (maybeDecoded?.id) {
+      // Resolve the authenticated learner and compare
+      const authLearner = await Learner.findOne({ $or: [{ _id: maybeDecoded.id }, { userId: maybeDecoded.id }] });
+      if (authLearner && String(authLearner._id) !== String(payload.learnerId)) {
+        return res.status(403).json({ message: 'Offer not intended for this learner', code: 403 });
+      }
+    }
+
+    // 4) Load entities referenced by the token
+    let learner = await Learner.findById(payload.learnerId);
+    if (!learner) learner = await Learner.findOne({ userId: payload.learnerId });
+    if (!learner) return res.status(404).json({ message: 'Learner not found', code: 404 });
+
+    let mentor = await Mentor.findById(payload.mentorId);
+    if (!mentor) mentor = await Mentor.findOne({ userId: payload.mentorId });
+    if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+
+    // 5) Basic validations matching your other endpoints
+    const scheduleDate = new Date(payload.date);
+    if (Number.isNaN(scheduleDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date', code: 400 });
+    }
+    if (payload.time < '06:00' || payload.time > '22:00') {
+      return res.status(400).json({ message: 'Time must be between 06:00 and 22:00', code: 400 });
+    }
+
+    // Prevent duplicates (same mentor/learner/date/time)
+    const existing = await Schedule.findOne({
+      learner: learner._id,
+      mentor: mentor._id,
+      date: scheduleDate,
+      time: payload.time
+    });
+    if (existing) {
+      return res.status(409).json({ message: 'Schedule already exists for this slot', schedule: existing, code: 409 });
+    }
+
+    // 6) Create the schedule
+    const schedule = new Schedule({
+      learner: learner._id,
+      mentor: mentor._id,
+      learnerName: learner.name,
+      mentorName: mentor.name,
+      date: scheduleDate,
+      time: payload.time,
+      location: payload.location,
+      subject: payload.subject
+    });
+    await schedule.save();
+
+    // 7) Notify mentor (best-effort)
+    try {
+      const mentorUser = mentor.userId ? await User.findById(mentor.userId) : null;
+      const mentorEmail = mentorUser?.email || mentor.email;
+      if (mentorEmail) {
+        await mailingController.sendEmailNotification(
+          mentorEmail,
+          `Offer accepted: ${payload.subject}`,
+          `Hello ${mentor.name},
+
+${learner.name} accepted your offer.
+
+Details:
+- Subject: ${payload.subject}
+- Date: ${scheduleDate.toLocaleDateString()}
+- Time: ${payload.time}
+- Location: ${payload.location}
+
+Best regards,
+MindMate Team`
+        );
+      }
+    } catch (mailErr) {
+      console.error('acceptOffer notify mentor error:', mailErr);
+    }
+
+    return res.status(201).json({ message: 'Offer accepted. Schedule created.', schedule, code: 201 });
+  } catch (error) {
+    console.error('acceptOffer error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
