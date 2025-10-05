@@ -96,4 +96,48 @@ async function uploadFile({ buffer, originalname, mimetype, folder }) {
   };
 }
 
-module.exports = { uploadFile };
+// View/preview: get file metadata and links
+async function getFileMetadata(fileId) {
+  const res = await drive.files.get({
+    fileId,
+    fields:
+      'id,name,mimeType,size,createdTime,modifiedTime,webViewLink,webContentLink,parents',
+  });
+  return res.data;
+}
+
+// Delete a file permanently
+async function deleteFile(fileId) {
+  await drive.files.delete({ fileId });
+  return { deleted: true };
+}
+
+/**
+ * Resolve a folder path like "parent/child" to a folderId (creates if missing)
+ */
+async function getFolderIdByPath(path) {
+  const parts = (path || '').split('/').filter(Boolean);
+  if (parts.length === 0) throw new Error('Invalid folder path');
+  let parentId = await findOrCreateFolder(parts[0]);
+  for (let i = 1; i < parts.length; i++) {
+    parentId = await findOrCreateFolder(parts[i], parentId);
+  }
+  return parentId;
+}
+
+/**
+ * List files inside a folder path
+ */
+async function listFilesInFolderByPath(path) {
+  const folderId = await getFolderIdByPath(path);
+  const res = await drive.files.list({
+    q: `'${folderId}' in parents and trashed=false`,
+    fields:
+      'files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink,webContentLink,parents)',
+    spaces: 'drive',
+    pageSize: 1000,
+  });
+  return { folderId, files: res.data.files || [] };
+}
+
+module.exports = { uploadFile, getFileMetadata, deleteFile, listFilesInFolderByPath };

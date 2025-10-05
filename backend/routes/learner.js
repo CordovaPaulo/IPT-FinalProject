@@ -16,7 +16,11 @@ router.get('/mentors/:id', jwtService.authenticateToken('learner'), learnerContr
 router.get('/schedules', jwtService.authenticateToken('learner'), learnerController.getSchedules);
 router.get('/feedback-given', jwtService.authenticateToken('learner'), learnerController.getFeedbacks);
 
-//PATCH routes
+// Accept offer — support both GET (token in query) and POST (token in body)
+router.get('/offers/accept', learnerController.acceptOffer);
+router.post('/offers/accept', learnerController.acceptOffer);
+
+// PATCH routes
 router.patch('/profile/edit', jwtService.authenticateToken('learner'), learnerController.editProfile);
 
 module.exports = router;
