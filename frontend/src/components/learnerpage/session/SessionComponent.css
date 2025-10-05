@@ -1,5 +1,5 @@
 .session-wrapper {
-  background: var(--bg-light);
+  background: #ffffff;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(26, 79, 159, 0.5);
   width: 90%;
@@ -32,7 +32,7 @@
 .table-title {
   margin: 0;
   font-size: 1.6rem;
-  color: var(--text-dark);
+  color: #0b2548;
   display: flex;
   align-items: center;
   gap: 0.8rem;
@@ -43,6 +43,7 @@
 
 .header-icon {
   font-size: 1.4rem;
+  color: #0b2548;
 }
 
 .lower-element {
@@ -79,11 +80,11 @@
 }
 
 .session-card h1 {
-  color: var(--primary-dark);
-  font-size: 1.2rem;
+  color: #0b3e8a;
+  font-size: 1.5rem;
   text-align: left;
   margin-bottom: 0.3rem;
-  margin-top: 1rem;
+  margin-top: 0;
   padding-left: 0.5rem;
   flex-shrink: 0;
 }
@@ -105,12 +106,12 @@
 .upcomming-card {
   display: flex;
   flex-direction: column;
-  padding: 0.5rem 0.9rem;
+  padding: 1rem 0.9rem;
   background-color: #e4f3f5;
   border-radius: 8px;
   margin-bottom: 0.8rem;
   transition: all 0.3s ease;
-  border-left: 5px solid var(--primary);
+  border-left: 5px solid #3b9aa9;
   max-width: 100%;
   box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
   transform: translateY(0);
@@ -153,8 +154,8 @@
 }
 
 .card-header h1 {
-  color: var(--text-dark);
-  font-size: 1.5rem;
+  color: #0b2548;
+  font-size: 1.4rem;
   font-weight: 600;
   margin-bottom: 0.2rem;
   text-decoration: underline;
@@ -179,7 +180,7 @@
   right: 0;
   min-width: 140px;
   background-color: white;
-  border: 1px solid var(--border);
+  border: 1px solid #e1e4e8;
   border-radius: 5px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
@@ -203,6 +204,7 @@
 .option-icon {
   margin-right: 0.6rem;
   width: 14px;
+  height: 14px;
   flex-shrink: 0;
 }
 
@@ -210,7 +212,7 @@
   flex-grow: 1;
   text-align: left;
   white-space: nowrap;
-  color: var(--text-dark);
+  color: #0b2548;
   font-size: 0.85rem;
 }
 
@@ -223,18 +225,14 @@
 }
 
 .info h2 {
-  color: var(--text-dark);
+  color: #0b2548;
   font-size: 0.9rem;
   font-weight: 600;
 }
 
 .info p {
-  color: var(--text-dark);
+  color: #0b2548;
   font-size: 0.85rem;
-}
-
-.info svg {
-  width: 14px;
 }
 
 .last {
@@ -327,7 +325,7 @@
 
 .modal-header {
   padding: 1.2rem 1.5rem;
-  background-color: var(--primary);
+  background-color: #257c89;
   color: white;
   display: flex;
   justify-content: space-between;
@@ -340,13 +338,13 @@
   font-size: 1.2rem;
   font-weight: 600;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
-  color: rgb(36, 56, 92);
+  color: white;
 }
 
 .close-button {
   background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: rgb(30, 50, 73);
+  color: white;
   font-size: 1.2rem;
   cursor: pointer;
   width: 30px;
@@ -376,7 +374,7 @@
 }
 
 .warning-text {
-  color: var(--danger);
+  color: #f44336;
   font-weight: bold;
   font-size: 1rem;
   background-color: rgba(244, 67, 54, 0.1);
@@ -418,21 +416,22 @@
 }
 
 .modal-button.confirm {
-  background-color: var(--primary);
+  background: linear-gradient(135deg, #0c434d, #3b9aa9);
   color: white;
-  border-color: var(--primary-dark);
+  border-color: #0b3e8a;
 }
 
 .modal-button.confirm:hover {
-  background-color: var(--primary-dark);
+  background: linear-gradient(135deg, #3b9aa9, #0c434d);
 }
 
 .modal-button.confirm.danger {
-  background-color: red;
+  background-color: #f44336;
+  color: white;
 }
 
 .modal-button.confirm.danger:hover {
-  background-color: #f55050;
+  background-color: #d32f2f;
 }
 
 .file-item {
@@ -450,7 +449,7 @@
 
 .file-icon {
   margin-right: 1rem;
-  color: rgb(52, 72, 99);
+  color: #257c89;
   font-size: 1.5rem;
 }
 
@@ -460,7 +459,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
-  color: #2b3544;
+  color: #0b2548;
   font-size: 1rem;
   font-weight: 500;
 }
@@ -472,7 +471,7 @@
 
 .no-files {
   padding: 1.5rem;
-  color: #304453;
+  color: #666;
   font-size: 1rem;
   background-color: #fafafa;
   border-radius: 4px;
@@ -499,80 +498,350 @@
   background-color: #3e8e41;
 }
 
+/* Tablet Responsive Design */
 @media (max-width: 1024px) {
-  .session-grid {
-    grid-template-columns: 1fr;
-    grid-gap: 1rem;
-  }
-
-  .lower-element {
-    height: auto;
-    padding: 0.5rem;
-  }
-
-  .session-card {
-    padding: 0 0.3rem 0.5rem 0.3rem;
-  }
-  .modal-content {
-    width: 95%;
-  }
-}
-
-@media (max-width: 768px) {
   .session-wrapper {
     width: 95%;
-    margin: 1rem auto;
-    padding: 0.3rem;
+    margin: 1.5rem auto;
+    margin-left: 1.5rem;
+    height: 35rem;
+    padding: 0 0.8rem;
   }
 
   .table-header {
-    padding: 1rem;
+    padding: 1.2rem;
+    padding-bottom: 1.5rem;
   }
 
   .table-title {
-    font-size: 1.1rem;
+    font-size: 1.4rem;
   }
 
-  .modal-content {
-    width: 95%;
-    max-width: 400px;
+  .lower-element {
+    gap: 1rem;
+    padding: 0.6rem;
+  }
+
+  .session-grid {
+    grid-template-columns: 1fr;
+    grid-gap: 1rem;
+    padding: 0 0.3rem;
+  }
+
+  .session-card {
+    padding: 0 0.3rem 0.6rem 0.3rem;
+    gap: 0.6rem;
+  }
+
+  .session-card h1 {
+    font-size: 1.3rem;
+    padding-left: 0.3rem;
   }
 
   .today-card,
   .upcomming-card {
-    padding: 0.7rem 0.9rem;
+    padding: 0.8rem 0.7rem;
+    margin-bottom: 0.6rem;
   }
 
   .card-header h1 {
-    font-size: 0.9rem;
+    font-size: 1.2rem;
+  }
+
+  .info {
+    gap: 0.5rem;
   }
 
   .info h2 {
     font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .modal-footer {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .modal-button {
-    margin-left: 0;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .session-card h1 {
-    font-size: 1rem;
   }
 
   .info p {
     font-size: 0.8rem;
   }
 
-  .action-icons {
+  .modal-content {
+    width: 85%;
+    max-width: 420px;
+  }
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 768px) {
+  .session-wrapper {
+    width: 92%;
+    margin: 1rem auto;
+    margin-left: 1rem;
+    height: 45rem;
+    padding: 0 0.5rem;
+    border-radius: 15px;
+  }
+
+  .table-header {
+    padding: 1rem;
+    padding-bottom: 1.2rem;
+  }
+
+  .table-title {
+    font-size: 1.2rem;
     gap: 0.6rem;
+  }
+
+  .header-icon {
+    font-size: 1.1rem;
+  }
+
+  .lower-element {
+    gap: 0.8rem;
+    padding: 0.4rem;
+  }
+
+  .session-grid {
+    grid-gap: 0.8rem;
+    padding: 0 0.2rem;
+  }
+
+  .session-card {
+    padding: 0 0.2rem 0.4rem 0.2rem;
+    gap: 0.5rem;
+  }
+
+  .session-card h1 {
+    font-size: 1.1rem;
+    padding-left: 0.2rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .today-card,
+  .upcomming-card {
+    padding: 0.7rem 0.6rem;
+    margin-bottom: 0.5rem;
+    border-left-width: 4px;
+  }
+
+  .card-header h1 {
+    font-size: 1rem;
+    margin-right: 0.3rem;
+  }
+
+  .popup-menu {
+    min-width: 120px;
+  }
+
+  .popup-option {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .option-text {
+    font-size: 0.75rem;
+  }
+
+  .info {
+    gap: 0.4rem;
+    margin: 0.15rem 0;
+  }
+
+  .info h2 {
+    font-size: 0.8rem;
+  }
+
+  .info p {
+    font-size: 0.75rem;
+  }
+
+  .modal-content {
+    width: 90%;
+    max-width: 380px;
+  }
+
+  .modal-header {
+    padding: 1rem 1.2rem;
+  }
+
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 1.2rem;
+  }
+
+  .modal-body p {
+    font-size: 0.9rem;
+  }
+
+  .modal-footer {
+    padding: 0.8rem 1.2rem;
+    gap: 8px;
+  }
+
+  .modal-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Small Mobile Responsive Design */
+@media (max-width: 480px) {
+  .session-wrapper {
+    width: 90%;
+    margin: 0.8rem auto;
+    height: 40rem;
+    padding: 0 0.3rem;
+    border-radius: 12px;
+  }
+
+  .table-header {
+    padding: 0.8rem;
+    padding-bottom: 1rem;
+  }
+
+  .table-title {
+    font-size: 1.1rem;
+    gap: 0.5rem;
+  }
+
+  .header-icon {
+    font-size: 1rem;
+  }
+
+  .lower-element {
+    gap: 0.6rem;
+    padding: 0.3rem;
+  }
+
+  .session-grid {
+    grid-gap: 0.6rem;
+    padding: 0 0.1rem;
+  }
+
+  .session-card {
+    padding: 0 0.1rem 0.3rem 0.1rem;
+    gap: 0.4rem;
+  }
+
+  .session-card h1 {
+    font-size: 1rem;
+    padding-left: 0.1rem;
+  }
+
+  .today-card,
+  .upcomming-card {
+    padding: 0.6rem 0.5rem;
+    margin-bottom: 0.4rem;
+    border-left-width: 3px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+
+  .card-header h1 {
+    font-size: 0.9rem;
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .ellipsis-container {
+    align-self: flex-end;
+  }
+
+  .popup-menu {
+    min-width: 110px;
+    right: -10px;
+  }
+
+  .info {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .info h2 {
+    font-size: 0.75rem;
+  }
+
+  .info p {
+    font-size: 0.7rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-width: 100%;
+    margin: 0 1rem;
+  }
+
+  .modal-header {
+    padding: 0.8rem 1rem;
+  }
+
+  .modal-header h3 {
+    font-size: 1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-body p {
+    font-size: 0.85rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .modal-button {
+    width: 100%;
+    margin: 0;
+    justify-content: center;
+    padding: 0.6rem 1rem;
+  }
+}
+
+/* Extra Small Mobile Design */
+@media (max-width: 360px) {
+  .session-wrapper {
+    width: 88%;
+    margin: 0.5rem auto;
+    height: 35rem;
+  }
+
+  .table-title {
+    font-size: 1rem;
+  }
+
+  .session-card h1 {
+    font-size: 0.9rem;
+  }
+
+  .today-card,
+  .upcomming-card {
+    padding: 0.5rem 0.4rem;
+  }
+
+  .card-header h1 {
+    font-size: 0.85rem;
+  }
+
+  .info h2 {
+    font-size: 0.7rem;
+  }
+
+  .info p {
+    font-size: 0.65rem;
+  }
+
+  .popup-menu {
+    min-width: 100px;
+  }
+
+  .option-text {
+    font-size: 0.7rem;
   }
 }

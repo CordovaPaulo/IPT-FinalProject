@@ -1,11 +1,29 @@
 /* Loading Overlay */
 .loading-overlay {
-  z-index: 9999 !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
 
 .loading-spinner {
-  border-top-color: #006981 !important;
-  border-left-color: #006981 !important;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #006981;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .loading-backdrop {
@@ -13,8 +31,11 @@
   backdrop-filter: blur(2px);
 }
 
+/* Sidebar Styling */
 .sidebar {
   position: fixed;
+  top: 0;
+  left: 0;
   height: 100vh;
   width: 300px;
   background: linear-gradient(135deg, #0b2b31, #2b737e);
@@ -25,6 +46,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  transition: transform 0.3s ease;
 }
 
 .logo-container {
@@ -47,6 +69,7 @@
   letter-spacing: 0.5px;
 }
 
+/* Profile Section */
 .upper-element {
   display: flex;
   flex-direction: column;
@@ -107,22 +130,22 @@
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   padding-top: 17px;
-  margin-top: -1rem;
+  margin-top: -1.2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   margin-bottom: 0.5rem;
 }
 
-.goals-container h1,
 .availability h1,
 .subject-interest h1 {
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   padding-top: 17px;
-  margin-top: 0rem;
+  margin-top: -0.4rem;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   margin-bottom: 0.5rem;
 }
 
+/* Information Items */
 .lines {
   display: flex;
   padding: 8px;
@@ -188,6 +211,7 @@
   display: none;
 }
 
+/* Subjects Grid */
 .subject-interest .course-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -223,6 +247,7 @@
 .subject-interest .remaining-courses {
   background-color: #225d6f;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .subject-interest .remaining-courses .lines {
@@ -250,11 +275,19 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 5000;
+  z-index: 2000;
+}
+
+.subject-interest .popup-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .subject-interest .popup-content {
@@ -265,6 +298,8 @@
   max-width: 400px;
   max-height: 400px;
   overflow-y: auto;
+  position: relative;
+  z-index: 2001;
 }
 
 .subject-interest .popup-content h3 {
@@ -291,37 +326,6 @@
 }
 
 .subject-interest .popup-close-btn {
-  background: linear-gradient(135deg, #0b2b31, #2b737e);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 24px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 20px auto 5px;
-  width: auto;
-  min-width: 120px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.subject-interest .popup-close-btn:hover {
-  background: linear-gradient(135deg, #2b737e, #0b2b31);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.subject-interest .popup-close-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.subject-interest .close-popup {
   background-color: #006981;
   color: white;
   border: none;
@@ -362,6 +366,7 @@
 
 .account-dropbtn:hover {
   background-color: #00819d;
+  color: white;
 }
 
 .account-icon {
@@ -377,10 +382,9 @@
   box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
   z-index: 1;
   bottom: 100%;
-  left: 6rem;
+  left: 0;
   border-radius: 5px;
   overflow: hidden;
-  font-family: "Helvetica Neue", Arial, sans-serif;
 }
 
 .account-dropdown-content a {
@@ -393,6 +397,11 @@
   font-size: 13px;
   transition: all 0.3s ease;
   cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.account-dropdown-content a:last-child {
+  border-bottom: none;
 }
 
 .account-dropdown-content a:hover {
@@ -411,15 +420,15 @@
 
 /* Main Content Area */
 .main-content {
-  display: flex;
-  padding-left: 370px;
+  padding-left: 330px;
   padding-right: 20px;
-  padding-top: 100px;
+  padding-top: 90px;
+  padding-bottom: 20px;
+  min-height: 100vh;
   box-sizing: border-box;
-  height: 100%;
-  width: 100%;
 }
 
+/* Topbar Styling */
 .topbar {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   position: fixed;
@@ -454,12 +463,11 @@
   gap: 10px;
 }
 
-/* Hover state - light gray background */
-.topbar-option:hover {
+.topbar-option:hover,
+.topbar-option.focused {
   background-color: #f5f5f5;
 }
 
-/* Active state - blue background */
 .topbar-option.active {
   background-color: #e6f7ff;
 }
@@ -474,35 +482,14 @@
   background-color: #006981;
 }
 
-/* Keyboard focus state - same as hover (light gray) */
-.topbar-option.focused {
-  background-color: #f5f5f5 !important;
-}
-
-.topbar-option.focused .nav-text {
-  color: #004d5a !important;
-}
-
-.topbar-option.focused .nav-icon {
-  transform: scale(1.1);
-}
-
-/* Combined states */
-.topbar-option.active.focused {
-  background-color: #e6f7ff !important; /* Keep active blue when focused */
-}
-
-.topbar-option.focused:hover {
-  background-color: #f5f5f5 !important; /* Keep same color when focused and hovered */
-}
-
 .nav-icon {
   width: 20px;
   height: 20px;
   transition: transform 0.3s ease;
 }
 
-.topbar-option:hover .nav-icon {
+.topbar-option:hover .nav-icon,
+.topbar-option.focused .nav-icon {
   transform: scale(1.1);
 }
 
@@ -513,8 +500,14 @@
   transition: color 0.3s ease;
 }
 
-.topbar-option:hover .nav-text {
+.topbar-option:hover .nav-text,
+.topbar-option.focused .nav-text {
   color: #004d5a;
+}
+
+.topbar-option.active .nav-text {
+  color: #004d5a;
+  font-weight: 600;
 }
 
 .topbar-date {
@@ -529,188 +522,21 @@
   gap: 8px;
 }
 
-.date-icon {
-  margin-right: 2px;
-}
-
 /* Popup Styles */
 .edit-information-popup,
-.logout-popup,
-.help-popup {
+.logout-popup {
   position: fixed;
-  top: 50%;
-  left: 55%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 2000;
 }
 
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.fade-enter-to,
-.fade-leave-from {
-  opacity: 1;
-}
-
-.sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-}
-
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-/* Topbar Focus States for Keyboard Navigation */
-.topbar-focused {
-  outline: 2px solid #006981;
-  outline-offset: 2px;
-}
-
-/* Mobile responsive focus states */
-@media (max-width: 768px) {
-  .topbar-option.focused {
-    background-color: #f5f5f5 !important;
-  }
-  
-  .topbar-focused {
-    outline: 1px solid #006981;
-    outline-offset: 1px;
-  }
-}
-
-/* Smooth transitions for focus states */
-.topbar-option {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Ensure focus states work with existing active states */
-.topbar-option.active {
-  position: relative;
-}
-
-.topbar-option.active::after {
-  z-index: 1;
-}
-
-.topbar-option.focused {
-  z-index: 2;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 250px;
-  }
-
-  .main-content {
-    padding-left: 270px;
-  }
-
-  .topbar {
-    left: 250px;
-    padding: 0 20px;
-  }
-
-  .topbar-left {
-    gap: 15px;
-  }
-
-  .topbar-option {
-    padding: 0 10px;
-    gap: 6px;
-  }
-
-  .nav-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .nav-text {
-    font-size: 13px;
-  }
-
-  .topbar-date {
-    font-size: 12px;
-    padding: 5px 12px;
-    gap: 6px;
-  }
-
-  /* Mobile responsive for popup */
-  .subject-interest .popup-content {
-    width: 95%;
-    padding: 15px;
-    margin: 10px;
-  }
-
-  .subject-interest .popup-header h3 {
-    font-size: 1.3rem;
-  }
-
-  .subject-interest .popup-courses {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-  }
-
-  .subject-interest .popup-course {
-    font-size: 12px;
-    padding: 10px 6px;
-  }
-
-  .subject-interest .popup-close-btn {
-    padding: 8px 20px;
-    font-size: 13px;
-    min-width: 100px;
-  }
-}
-
-@media (max-width: 576px) {
-  .topbar {
-    left: 0;
-    padding-left: 270px;
-  }
-
-  .topbar-date {
-    display: none;
-  }
-
-  /* Mobile responsive for popup */
-  .subject-interest .popup-content {
-    padding: 12px;
-  }
-
-  .subject-interest .popup-header h3 {
-    font-size: 1.2rem;
-  }
-
-  .subject-interest .popup-courses {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .subject-interest .popup-course {
-    font-size: 14px;
-    padding: 12px 8px;
-  }
-}
-
+/* Mobile Responsive Styles */
 .sidebar-toggle {
   display: none;
   background: #006981;
@@ -747,51 +573,65 @@
   display: none;
 }
 
-.topbar-option:active {
-  background-color: #004d5a;
-  transform: scale(0.98);
+/* Scrollbar Styling */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.account-dropdown-content a:active {
-  background-color: #004d5a;
-  transform: scale(0.98);
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
-.account-dropbtn:active {
-  background-color: #004d5a;
-  color: white;
-  transform: scale(0.98);
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
 }
 
-.subject-interest .course-card:active {
-  background-color: #004d5a;
-  transform: scale(0.98);
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.subject-interest .remaining-courses:active {
-  background-color: #004d5a;
+.topbar::-webkit-scrollbar {
+  height: 0;
+  display: none;
 }
 
-.subject-interest .remaining-courses:active .lines {
-  background-color: rgba(255, 255, 255, 0.9);
+.topbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.popup-course:active {
-  background-color: #004d5a;
-  color: white;
-  transform: scale(0.98);
+/* Topbar Focus States */
+.topbar-focused {
+  outline: 2px solid #006981;
+  outline-offset: 2px;
 }
 
-/* Transitions */
-.topbar-option,
-.account-dropbtn,
-.account-dropdown-content a,
-.course-card,
-.popup-course {
-  transition: all 0.2s ease-in-out;
+/* Enhanced Responsive Design */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 280px;
+  }
+  
+  .main-content {
+    padding-left: 310px;
+  }
+  
+  .topbar {
+    left: 280px;
+    padding: 0 30px;
+  }
+  
+  .topbar-left {
+    gap: 20px;
+  }
+  
+  .topbar-option {
+    padding: 0 15px;
+  }
 }
 
-/* Responsive styles */
 @media (max-width: 768px) {
   .sidebar-toggle {
     display: flex;
@@ -803,59 +643,161 @@
 
   .sidebar-mobile {
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
   }
 
   .sidebar-mobile-visible {
     transform: translateX(0);
   }
 
-  .topbar-expanded {
-    left: 0;
-    padding-left: 70px;
-  }
-
   .content-expanded {
-    padding-left: 20px;
+    padding-left: 20px !important;
   }
 
   .main-content {
-    padding-left: 20px;
+    padding-left: 20px !important;
+    padding-right: 15px;
     transition: padding-left 0.3s ease;
-  }
-
-  .topbar {
-    transition: left 0.3s ease, padding-left 0.3s ease;
   }
 
   .topbar {
     left: 0 !important;
     padding-left: 70px;
     overflow-x: auto;
-    justify-content: flex-start;
-    white-space: nowrap;
   }
 
   .topbar-left {
-    display: flex;
     min-width: max-content;
   }
 
-  .topbar::-webkit-scrollbar {
-    height: 0;
+  .topbar-date {
     display: none;
   }
-
-  .topbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  
+  .sidebar {
+    width: 280px;
+  }
+  
+  .subject-interest .course-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .subject-interest .popup-content {
+    width: 90%;
+    margin: 20px;
+  }
+  
+  .subject-interest .popup-courses {
+    grid-template-columns: 1fr;
   }
 }
 
-.sidebar-mobile-visible {
-  transform: translateX(0) !important;
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .main-content {
+    padding: 80px 10px 20px 10px;
+  }
+  
+  .topbar {
+    padding-left: 60px;
+    height: 60px;
+  }
+  
+  .topbar-option {
+    padding: 0 12px;
+    gap: 6px;
+  }
+  
+  .nav-icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .nav-text {
+    font-size: 13px;
+  }
+  
+  .subject-interest .course-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .subject-interest .popup-content {
+    width: 95%;
+    padding: 15px;
+  }
 }
 
-.topbar-option {
-  flex-shrink: 0;
+/* Improved Course Grid Responsiveness */
+.subject-interest .course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+/* Enhanced Popup Responsiveness */
+.subject-interest .all-courses-popup {
+  padding: 20px;
+}
+
+.subject-interest .popup-courses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+/* Better Mobile Touch Targets */
+@media (max-width: 768px) {
+  .topbar-option {
+    min-height: 44px;
+  }
+  
+  .account-dropbtn {
+    min-height: 44px;
+  }
+  
+  .account-dropdown-content a {
+    min-height: 44px;
+    padding: 15px 16px;
+  }
+  
+  .subject-interest .course-card {
+    min-height: 44px;
+  }
+}
+
+/* Smooth Transitions */
+.sidebar,
+.main-content,
+.topbar,
+.topbar-option,
+.account-dropbtn,
+.course-card {
+  transition: all 0.3s ease;
+}
+
+/* Improved Accessibility */
+.topbar-option:focus-visible {
+  outline: 2px solid #006981;
+  outline-offset: 2px;
+}
+
+.account-dropbtn:focus-visible {
+  outline: 2px solid #006981;
+  outline-offset: 2px;
+}
+
+/* Active States for Better UX */
+.topbar-option:active {
+  transform: scale(0.98);
+}
+
+.account-dropbtn:active {
+  transform: scale(0.98);
+}
+
+.subject-interest .course-card:active {
+  transform: scale(0.98);
 }

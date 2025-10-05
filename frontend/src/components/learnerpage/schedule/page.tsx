@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
-import './Schedule.module.css';
+import styles from './Schedule.module.css';
 
 function getCookie(name: string) {
   const value = `; ${document.cookie}`;
@@ -351,17 +351,17 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
   }, [currentDate, selectedDate]);
 
   return (
-    <div className="booking">
+    <div className={styles.booking}>
       {/* Header */}
-      <div className="header">
-        <div className="flex items-center space-x-3">
+      <div className={styles.header}>
+        <div>
           <h1>Book a Session</h1>
         </div>
         <button onClick={onClose} aria-label="Close" type="button">×</button>
       </div>
 
       {/* Profile info */}
-      <div className="profile">
+      <div className={styles.profile}>
         <img
           alt="Profile image"
           src={mentorProfilePic || 'https://placehold.co/400x400'}
@@ -379,31 +379,31 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
       </div>
 
       {/* Main content */}
-      <div className="content">
+      <div className={styles.content}>
         {/* Left side */}
-        <div className="left">
-          <div className="time-header">
+        <div className={styles.left}>
+          <div className={styles.timeHeader}>
             <h2>Select Time Slots</h2>
             <p>({mentorSessionDur || 'Duration not specified'})</p>
           </div>
-          <div className="time-slots">
+          <div className={styles.timeSlots}>
             {availableTimes.map((time) => (
               <button
                 key={time}
                 onClick={() => setSelectedTime(time)}
-                className={`time-btn ${selectedTime === time ? 'time-selected' : ''}`}
+                className={`${styles.timeBtn} ${selectedTime === time ? styles.timeSelected : ''}`}
               >
                 {time}
               </button>
             ))}
           </div>
 
-          <h3 className="mode-header">Select Mode of Session</h3>
-          <div className="mode-buttons">
+          <h3 className={styles.modeHeader}>Select Mode of Session</h3>
+          <div className={styles.modeButtons}>
             <button
               type="button"
               onClick={() => setSessionType('in-person')}
-              className={`mode-btn ${sessionType === 'in-person' ? 'mode-active' : ''}`}
+              className={`${styles.modeBtn} ${sessionType === 'in-person' ? styles.modeActive : ''}`}
               disabled={!mentorModality?.toLowerCase().includes('in-person') && !mentorModality?.toLowerCase().includes('both')}
             >
               <span aria-label="In Person"><i className="fas fa-user"></i></span>
@@ -412,7 +412,7 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
             <button
               type="button"
               onClick={() => setSessionType('online')}
-              className={`mode-btn ${sessionType === 'online' ? 'mode-active' : ''}`}
+              className={`${styles.modeBtn} ${sessionType === 'online' ? styles.modeActive : ''}`}
               disabled={!mentorModality?.toLowerCase().includes('online') && !mentorModality?.toLowerCase().includes('both')}
             >
               <span aria-label="Online"><i className="fas fa-laptop"></i></span>
@@ -421,43 +421,43 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
           </div>
 
           {sessionType === 'in-person' && (
-            <div className="location-input">
+            <div className={styles.locationInput}>
               <input
                 type="text"
                 value={meetingLocation}
                 onChange={(e) => setMeetingLocation(e.target.value)}
                 placeholder="Enter meeting location"
-                className="location-field"
+                className={styles.locationField}
               />
             </div>
           )}
         </div>
 
         {/* Right side - Calendar */}
-        <div className="right" style={{ marginLeft: '-20px' }}>
-          <div className="calendar">
-            <div className="calendar-header">
-              <button className="arrow" onClick={prevMonth}>&lt;</button>
-              <div className="month-container">
+        <div className={styles.right}>
+          <div className={styles.calendar}>
+            <div className={styles.calendarHeader}>
+              <button className={styles.arrow} onClick={prevMonth}>&lt;</button>
+              <div className={styles.monthContainer}>
                 <button
-                  className="month"
+                  className={styles.month}
                   onClick={() => setShowYearSelection(!showYearSelection)}
                 >
                   {currentMonthYear}
                 </button>
-                <button className="today-btn" onClick={goToToday}>Today</button>
+                <button className={styles.todayBtn} onClick={goToToday}>Today</button>
               </div>
-              <button className="arrow" onClick={nextMonth}>&gt;</button>
+              <button className={styles.arrow} onClick={nextMonth}>&gt;</button>
             </div>
 
             {/* Year selection dropdown */}
             {showYearSelection && (
-              <div className="year-select">
+              <div className={styles.yearSelect}>
                 {years.map((year) => (
                   <div
                     key={year}
                     onClick={() => selectYear(year)}
-                    className={`year-option ${currentDate.getFullYear() === year ? 'year-active' : ''}`}
+                    className={`${styles.yearOption} ${currentDate.getFullYear() === year ? styles.yearActive : ''}`}
                   >
                     {year}
                   </div>
@@ -466,35 +466,35 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
             )}
 
             {/* Available days legend */}
-            <div className="calendar-legend">
-              <div className="legend-item">
-                <span className="legend-dot available"></span>
+            <div className={styles.calendarLegend}>
+              <div className={styles.legendItem}>
+                <span className={`${styles.legendDot} ${styles.legendDotAvailable}`}></span>
                 <span>Available</span>
               </div>
-              <div className="legend-item">
-                <span className="legend-dot unavailable"></span>
+              <div className={styles.legendItem}>
+                <span className={`${styles.legendDot} ${styles.legendDotUnavailable}`}></span>
                 <span>Unavailable</span>
               </div>
             </div>
 
-            <div className="weekdays">
+            <div className={styles.weekdays}>
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                 <div key={day}>{day}</div>
               ))}
             </div>
 
-            <div className="days">
+            <div className={styles.days}>
               {days.map((day, index) => (
                 <div
                   key={index}
                   onClick={() => day.isAvailable && !day.isPast ? selectDate(day) : null}
                   className={`
-                    day
-                    ${day.isToday ? 'today' : ''}
-                    ${day.isSelected ? 'selected' : ''}
-                    ${day.isCurrentMonth ? 'current' : 'other'}
-                    ${day.isAvailable && !day.isPast ? 'available' : 'unavailable'}
-                    ${day.isPast ? 'past-date' : ''}
+                    ${styles.day}
+                    ${day.isToday ? styles.today : ''}
+                    ${day.isSelected ? styles.selected : ''}
+                    ${day.isCurrentMonth ? styles.current : styles.other}
+                    ${day.isAvailable && !day.isPast ? styles.available : styles.unavailable}
+                    ${day.isPast ? styles.pastDate : ''}
                   `}
                 >
                   {day.date.getDate()}
@@ -503,17 +503,17 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
             </div>
           </div>
 
-          <div className="subject-select">
-            <h3 className="subject-header">Select Subject</h3>
+          <div className={styles.subjectSelect}>
+            <h3 className={styles.subjectHeader}>Select Subject</h3>
             <select 
               value={selectedSubject} 
               onChange={(e) => setSelectedSubject(e.target.value)} 
-              className="subject-dropdown" 
+              className={styles.subjectDropdown} 
               required
             >
               <option value="" disabled>Choose a subject</option>
               {subjectOptions().map((subject: string, index: number) => (
-                <option key={`${subject}-${index}`} value={subject} className="subject option">
+                <option key={`${subject}-${index}`} value={subject}>
                   {subject}
                 </option>
               ))}
@@ -523,14 +523,14 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
       </div>
 
       {/* Footer buttons */}
-      <div className="footer">
-        <button onClick={onClose} type="button" className="btn-cancel">
+      <div className={styles.footer}>
+        <button onClick={onClose} type="button" className={styles.btnCancel}>
           CANCEL
         </button>
         <button 
           onClick={confirmSchedule} 
           type="button" 
-          className="btn-proceed"
+          className={styles.btnProceed}
           disabled={isSubmitting}
         >
           {isSubmitting ? 'PROCESSING...' : 'PROCEED'}

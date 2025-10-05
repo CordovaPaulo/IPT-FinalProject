@@ -23,7 +23,7 @@ interface Feedback {
   feedback?: any;
   has_feedback?: boolean;
   mentorId?: string;
-  scheduleId?: string; // Add this to track which schedule the feedback belongs to
+  scheduleId?: string;
 }
 
 interface FeedbackFromAPI {
@@ -58,7 +58,6 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
 
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-  // Fetch existing feedbacks from the learner
   const fetchExistingFeedbacks = async () => {
     try {
       const response = await api.get('/api/learner/feedback-given');
@@ -66,16 +65,13 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
       setExistingFeedbacks(response.data);
     } catch (error: any) {
       console.error('Error fetching existing feedbacks:', error);
-      // If no feedbacks found (404), that's okay - set empty array
       if (error.response?.status === 404) {
         setExistingFeedbacks([]);
       }
     }
   };
 
-  // Transform schedForReview data to match the expected Feedback interface
   const transformScheduleToFeedback = (schedule: any, existingFeedbacks: FeedbackFromAPI[]): Feedback => {
-    // Find existing feedback for this schedule
     const existingFeedback = existingFeedbacks.find(feedback => 
       feedback.schedule === schedule.id || feedback.schedule === schedule._id
     );
@@ -98,7 +94,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
       learner: schedule.learner,
       feedback: existingFeedback || schedule.feedback,
       mentorId: schedule.mentor?.id || schedule.mentor?._id || schedule.mentor,
-      scheduleId: schedule.id // Track the schedule ID for feedback submission
+      scheduleId: schedule.id
     };
   };
 
@@ -138,33 +134,28 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
     }
   ];
 
-  // Fetch existing feedbacks when component mounts
   useEffect(() => {
     fetchExistingFeedbacks();
   }, []);
 
-  // Update records when schedForReview or existingFeedbacks change
   useEffect(() => {
     console.log("schedForReview received:", schedForReview);
     console.log("data.schedForReview received:", data?.schedForReview);
     console.log("existingFeedbacks:", existingFeedbacks);
     
     if (schedForReview && schedForReview.length > 0) {
-      // Transform the schedForReview data to match the expected format
       const transformedRecords = schedForReview.map(schedule => 
         transformScheduleToFeedback(schedule, existingFeedbacks)
       );
       setRecords(transformedRecords);
       console.log("Transformed records with feedback:", transformedRecords);
     } else if (data?.schedForReview && data.schedForReview.length > 0) {
-      // Use the raw schedForReview from data prop as fallback
       const transformedRecords = data.schedForReview.map(schedule => 
         transformScheduleToFeedback(schedule, existingFeedbacks)
       );
       setRecords(transformedRecords);
       console.log("Using data.schedForReview with feedback:", transformedRecords);
     } else {
-      // Use sample data as fallback
       setRecords(sampleData);
       console.log("Using sample data");
     }
@@ -200,7 +191,6 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
       return;
     }
 
-    // Get the mentor ID from the record
     const mentorId = recordView.mentorId;
     const scheduleId = recordView.scheduleId;
     
@@ -233,7 +223,6 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
 
       console.log('Feedback submitted successfully:', response.data);
 
-      // Update the record with new feedback
       const updatedRecord = {
         ...recordView,
         rating: tempRating,
@@ -243,7 +232,6 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
 
       setRecords(prev => prev.map(r => r.id === recordView.id ? updatedRecord : r));
       
-      // Refresh existing feedbacks to get the latest data
       await fetchExistingFeedbacks();
       
       closeFeedback();
@@ -252,15 +240,12 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
     } catch (error: any) {
       console.error('Error submitting feedback:', error);
       
-      // Handle different error scenarios
       if (error.response) {
-        // The request was made and the server responded with a status code
         const statusCode = error.response.status;
         const errorMessage = error.response.data?.message || 'Failed to submit feedback';
         
         if (statusCode === 401) {
           alert('Session expired. Please log in again.');
-          // Optionally redirect to login
           if (typeof window !== 'undefined') {
             window.location.href = '/auth/login';
           }
@@ -272,10 +257,8 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           alert(`Server error: ${errorMessage}`);
         }
       } else if (error.request) {
-        // The request was made but no response was received
         alert('Network error. Please check your connection and try again.');
       } else {
-        // Something happened in setting up the request
         alert('An unexpected error occurred. Please try again.');
       }
     } finally {
@@ -333,9 +316,9 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
   };
 
   return (
-    <div className="table-container">
-      <div className="table-header">
-        <h2 className="table-title">
+    <div className="reviews-container">
+      <div className="reviews-header">
+        <h2 className="reviews-title">
           <svg className="header-icon" viewBox="0 0 24 24" width="24" height="24">
             <path fill="currentColor" d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>
           </svg>
@@ -358,9 +341,9 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
         </div>
       </div>
 
-      <div className="table-wrapper">
-        <table className="data-table">
-          <thead className="table-head">
+      <div className="table-scroll-container">
+        <table className="reviews-table">
+          <thead>
             <tr>
               <th>MENTOR&apos;S NAME</th>
               <th>SUBJECT</th>
@@ -369,19 +352,19 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
               <th>ACTIONS</th>
             </tr>
           </thead>
-          <tbody className="table-body">
+          <tbody>
             {filteredRecords.map((record) => (
               <tr key={record.id}>
-                <td className="small-text">{getReviewerName(record.reviewer)}</td>
-                <td className="small-text">{record.subject || 'N/A'}</td>
-                <td className="small-text">{record.date || 'N/A'}</td>
+                <td>{getReviewerName(record.reviewer)}</td>
+                <td>{record.subject || 'N/A'}</td>
+                <td>{record.date || 'N/A'}</td>
                 <td>
                   <StarRating rating={record.rating} />
                 </td>
                 <td>
                   <button 
                     onClick={() => viewFeedback(record)} 
-                    className={`details-btn small-text ${hasFeedback(record) ? 'sent' : ''}`}
+                    className={`details-btn ${hasFeedback(record) ? 'sent' : ''}`}
                   >
                     <svg viewBox="0 0 24 24" width="16" height="16">
                       <path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
@@ -393,7 +376,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
             ))}
             {filteredRecords.length === 0 && (
               <tr>
-                <td colSpan={5} className="no-users small-text">
+                <td colSpan={5} className="no-records">
                   No records to display
                 </td>
               </tr>
@@ -404,13 +387,13 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
 
       {isFeedback && recordView && (
         <div className="modal-overlay" onClick={closeFeedback}>
-          <div className="user-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="header-content">
-                <svg className="modal-title-icon" viewBox="0 0 24 24" width="20" height="20">
+                <svg className="modal-icon" viewBox="0 0 24 24" width="20" height="20">
                   <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
                 </svg>
-                <h3 className="modal-title small-text">Feedback for {recordView.subject || 'Session'}</h3>
+                <h3>Feedback for {recordView.subject || 'Session'}</h3>
               </div>
               <button className="close-btn" onClick={closeFeedback}>
                 <svg viewBox="0 0 24 24" width="20" height="20">
@@ -421,73 +404,46 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
 
             <div className="modal-body">
               <div className="user-profile">
-                <div className="profile-image-container">
+                <div className="profile-image">
                   <img
                     src={recordView.reviewer?.image 
                       ? `${baseURL}/api/image/${recordView.reviewer.image}`
                       : `https://placehold.co/120x120/3b9aa9/ffffff?text=${getReviewerName(recordView.reviewer).charAt(0)}`
                     }
                     alt={getReviewerName(recordView.reviewer)}
-                    className="profile-image"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = `https://placehold.co/120x120/3b9aa9/ffffff?text=${getReviewerName(recordView.reviewer).charAt(0)}`;
                     }}
                   />
                 </div>
-
                 <div className="profile-info">
-                  <h4 className="user-name small-text">
-                    {getReviewerName(recordView.reviewer)}
-                  </h4>
-                  <hr className="divider" />
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="info-label small-text">
-                        <svg viewBox="0 0 24 24" width="14" height="14" style={{ marginRight: '0.5rem' }}>
-                          <path fill="currentColor" d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
-                        </svg>
-                        Subject
-                      </span>
-                      <span className="info-value small-text">
-                        {recordView.subject || 'N/A'}
-                      </span>
+                  <h4>{getReviewerName(recordView.reviewer)}</h4>
+                  <div className="profile-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Subject:</span>
+                      <span className="detail-value">{recordView.subject || 'N/A'}</span>
                     </div>
-                    <div className="info-item">
-                      <span className="info-label small-text">
-                        <svg viewBox="0 0 24 24" width="14" height="14" style={{ marginRight: '0.5rem' }}>
-                          <path fill="currentColor" d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/>
-                        </svg>
-                        Date
-                      </span>
-                      <span className="info-value small-text">
-                        {recordView.date || 'N/A'}
-                      </span>
+                    <div className="detail-item">
+                      <span className="detail-label">Date:</span>
+                      <span className="detail-value">{recordView.date || 'N/A'}</span>
                     </div>
-                    <div className="info-item">
-                      <span className="info-label small-text">
-                        <svg viewBox="0 0 24 24" width="14" height="14" style={{ marginRight: '0.5rem' }}>
-                          <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                        </svg>
-                        Location
-                      </span>
-                      <span className="info-value small-text">
-                        {recordView.location || 'N/A'}
-                      </span>
+                    <div className="detail-item">
+                      <span className="detail-label">Location:</span>
+                      <span className="detail-value">{recordView.location || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="details-section">
-                <div className="bio-card">
-                  <h4 className="section-title small-text">
+              <div className="feedback-section">
+                <div className="feedback-card">
+                  <h5>
                     <svg viewBox="0 0 24 24" width="16" height="16" style={{ marginRight: '0.5rem' }}>
                       <path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
                     </svg>
                     Rate This Session
-                  </h4>
-                  <hr className="divider2" />
+                  </h5>
                   <div className="rating-stars">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <span
@@ -502,25 +458,24 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
                     ))}
                   </div>
                   {hasFeedback(recordView) && (
-                    <div className="current-rating small-text">
+                    <div className="current-rating">
                       Your rating: {recordView.rating} stars
                     </div>
                   )}
                 </div>
 
-                <div className="bio-card">
-                  <h4 className="section-title small-text">
+                <div className="feedback-card">
+                  <h5>
                     <svg viewBox="0 0 24 24" width="16" height="16" style={{ marginRight: '0.5rem' }}>
                       <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
                     </svg>
                     Feedback
-                  </h4>
-                  <hr className="divider2" />
+                  </h5>
                   <textarea
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
                     placeholder={hasFeedback(recordView) ? '' : 'Enter your feedback here...'}
-                    className="feedback-input small-text"
+                    className="feedback-input"
                     disabled={hasFeedback(recordView)}
                     rows={4}
                   />
@@ -529,34 +484,32 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
             </div>
 
             <div className="modal-footer">
-              <div className="footer-actions">
-                <button className="footer-btn back small-text" onClick={closeFeedback}>
+              <button className="modal-btn back" onClick={closeFeedback}>
+                <svg viewBox="0 0 24 24" width="16" height="16" style={{ marginRight: '0.5rem' }}>
+                  <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+                Back to Records
+              </button>
+              {!hasFeedback(recordView) && (
+                <button
+                  onClick={handleSubmitFeedback}
+                  className="modal-btn submit"
+                  disabled={tempRating === 0 || isSubmitting}
+                >
                   <svg viewBox="0 0 24 24" width="16" height="16" style={{ marginRight: '0.5rem' }}>
-                    <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                    <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                   </svg>
-                  Back to Records
+                  {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
                 </button>
-                {!hasFeedback(recordView) && (
-                  <button
-                    onClick={handleSubmitFeedback}
-                    className="footer-btn submit small-text"
-                    disabled={tempRating === 0 || isSubmitting}
-                  >
-                    <svg viewBox="0 0 24 24" width="16" height="16" style={{ marginRight: '0.5rem' }}>
-                      <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                    </svg>
-                    {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
       <style jsx>{`
-        .table-container {
-          background: var(--bg-light);
+        .reviews-container {
+          background: #ffffff;
           border-radius: 20px;
           box-shadow: 0 8px 24px rgba(26, 79, 159, 0.5);
           width: 90%;
@@ -564,7 +517,6 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           margin-left: 2.5rem;
           padding: 0 1rem;
           text-align: center;
-          margin-top: 2rem;
           display: flex;
           flex-direction: column;
           height: 37.4rem;
@@ -572,30 +524,45 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           overflow-y: auto;
         }
 
-        .table-header {
+        .reviews-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        .reviews-container {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .reviews-header {
           display: flex;
           align-items: center;
           padding: 1.5rem;
-          background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+          padding-bottom: 2rem;
+          background: white;
           gap: 1rem;
           flex-wrap: wrap;
           color: #0b2548;
           position: sticky;
           top: 0;
           z-index: 20;
+          flex-shrink: 0;
         }
 
-        .table-title {
+        .reviews-title {
           margin: 0;
           font-size: 1.6rem;
-          color: var(--text-light);
+          color: #0b2548;
           display: flex;
           align-items: center;
           gap: 0.8rem;
+          position: sticky;
+          top: 0;
+          z-index: 20;
         }
 
         .header-icon {
-          color: var(--text-light);
+          font-size: 1.4rem;
+          color: #0b2548;
         }
 
         .search-container {
@@ -606,92 +573,83 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           position: relative;
           display: flex;
           align-items: center;
-          width: 280px;
         }
 
         .search-icon {
           position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #6b7280;
+          left: 10px;
+          color: #3b9aa9;
+          z-index: 1;
           font-size: 0.9rem;
-          z-index: 2;
-          pointer-events: none;
         }
 
         .search-input {
-          padding: 0.6rem 1rem 0.6rem 2.2rem;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          width: 100%;
-          font-size: 0.8rem;
-          height: 38px;
+          padding: 0.5rem 0.8rem 0.5rem 2rem;
+          border: 1px solid rgb(17, 17, 95);
+          border-radius: 6px;
+          width: 200px;
+          font-size: 0.85rem;
+          height: 35px;
           transition: all 0.3s ease;
-          background: white;
-          color: #374151;
-          box-sizing: border-box;
-        }
-
-        .search-input::placeholder {
-          color: #9ca3af;
+          position: relative;
         }
 
         .search-input:focus {
           outline: none;
-          box-shadow: 0 0 0 3px rgba(59, 154, 169, 0.1);
-          border-color: var(--primary);
+          box-shadow: 0 2px 8px rgba(54, 88, 141, 0.7);
+          border-color: #3b9aa9;
         }
 
-        .table-wrapper {
+        .table-scroll-container {
           overflow-y: auto;
-          flex-grow: 1;
+          max-height: calc(100vh - 200px);
         }
 
-        .data-table {
+        .table-scroll-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        .table-scroll-container {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .reviews-table {
           width: 100%;
           border-collapse: collapse;
           text-align: center;
         }
 
-        .table-head {
+        .reviews-table th {
           position: sticky;
           top: 0;
-          z-index: 10;
-        }
-
-        .data-table th {
           background-color: #e5e5e5;
-          color: var(--text-dark);
+          color: #0b2548;
           font-weight: 600;
-          padding: 0.8rem 0.5rem;
-          border-bottom: 2px solid var(--primary);
-          font-size: 0.85rem;
-          position: sticky;
-          top: 0;
-          z-index: 10;
+          padding: 0.75rem;
+          border-bottom: 2px solid #3b9aa9;
         }
 
-        .data-table td {
-          padding: 0.7rem 0.5rem;
+        .reviews-table td {
+          padding: 0.8rem;
           vertical-align: middle;
           border-bottom: 1px solid #eee;
         }
 
-        .data-table tr:hover {
+        .reviews-table tr:hover {
           background-color: rgba(59, 154, 169, 0.05);
         }
 
-        .data-table th:nth-child(1),
-        .data-table td:nth-child(1) {
+        .reviews-table th:nth-child(1),
+        .reviews-table td:nth-child(1) {
           width: 270px;
           max-width: 300px;
           min-width: 80px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          padding-left: 0.8rem;
-          padding-right: 0.8rem;
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
         }
 
         .stars {
@@ -701,7 +659,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
         }
 
         .star {
-          font-size: 1rem;
+          font-size: 1.2rem;
           color: #ccc;
         }
 
@@ -713,36 +671,33 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          border: 1px solid var(--primary-dark);
+          border: 1px solid #0b3e8a;
           background-color: rgba(73, 152, 164, 0.103);
-          color: var(--primary-dark);
+          color: #0b3e8a;
           padding: 6px 12px;
           border-radius: 6px;
           font-weight: 500;
+          font-size: 0.9rem;
           cursor: pointer;
           transition: all 0.3s ease;
-          font-size: 0.8rem;
         }
 
         .details-btn:hover {
           background-color: rgba(59, 154, 169, 0.2);
-          transform: translateY(-1px);
         }
 
         .details-btn.sent {
           background-color: rgba(76, 175, 80, 0.1);
-          border-color: var(--success);
-          color: var(--success);
+          border-color: #4caf50;
+          color: #4caf50;
         }
 
-        .no-users {
+        .no-records {
           text-align: center;
-          padding: 2rem;
-          color: var(--text-dark);
-          font-style: italic;
+          padding: 1rem;
+          color: #0b2548;
         }
 
-        /* Modal Styles */
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -754,37 +709,50 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           justify-content: center;
           align-items: center;
           z-index: 1000;
+          backdrop-filter: blur(5px);
         }
 
-        .user-modal {
+        .modal-content {
           background: white;
           border-radius: 12px;
           max-width: 700px;
-          width: 35%;
-          max-height: 85vh;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+          width: 30%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
           display: flex;
           flex-direction: column;
+          animation: modalSlideIn 0.3s ease-out;
         }
 
-        .user-modal::-webkit-scrollbar {
+        .modal-content::-webkit-scrollbar {
           display: none;
         }
 
-        .user-modal {
+        .modal-content {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
 
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
         .modal-header {
-          padding: 1.2rem;
-          background: linear-gradient(135deg, #0b3e8a, #3b9aa9);
+          padding: 1.5rem;
+          background: linear-gradient(135deg, #0c434d, #3b9aa9);
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-top-left-radius: 12px;
-          border-top-right-radius: 12px;
+          border-radius: 12px 12px 0 0;
           position: sticky;
           top: 0;
           z-index: 10;
@@ -796,13 +764,13 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           gap: 0.75rem;
         }
 
-        .modal-title {
+        .modal-header h3 {
           margin: 0;
+          font-size: 1.5rem;
           font-weight: 600;
-          font-size: 1.1rem;
         }
 
-        .modal-title-icon {
+        .modal-icon {
           color: white;
         }
 
@@ -813,8 +781,8 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           cursor: pointer;
           padding: 0.5rem;
           border-radius: 50%;
-          width: 32px;
-          height: 32px;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -826,7 +794,8 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
         }
 
         .modal-body {
-          padding: 1.5rem;
+          padding: 2rem;
+          padding-bottom: 3rem;
           overflow-y: auto;
         }
 
@@ -841,22 +810,21 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
 
         .user-profile {
           display: flex;
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
+          gap: 2rem;
+          margin-bottom: 2rem;
           align-items: flex-start;
         }
 
-        .profile-image-container {
-          position: relative;
+        .profile-image {
           flex-shrink: 0;
         }
 
-        .profile-image {
-          width: 85px;
-          height: 85px;
+        .profile-image img {
+          width: 120px;
+          height: 120px;
           border-radius: 50%;
           object-fit: cover;
-          border: 3px solid #e1e4e8;
+          border: 4px solid #e1e4e8;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
@@ -864,80 +832,64 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           flex-grow: 1;
         }
 
-        .user-name {
-          margin: 0.3rem 0 1rem 0;
+        .profile-info h4 {
+          margin: 0 0 1.5rem 0;
+          font-size: 1.6rem;
+          color: #0b2548;
           font-weight: 700;
           text-align: left;
-          font-size: 1.1rem;
         }
 
-        .divider {
-          border: none;
-          border-top: 3px solid #8a8a8f;
-          margin-bottom: 1rem;
-          margin-top: -0.5rem;
-        }
-
-        .info-grid {
+        .profile-details {
           display: flex;
-          flex-wrap: wrap;
+          flex-direction: column;
           gap: 1.2rem;
         }
 
-        .info-item {
+        .detail-item {
           display: flex;
           flex-direction: column;
           text-align: left;
-          min-width: 130px;
-          flex: 1 0 auto;
         }
 
-        .info-label {
+        .detail-label {
+          font-size: 0.85rem;
           color: #6b7280;
-          margin-bottom: 0.4rem;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.85rem;
         }
 
-        .info-value {
+        .detail-value {
+          font-size: 1rem;
           font-weight: 600;
           color: #0b234a;
-          margin-left: 20px;
-          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
 
-        .details-section {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 1.2rem;
-          margin-bottom: 1rem;
+        .feedback-section {
+          margin-top: 2rem;
         }
 
-        .bio-card {
-          background: #f9fafb;
-          border-radius: 8px;
-          padding: 1.2rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e5e7eb;
+        .feedback-card {
+          background: #f8f9fa;
+          border-radius: 10px;
+          padding: 1.5rem;
+          border: 1px solid #e9ecef;
+          margin-bottom: 1.5rem;
         }
 
-        .section-title {
+        .feedback-card h5 {
           margin: 0 0 1rem 0;
+          font-size: 1.1rem;
           color: #0b3e8a;
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-weight: 600;
-          font-size: 1rem;
-        }
-
-        .divider2 {
-          border: none;
-          border-top: 1px solid #8a8a8f;
-          margin-bottom: 1.2rem;
-          margin-top: -0.3rem;
         }
 
         .rating-stars {
@@ -965,7 +917,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
         .current-rating {
           text-align: center;
           margin-top: 0.8rem;
-          color: var(--primary-dark);
+          color: #0b3e8a;
           font-weight: 500;
           font-size: 0.9rem;
         }
@@ -984,7 +936,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
 
         .feedback-input:focus {
           outline: none;
-          border-color: var(--primary);
+          border-color: #3b9aa9;
           box-shadow: 0 0 0 2px rgba(59, 154, 169, 0.1);
         }
 
@@ -994,121 +946,288 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
         }
 
         .modal-footer {
-          padding: 1.2rem;
-          background: #f9fafb;
-          border-top: 1px solid #e5e7eb;
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom-left-radius: 12px;
-          border-bottom-right-radius: 12px;
+          justify-content: flex-end;
+          padding: 1rem 1.5rem;
+          background-color: #f5f5f5;
+          border-top: 2px solid #e0e0e0;
+          gap: 12px;
         }
 
-        .footer-btn {
+        .modal-btn {
           padding: 0.6rem 1.2rem;
-          border: none;
           border-radius: 6px;
-          font-weight: 500;
           cursor: pointer;
+          font-weight: 600;
+          transition: all 0.2s ease;
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          transition: all 0.2s;
-          font-size: 0.9rem;
+          font-size: 1rem;
+          border: 2px solid transparent;
         }
 
-        .footer-actions {
-          display: flex;
-          gap: 0.8rem;
-          width: 100%;
-          justify-content: space-between;
+        .modal-btn.back {
+          background-color: #f5f5f5;
+          color: #555;
+          border-color: #ccc;
         }
 
-        .footer-btn.back {
-          background-color: transparent;
-          color: #6b7280;
-          border: 1px solid #e5e7eb;
+        .modal-btn.back:hover {
+          background-color: #e0e0e0;
         }
 
-        .footer-btn.back:hover {
-          background-color: #e5e7eb;
-        }
-
-        .footer-btn.submit {
-          background: linear-gradient(135deg, #3b9aa9, #0b3e8a);
+        .modal-btn.submit {
+          background: linear-gradient(135deg, #0c434d, #3b9aa9);
           color: white;
+          border-color: #0b3e8a;
         }
 
-        .footer-btn.submit:hover {
-          background: linear-gradient(135deg, #0b3e8a, #3b9aa9);
-          transform: translateY(-1px);
+        .modal-btn.submit:hover {
+          background: linear-gradient(135deg, #3b9aa9, #0c434d);
         }
 
-        .footer-btn.submit:disabled {
+        .modal-btn.submit:disabled {
           background-color: #cccccc;
           cursor: not-allowed;
           opacity: 0.7;
-          transform: none;
         }
 
-        .small-text {
-          font-size: 0.85rem;
-        }
-
-        @media (max-width: 768px) {
-          .table-container {
-            height: auto;
-            max-height: 80vh;
-            margin: 1rem;
-            width: calc(100% - 2rem);
+        /* Tablet Responsive Design */
+        @media (max-width: 1024px) {
+          .reviews-container {
+            width: 95%;
+            margin: 1.5rem auto;
+            margin-left: 1.5rem;
+            height: 35rem;
+            padding: 0 0.8rem;
           }
 
-          .table-header {
-            position: relative;
-            top: auto;
-            flex-direction: column;
+          .reviews-header {
+            padding: 1.2rem;
+            padding-bottom: 1.5rem;
+          }
+
+          .reviews-title {
+            font-size: 1.4rem;
+          }
+
+          .search-input {
+            width: 180px;
+            height: 32px;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.7rem 0.4rem 1.8rem;
+          }
+
+          .search-icon {
+            left: 8px;
+            font-size: 0.8rem;
+          }
+
+          .modal-content {
+            width: 50%;
+          }
+
+          .user-profile {
+            flex-direction: row;
             align-items: flex-start;
+            gap: 1.5rem;
+          }
+
+          .profile-info h4 {
+            text-align: left;
+          }
+
+          .profile-details {
+            flex-direction: row;
+            gap: 2rem;
+          }
+
+          .detail-item {
+            text-align: left;
+          }
+        }
+
+        @media (max-width: 992px) {
+          .reviews-container {
+            width: 96%;
+            margin-left: 0.5rem;
+            margin-top: 1rem;
+            height: 35rem;
+          }
+
+          .reviews-header {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
             gap: 1rem;
           }
 
           .search-container {
             margin-left: 0;
-            width: 100%;
           }
 
-          .search-wrapper {
+          .modal-content {
+            width: 70%;
+          }
+
+          .search-input {
+            width: 160px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .reviews-container {
+            width: 98%;
+            margin-left: 0;
+            padding: 0 0.5rem;
+            height: 32rem;
+            border-radius: 12px;
+          }
+
+          .reviews-header {
+            padding: 1rem;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+          }
+
+          .reviews-title {
+            font-size: 1.4rem;
+          }
+
+          .search-container {
+            margin-left: 0;
+          }
+
+          .search-input {
+            width: 150px;
+            height: 35px;
+          }
+
+          .reviews-table th,
+          .reviews-table td {
+            padding: 0.6rem;
+            font-size: 0.85rem;
+          }
+
+          .reviews-table th:nth-child(1),
+          .reviews-table td:nth-child(1) {
+            width: 150px;
+            max-width: 200px;
+          }
+
+          .modal-content {
+            width: 85%;
+          }
+
+          .modal-body {
+            padding: 1.5rem;
+          }
+
+          .user-profile {
+            flex-direction: row;
+            gap: 1.5rem;
+          }
+
+          .profile-info h4 {
+            font-size: 1.3rem;
+            text-align: left;
+          }
+
+          .profile-details {
+            flex-direction: row;
+            gap: 1.5rem;
+          }
+
+          .modal-header {
+            padding: 1.2rem;
+          }
+
+          .modal-header h3 {
+            font-size: 1.3rem;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .reviews-container {
+            width: 100%;
+            margin: 0.5rem 0;
+            height: 30rem;
+            border-radius: 8px;
+          }
+
+          .reviews-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+          }
+
+          .reviews-title {
+            font-size: 1.2rem;
+          }
+
+          .search-container {
             width: 100%;
           }
 
           .search-input {
             width: 100%;
+            max-width: 250px;
+            font-size: 0.8rem;
+            height: 32px;
+            padding: 0.4rem 0.6rem 0.4rem 1.8rem;
           }
 
-          .user-modal {
-            width: 95%;
-            margin: 0 auto;
+          .search-icon {
+            left: 8px;
+            font-size: 0.75rem;
           }
 
-          .user-profile {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
+          .reviews-table {
+            font-size: 0.8rem;
           }
 
-          .info-grid {
-            grid-template-columns: 1fr;
+          .reviews-table th,
+          .reviews-table td {
+            padding: 0.5rem 0.3rem;
           }
 
-          .info-value {
-            margin-left: 0;
-            text-align: left;
+          .reviews-table th:nth-child(1),
+          .reviews-table td:nth-child(1) {
+            width: 120px;
+            max-width: 150px;
           }
-        }
 
-        @media (max-width: 480px) {
-          .data-table {
-            display: block;
-            overflow-x: auto;
+          .stars {
+            gap: 0.1rem;
+          }
+
+          .star {
+            font-size: 1rem;
+          }
+
+          .details-btn {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+          }
+
+          .details-btn span {
+            display: none;
+          }
+
+          .modal-content {
+            width: 92%;
+            margin: 0.5rem;
+          }
+
+          .modal-header {
+            padding: 1rem;
+          }
+
+          .modal-header h3 {
+            font-size: 1.2rem;
           }
 
           .modal-body {
@@ -1116,22 +1235,143 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           }
 
           .user-profile {
+            flex-direction: column;
             gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
           }
 
-          .profile-image {
-            width: 70px;
-            height: 70px;
+          .profile-info h4 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            text-align: center;
           }
 
-          .footer-actions {
+          .profile-details {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+          }
+
+          .detail-item {
+            text-align: center;
+            align-items: center;
+          }
+
+          .detail-label,
+          .detail-value {
+            font-size: 0.8rem;
+            text-align: center;
+            justify-content: center;
+          }
+
+          .feedback-card {
+            padding: 1rem;
+          }
+
+          .feedback-card h5 {
+            font-size: 1rem;
+            justify-content: center;
+          }
+
+          .feedback-input {
+            font-size: 0.85rem;
+            padding: 0.8rem;
+          }
+
+          .modal-footer {
             flex-direction: column;
             gap: 0.5rem;
+            padding: 0.8rem 1rem;
           }
 
-          .footer-btn {
+          .modal-btn {
+            margin-left: 0;
             width: 100%;
             justify-content: center;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .reviews-container {
+            width: 88%;
+            margin: 0.5rem auto;
+            height: 28rem;
+          }
+
+          .reviews-title {
+            font-size: 1.1rem;
+          }
+
+          .search-input {
+            width: 100%;
+            font-size: 0.75rem;
+            height: 30px;
+          }
+
+          .reviews-table {
+            font-size: 0.75rem;
+          }
+
+          .reviews-table th,
+          .reviews-table td {
+            padding: 0.4rem 0.2rem;
+          }
+
+          .modal-content {
+            width: 96%;
+            margin: 0.5rem;
+          }
+
+          .user-profile {
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+          }
+
+          .profile-info h4 {
+            font-size: 1rem;
+          }
+
+          .close-btn {
+            width: 32px;
+            height: 32px;
+          }
+
+          .modal-header {
+            padding: 0.8rem;
+          }
+
+          .modal-header h3 {
+            font-size: 1.1rem;
+          }
+        }
+
+        @media (max-height: 700px) {
+          .reviews-container {
+            height: 32rem;
+          }
+
+          .modal-content {
+            max-height: 85vh;
+          }
+        }
+
+        @media (max-height: 600px) {
+          .reviews-container {
+            height: 28rem;
+          }
+
+          .modal-body {
+            padding: 1rem;
+          }
+
+          .user-profile {
+            margin-bottom: 1rem;
+          }
+
+          .profile-info h4 {
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
           }
         }
       `}</style>
