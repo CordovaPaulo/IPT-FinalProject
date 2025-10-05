@@ -121,28 +121,53 @@ exports.setFeedback = async (req, res) => {
         return res.status(400).json({ message: 'All fields are required', code: 400 });
     }
 
-    const learnerId = await Learner.findOne({
-        $or: [
-            { _id: decoded.id },
-            { userId: decoded.id }
-        ]
-    });
-
-    const sched = await Schedule.findOne({ _id: id });
-
     try {
+        // find authenticated learner
+        const learnerDoc = await Learner.findOne({
+            $or: [
+                { _id: decoded.id },
+                { userId: decoded.id }
+            ]
+        });
+        if (!learnerDoc) {
+            return res.status(404).json({ message: 'Learner not found', code: 404 });
+        }
+
+        // find schedule and guard if missing
+        const sched = await Schedule.findById(id);
+        if (!sched) {
+            return res.status(404).json({ message: 'Schedule not found', code: 404 });
+        }
+
+        // find mentor referenced by schedule and guard if missing
+        let mentor = await Mentor.findById(sched.mentor);
+        if (!mentor) {
+            mentor = await Mentor.findOne({ userId: sched.mentor });
+        }
+        if (!mentor) {
+            return res.status(404).json({ message: 'Mentor not found', code: 404 });
+        }
+
+        // create feedback
         const feedback = new Feedback({
-            learner: learnerId._id,
+            learner: learnerDoc._id,
             mentor: sched.mentor,
             schedule: sched._id,
             rating,
             comments
         });
+
+        // update average rating (simple average; adjust as needed)
+        const newRating = mentor.aveRating ? (mentor.aveRating + rating) / 2 : rating;
+        mentor.aveRating = newRating;
+
         await feedback.save();
-        res.status(201).json(feedback);
+        await mentor.save();
+        return res.status(201).json(feedback);
     } catch (error) {
-        res.status(500).json({ message: error.message, code: 500 });
-    } 
+        console.error('setFeedback error:', error);
+        return res.status(500).json({ message: error.message, code: 500 });
+    }
 }
 
 exports.getSchedules = async (req, res) => {

@@ -2,12 +2,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Offer from '../offer/page';
+import Offer, { OfferInfo } from '../offer/page';
 import styles from './view.module.css';
-import api from '@/lib/axios'; // Import your axios instance
+import api from '@/lib/axios';
 
 interface ViewUserProps {
-  userId: string; // Changed from number to string to match the ID type
+  userId: string;
   mentorData: any;
   onClose: () => void;
 }
@@ -28,86 +28,27 @@ interface UserInfo {
   prefSessDur: string;
   goals: string;
   image: string;
-  id: string; // Changed from number to string
-}
-
-// Helper to get cookie value
-function getCookie(name: string) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-  return null;
+  id: string;
 }
 
 export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showOffer, setShowOffer] = useState(false);
-  const [userDeetsForOffer, setUserDeetsForOffer] = useState<any[]>([]);
-  
+  const [offerInfo, setOfferInfo] = useState<OfferInfo | null>(null);
+
   const [userInfo, setUserInfo] = useState<UserInfo>({
-    name: '',
-    year: '',
-    course: '',
-    gender: '',
-    phoneNum: '',
-    email: '',
-    address: '',
-    bio: '',
-    subjects: [],
-    learn_modality: '',
-    learn_sty: [],
-    availability: [],
-    prefSessDur: '',
-    goals: '',
-    image: '',
-    id: ''
+    name: '', year: '', course: '', gender: '', phoneNum: '', email: '', address: '',
+    bio: '', subjects: [], learn_modality: '', learn_sty: [], availability: [],
+    prefSessDur: '', goals: '', image: '', id: ''
   });
-
-  const [imageUrl, setImageUrl] = useState<string>('');
-
-  const capitalizeFirstLetter = (str: string) => {
-    if (!str) return "Not specified";
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-  };
-
-  const parseArrayString = (str: string | string[]) => {
-    if (Array.isArray(str)) {
-      return str.join(", ");
-    }
-    
-    try {
-      if (typeof str === 'string') {
-        const parsed = JSON.parse(str);
-        return Array.isArray(parsed) ? parsed.join(", ") : str;
-      }
-      return str || "Not specified";
-    } catch (e) {
-      return str || "Not specified";
-    }
-  };
 
   const fetchUserInfo = async (id: string) => {
     try {
       setIsLoading(true);
-      console.log('Fetching learner details for ID:', id);
-
-      const token = getCookie('MindMateToken');
-      
-      // Use the correct API endpoint: /api/mentor/learners/:id
-      const response = await api.get(`/api/mentor/learners/${id}`, {
-        withCredentials: true,
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-
-      console.log('Learner details API Response:', response.data);
-      
+      const response = await api.get(`/api/mentor/learners/${id}`, { withCredentials: true });
       const data = response.data;
-      
-      // Map the API response to your UserInfo interface
-      // Adjust these mappings based on the actual API response structure
+
       setUserInfo({
         name: data.name || '',
         year: data.yearLevel || '',
@@ -127,36 +68,20 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
         id: data._id || data.id || ''
       });
 
-      // Set image URL
-      setImageUrl(data.image || '');
-
-      // Prepare data for offer component
-      const offerData = [
-        data._id || data.id || '', // learner ID
-        userId, // userId (same as learner ID in this case)
-        data.name || '', // userName
-        data.yearLevel || '', // userYear
-        data.program || '', // userCourse
-        data.sessionDur || '', // userSessionDur
-        data.modality || '', // userModality
-        data.style || [], // userLearnStyle
-        data.availability || [], // userAvailability
-        data.modality || '', // userLearnModality (duplicate)
-        data.image || '', // userProfilePic
-        data.subjects || [], // userSubjects
-      ];
-      
-      setUserDeetsForOffer(offerData);
-      
+      setOfferInfo({
+        learnerId: data._id || data.id || '',
+        name: data.name || '',
+        year: data.yearLevel || '',
+        course: data.program || '',
+        sessionDur: data.sessionDur || '',
+        modality: data.modality || '',
+        learnStyle: data.style || [],
+        availability: data.availability || [],
+        profilePic: data.image || '',
+        subjects: data.subjects || []
+      });
     } catch (error) {
-      console.error("Error fetching learner details:", error);
-      
-      // Handle specific error cases
-      if (error.response?.status === 404) {
-        console.error("Learner not found");
-      } else if (error.response?.status === 403) {
-        console.error("Not authorized to view this learner");
-      }
+      console.error('Error fetching learner details:', error);
     } finally {
       setIsLoading(false);
     }
@@ -167,20 +92,12 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
     setShowOffer(true);
   };
 
-  const handleOfferConfirm = async (offerData: any) => {
-    try {
-      setShowOffer(false);
-      onClose();
-    } catch (error) {
-      console.error("Error handling offer confirmation:", error);
-    }
+  const handleOfferConfirm = async () => {
+    setShowOffer(false);
+    onClose();
   };
 
-  useEffect(() => {
-    if (userId) {
-      fetchUserInfo(userId);
-    }
-  }, [userId]);
+  useEffect(() => { if (userId) fetchUserInfo(userId); }, [userId]);
 
   if (isLoading) {
     return (
@@ -215,7 +132,7 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
           <div className={styles.viewLowerUpper}>
             <div className={styles.viewProfileImageContainer}>
               <img
-                src={imageUrl || userInfo.image || 'https://placehold.co/600x400'}
+                src={userInfo.image || 'https://placehold.co/600x400'}
                 alt="Profile Image"
                 className={styles.viewProfileImage}
                 onError={(e) => {
@@ -233,7 +150,7 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
                     <i className="fas fa-venus-mars"></i> Sex at Birth
                   </span>
                   <span className={styles.viewInfoValue}>
-                    {capitalizeFirstLetter(userInfo.gender) || "N/A"}
+                    {userInfo.gender.charAt(0).toUpperCase() + userInfo.gender.slice(1).toLowerCase() || "N/A"}
                   </span>
                 </div>
                 <div className={styles.viewInfoItem}>
@@ -282,7 +199,7 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
                   <div className={styles.viewDetailItem}>
                     <span className={styles.viewDetailLabel}>Subjects of Interest:</span>
                     <span className={`${styles.viewDetailValue} ${styles.viewWrapText}`}>
-                      {parseArrayString(userInfo.subjects) || "N/A"}
+                      {Array.isArray(userInfo.subjects) ? userInfo.subjects.join(", ") : userInfo.subjects || "N/A"}
                     </span>
                   </div>
                   <div className={styles.viewDetailItem}>
@@ -294,13 +211,13 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
                   <div className={styles.viewDetailItem}>
                     <span className={styles.viewDetailLabel}>Learning Style:</span>
                     <span className={styles.viewDetailValue}>
-                      {parseArrayString(userInfo.learn_sty) || "N/A"}
+                      {Array.isArray(userInfo.learn_sty) ? userInfo.learn_sty.join(", ") : userInfo.learn_sty || "N/A"}
                     </span>
                   </div>
                   <div className={styles.viewDetailItem}>
                     <span className={styles.viewDetailLabel}>Availability:</span>
                     <span className={`${styles.viewDetailValue} ${styles.viewAvailabilityText}`}>
-                      {parseArrayString(userInfo.availability) || "N/A"}
+                      {Array.isArray(userInfo.availability) ? userInfo.availability.join(", ") : userInfo.availability || "N/A"}
                     </span>
                   </div>
                   <div className={styles.viewDetailItem}>
@@ -377,11 +294,11 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
         )}
 
         {/* Offer Modal - This will appear when showOffer is true */}
-        {showOffer && (
+        {showOffer && offerInfo && (
           <div className={styles.viewPopupOverlay}>
             <Offer
-              info={userDeetsForOffer}
-              mentorId={mentorData.user?.id}
+              info={offerInfo}
+              mentorId={String(mentorData?.user?.id || mentorData?.user?._id || '')}
               onClose={() => setShowOffer(false)}
               onConfirm={handleOfferConfirm}
             />

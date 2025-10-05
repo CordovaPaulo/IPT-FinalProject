@@ -225,7 +225,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
       });
 
       // Use the axios instance which will automatically handle the token
-      const response = await api.post(`/api/learner/feedback/${mentorId}`, {
+      const response = await api.post(`/api/learner/feedback/${scheduleId}`, {
         schedule: scheduleId, // Use the schedule ID from the record
         rating: tempRating,
         comments: feedbackText

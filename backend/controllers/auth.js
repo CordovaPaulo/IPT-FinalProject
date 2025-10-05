@@ -406,23 +406,88 @@ exports.login = async (req, res) => {
   }
 };
 
+// Helper: escape regex
+function escRegex(s = '') { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Helper: first 9 digits from the local-part of email
+function firstNineDigitsFromEmail(email = '') {
+  const local = (email || '').split('@')[0] || '';
+  const digits = local.replace(/\D/g, '');
+  return digits.slice(0, 9);
+}
+
 exports.forgotPassword = async (req, res) => {
   try {
-    const { email, username } = req.body || {};
-    if (!email && !username) {
-      return res.status(400).json({ message: 'email or username is required', code: 400 });
+    const { pre_cred, id, name, email, role } = req.body || {};
+
+    // Require at least the pre_cred; the rest are mandatory for verification
+    if (!pre_cred) {
+      return res.status(400).json({ message: 'pre_cred is required', code: 400 });
+    }
+    const missing = ['id', 'name', 'email', 'role'].filter((k) => !req.body?.[k]);
+    if (missing.length) {
+      return res.status(400).json({ message: `Missing fields: ${missing.join(', ')}`, code: 400 });
     }
 
-    const user = await User.findOne(
-      email ? { email } : { username }
-    );
+    // Find user by:
+    // - username equals pre_cred
+    // - OR email equals pre_cred
+    // - OR email starts with the 9-digit id (or pre_cred if it is 9 digits)
+    const nineFromPreCred = /^\d{9}$/.test(pre_cred) ? pre_cred : null;
+    const orTerms = [
+      { username: pre_cred },
+      { email: pre_cred }
+    ];
 
-    // Always respond success to prevent user enumeration
+    // If pre_cred looks like 9 digits, match emails that start with those digits
+    if (nineFromPreCred) {
+      orTerms.push({ email: { $regex: `^${escRegex(nineFromPreCred)}`, $options: 'i' } });
+    }
+
+    // Also allow matching the provided id (if 9 digits) against email prefix
+    if (/^\d{9}$/.test(id)) {
+      orTerms.push({ email: { $regex: `^${escRegex(id)}`, $options: 'i' } });
+    }
+
+    const user = await User.findOne({ $or: orTerms });
+
+    // Always respond generically on failure to avoid enumeration
     if (!user) {
-      return res.status(200).json({ message: 'If the account exists, a reset link has been sent.', code: 200 });
+      return res.status(400).json({ message: 'Verification failed', code: 400 });
     }
 
-    // Sign short-lived reset token
+    // Validate role
+    if ((role || '').toLowerCase() !== (user.role || '').toLowerCase()) {
+      return res.status(400).json({ message: 'Verification failed', code: 400 });
+    }
+
+    // Validate email
+    if ((email || '').toLowerCase().trim() !== (user.email || '').toLowerCase().trim()) {
+      return res.status(400).json({ message: 'Verification failed', code: 400 });
+    }
+
+    // Validate id against first 9 digits in user.email
+    const expectedId = firstNineDigitsFromEmail(user.email);
+    if (!expectedId || id !== expectedId) {
+      return res.status(400).json({ message: 'Verification failed', code: 400 });
+    }
+
+    // Validate name against username or profile name
+    let profileName = null;
+    if (user.role === 'learner') {
+      const learner = await Learner.findOne({ userId: user._id });
+      profileName = learner?.name || null;
+    } else if (user.role === 'mentor') {
+      const mentor = await Mentor.findOne({ userId: user._id });
+      profileName = mentor?.name || null;
+    }
+    const normalized = (v) => (v || '').toString().trim().toLowerCase();
+    const nameOk = normalized(name) === normalized(user.username) || (profileName && normalized(name) === normalized(profileName));
+    if (!nameOk) {
+      return res.status(400).json({ message: 'Verification failed', code: 400 });
+    }
+
+    // If all checks pass, issue reset token and email the link
     const resetToken = jwt.sign(
       { id: user._id, type: 'password_reset' },
       process.env.RESET_TOKEN_SECRET || process.env.JWT_SECRET,
@@ -432,37 +497,107 @@ exports.forgotPassword = async (req, res) => {
     const appBase =
       process.env.FRONTEND_URL ||
       process.env.APP_URL ||
-      'http://localhost:3001';
+      'http://localhost:3000';
 
-    // Link for your frontend reset page; backend verify also available
-    const resetLink = `${appBase}/api/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
+    const resetLink = `${appBase.replace(/\/+$/, '')}/auth/reset-password/${encodeURIComponent(resetToken)}`;
 
-    const subject = 'Password Reset Request';
+    // Brand palette aligned to frontend (indigo + clean light UI)
+    const brand = {
+      name: process.env.APP_NAME || 'MindMate',
+      url: appBase.replace(/\/+$/, ''),
+      primary: '#4F46E5',      // indigo-600
+      primaryDark: '#4338CA',  // indigo-700
+      bg: '#F8FAFC',           // slate-50
+      cardBg: '#FFFFFF',
+      text: '#0F172A',         // slate-900
+      muted: '#475569',        // slate-600
+      border: '#E2E8F0'        // slate-200
+    };
+    const logoUrl = `${brand.url}/logo.png`;
+
+    const subject = `${brand.name} • Password Reset Request`;
+
     const text = `
 Hi ${user.username},
 
-We received a request to reset your password. Click the link below to set a new password. This link expires in 30 minutes.
+We received a request to reset your password. Use the link below to set a new password. This link expires in 30 minutes.
 
 ${resetLink}
 
 If you did not request this, you can ignore this email.
 
-MindMate Team
-    `.trim();
+${brand.name} Team
+`.trim();
+
     const html = `
-<p>Hi ${user.username},</p>
-<p>We received a request to reset your password. Click the button below to set a new password. This link expires in <b>30 minutes</b>.</p>
-<p><a href="${resetLink}" style="background:#1a73e8;color:#fff;padding:10px 16px;text-decoration:none;border-radius:6px;">Reset Password</a></p>
-<p>Or open this link: <br/><a href="${resetLink}">${resetLink}</a></p>
-<p>If you did not request this, you can ignore this email.</p>
-<p>MindMate Team</p>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${brand.name} • Reset your password</title>
+</head>
+<body style="margin:0;padding:0;background:${brand.bg};-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${brand.bg};padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:${brand.cardBg};border:1px solid ${brand.border};border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,.06);overflow:hidden;">
+          <tr>
+            <td style="height:6px;background:${brand.primary};"></td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 24px 0 24px;">
+              <img src="${logoUrl}" width="64" height="64" alt="${brand.name} logo" style="display:block;margin:0 auto 8px;border-radius:12px;">
+              <h1 style="margin:8px 0 0 0;font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:20px;line-height:28px;color:${brand.text};font-weight:700;">Reset your password</h1>
+              <p style="margin:6px 0 0 0;font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:${brand.muted};">
+                We received a request to reset your ${brand.name} password.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 24px 4px 24px;">
+              <a href="${resetLink}"
+                 style="background:${brand.primary};color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;display:inline-block;font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-weight:600;font-size:14px;">
+                 Reset Password
+              </a>
+              <p style="margin:10px 0 0 0;font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:${brand.muted};">
+                This link expires in 30 minutes.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 24px 20px 24px;">
+              <p style="margin:0 0 6px 0;font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:${brand.muted};">
+                If the button doesn’t work, copy and paste this link into your browser:
+              </p>
+              <a href="${resetLink}" style="font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:${brand.primaryDark};word-break:break-all;text-decoration:none;">
+                ${resetLink}
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top:1px solid ${brand.border};padding:16px 24px 20px 24px;">
+              <p style="margin:0;font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:${brand.muted};">
+                Didn’t request this? You can safely ignore this email.
+              </p>
+              <p style="margin:8px 0 0 0;font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:${brand.muted};">
+                © ${new Date().getFullYear()} ${brand.name}. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
 `.trim();
 
     await mailingController.sendEmailNotification(user.email, subject, text, html);
 
-    return res.status(200).json({ message: 'If the account exists, a reset link has been sent.', code: 200 });
+    return res.status(200).json({ message: 'Password reset link sent if verification succeeded.', code: 200 });
   } catch (err) {
-    console.error('[FORGOT PASSWORD]', err);
+    console.error('[FORGOT PASSWORD VERIFY]', err);
     return res.status(500).json({ message: 'Internal server error', code: 500 });
   }
 };

@@ -2,6 +2,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Providers from '@/components/Providers';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export const metadata: Metadata = {
   title: 'MindMates - Peer Tutoring Platform',
@@ -23,6 +25,7 @@ export default function RootLayout({
       </head>
       <body className="bg-white">
         {children}
+        <ToastContainer />
       </body>
     </html>
   );

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import notify from '@/lib/toast';
+import api from '@/lib/axios';
 import styles from "./ForgotPassword.module.css";
 
 export default function ForgotPasswordPage() {
@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
     name: "",
     email: "",
     role: "",
-    secondary_role: "",
+    // secondary_role: "",
   });
 
   const roles = ["learner", "mentor"];
@@ -59,18 +59,16 @@ export default function ForgotPasswordPage() {
     setError("");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      toast.success("Password reset link sent!", {
-        position: "bottom-right",
-        autoClose: 2000,
-        theme: "colored",
-      });
+      const response = await api.post("/api/auth/forgot-password", verificationData);
+      if (response.status === 200) {
+        console.log("Password reset link sent:", response.data);
+      }
+      notify.success("Password reset link sent!");
 
       setSuccess("Password reset link sent!");
-      router.push("/login");
+      router.push("/auth/login");
     } catch (err) {
-      setError("Verification failed");
+      notify.error("Verification failed");
       setStep(1);
     } finally {
       setLoading(false);
@@ -206,6 +204,7 @@ export default function ForgotPasswordPage() {
                 </div>
               </div>
 
+              {/*
               <div className={styles.formGroup}>
                 <div className={styles.inputWithIcon}>
                   <select
@@ -227,6 +226,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <small className={styles.optionalNote}>*If applicable</small>
               </div>
+              */}
 
               <button type="submit" disabled={loading}>
                 {loading ? "Verifying..." : "Verify Identity"}
@@ -239,8 +239,6 @@ export default function ForgotPasswordPage() {
         {error && <div className={styles.errorMessage}>{error}</div>}
         {success && <div className={styles.successMessage}>{success}</div>}
       </div>
-
-      <ToastContainer />
     </div>
   );
 }

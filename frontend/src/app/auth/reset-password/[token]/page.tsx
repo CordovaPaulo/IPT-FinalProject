@@ -1,50 +1,51 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { useEffect, useState } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import api from '@/lib/axios';
+import notify from '@/lib/toast';
 import styles from './resetpass.module.css';
-
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-  withCredentials: true,
-  withXSRFToken: true,
-});
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const params = useParams<{ token?: string }>();
   const searchParams = useSearchParams();
-  
+
   const [token, setToken] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [verifying, setVerifying] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Get token from route segment or query and verify it
   useEffect(() => {
-    const urlToken = searchParams.get('token');
-    const urlEmail = searchParams.get('email');
+    const routeToken = (params?.token as string) || '';
+    const queryToken = searchParams.get('token') || '';
+    const t = routeToken || queryToken;
 
-    if (!urlToken || !urlEmail) {
-      setError('Invalid reset link');
+    if (!t) {
+      setError('Invalid reset link'); 
+      setVerifying(false);
       return;
     }
 
-    setToken(urlToken);
-    setEmail(urlEmail);
-  }, [searchParams]);
-
-  const csrf = async (): Promise<boolean> => {
-    try {
-      await api.get('/sanctum/csrf-cookie', {});
-      return true;
-    } catch (error) {
-      console.error('CSRF token fetch failed:', error);
-      return false;
-    }
-  };
+    setToken(t);
+    (async () => {
+      try {
+        setVerifying(true);
+        await api.get('/api/auth/reset-password/verify', { params: { token: t } });
+        setError('');
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || 'Invalid or expired reset link';
+        setError(msg);
+        notify.error(msg);
+      } finally {
+        setVerifying(false);
+      }
+    })();
+  }, [params?.token, searchParams]);
 
   const resetUserPass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +53,16 @@ export default function ResetPasswordPage() {
     setError('');
     setSuccess('');
 
+    if (!token) {
+      setError('Missing reset token');
+      setLoading(false);
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      setLoading(false);
+      return;
+    }
     if (password !== passwordConfirmation) {
       setError('Passwords do not match');
       setLoading(false);
@@ -59,37 +70,19 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      const csrfSuccess = await csrf();
-      if (!csrfSuccess) {
-        setError('Failed to get security token');
-        setLoading(false);
-        return;
-      }
-
-      const newPass = {
-        token,
-        email,
-        password,
-        password_confirmation: passwordConfirmation,
-      };
-
-      const response = await api.patch('/api/reset-password', newPass, {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.status === 200) {
+      const body = { token, newPassword: password, confirmPassword: passwordConfirmation };
+      const res = await api.post('/api/auth/reset-password', body);
+      if (res.status === 200) {
         setSuccess('Password reset successfully! Redirecting to login...');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
+        notify.success('Password reset successfully!');
+        setTimeout(() => router.push('/auth/login'), 2000);
+      } else {
+        const msg = res.data?.message || 'Failed to reset password';
+        setError(msg); notify.error(msg);
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to reset password';
-      setError(errorMessage);
-      console.error('Password reset failed:', errorMessage);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to reset password';
+      setError(msg); notify.error(msg);
     } finally {
       setLoading(false);
     }
@@ -98,18 +91,18 @@ export default function ResetPasswordPage() {
   return (
     <div className={`reset-password-global ${styles.resetPasswordContainer}`}>
       <header className={styles.brandHeader}>
-        <img
-          src="/logo_gccoed.png"
-          alt="GCCoed Logo"
-          className={styles.logoImg}
-        />
+        <img src="/logo_gccoed.png" alt="GCCoed Logo" className={styles.logoImg} />
         <span className={styles.brandName}>MindMates</span>
       </header>
-      
+
       <div className={styles.formWrapper}>
         <h2 className={styles.heading}>Reset Password</h2>
 
-        {!error && (
+        {verifying ? (
+          <div className={styles.infoMessage}>Verifying link...</div>
+        ) : error ? (
+          <div className={styles.errorMessage}>{error}</div>
+        ) : (
           <form onSubmit={resetUserPass}>
             <div className={styles.formGroup}>
               <div className={styles.inputWithIcon}>
@@ -140,18 +133,13 @@ export default function ResetPasswordPage() {
               </div>
             </div>
 
-            <button 
-              type="submit" 
-              disabled={loading}
-              className={styles.button}
-            >
-              {loading ? "Resetting..." : "Reset Password"}
+            <button type="submit" disabled={loading} className={styles.button}>
+              {loading ? 'Resetting...' : 'Reset Password'}
             </button>
+
+            {success && <div className={styles.successMessage}>{success}</div>}
           </form>
         )}
-
-        {error && <div className={styles.errorMessage}>{error}</div>}
-        {success && <div className={styles.successMessage}>{success}</div>}
       </div>
     </div>
   );
