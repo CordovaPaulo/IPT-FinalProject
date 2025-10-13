@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useId, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import './LearnerInfo.css';
@@ -844,6 +844,60 @@ const LearnerInfo = () => {
     };
   }, [currentStep]);
 
+  // Add these helpers inside the component file (top-level or within the component scope)
+// They provide consistent keyboard behavior for your dropdowns.
+function focusFirstOption(listboxId: string) {
+  const first = document.querySelector<HTMLElement>(`#${listboxId} [role="option"]`);
+  first?.focus();
+}
+const handleComboboxKey =
+  (toggleOpen: () => void, isOpen: boolean, listboxId: string) =>
+  (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleOpen();
+    } else if (e.key === 'Escape' && isOpen) {
+      e.preventDefault();
+      toggleOpen(); // assumes toggleOpen closes when open
+    } else if ((e.key === 'ArrowDown' || e.key === 'Down') && isOpen) {
+      e.preventDefault();
+      focusFirstOption(listboxId);
+    }
+  };
+
+const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
+  const current = e.currentTarget;
+  const options = Array.from(current.parentElement?.querySelectorAll<HTMLElement>('[role="option"]') || []);
+  const idx = options.indexOf(current);
+
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    const input = current.querySelector<HTMLInputElement>('input[type="checkbox"], input[type="radio"]');
+    input?.click();
+    return;
+  }
+  if (e.key === 'ArrowDown' || e.key === 'Down') {
+    e.preventDefault();
+    options[Math.min(idx + 1, options.length - 1)]?.focus();
+    return;
+  }
+  if (e.key === 'ArrowUp' || e.key === 'Up') {
+    e.preventDefault();
+    options[Math.max(idx - 1, 0)]?.focus();
+    return;
+  }
+  if (e.key === 'Home') {
+    e.preventDefault();
+    options[0]?.focus();
+    return;
+  }
+  if (e.key === 'End') {
+    e.preventDefault();
+    options[options.length - 1]?.focus();
+    return;
+  }
+};
+
   return (
     <div className="learnerinfo-container">
       <Head>
@@ -1223,28 +1277,44 @@ const LearnerInfo = () => {
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.availability && (
-                  <div className="dropdown-options availability-options">
-                    {daysOfWeek.map(day => (
-                      <div key={day} className="dropdown-option availability-option">
-                        <input
-                          type="checkbox"
-                          id={`day-${day}`}
-                          disabled={isSubmitting}
-                          checked={selectedDays.includes(day)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedDays([...selectedDays, day]);
-                            } else {
-                              setSelectedDays(selectedDays.filter(d => d !== day));
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          tabIndex={0}
-                          onKeyDown={(e) => handleCheckboxKeyNavigation(e, 'day', day, selectedDays, setSelectedDays)}
-                        />
-                        <label htmlFor={`day-${day}`}>{day}</label>
-                      </div>
-                    ))}
+                  <div
+                    id={availabilityListboxId}
+                    className="dropdown-options availability-options"
+                    role="listbox"
+                    aria-multiselectable="true"
+                  >
+                    {daysOfWeek.map((day) => {
+                      const optionId = `day-${day}`;
+                      const isSelected = selectedDays.includes(day); // wire to your state
+                      return (
+                        <div
+                          key={day}
+                          role="option"
+                          aria-selected={isSelected}
+                          tabIndex={-1}
+                          className="dropdown-option availability-option"
+                          onKeyDown={handleOptionKeyDown}
+                        >
+                          <input
+                            type="checkbox"
+                            id={optionId}
+                            disabled={isSubmitting}
+                            checked={selectedDays.includes(day)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDays([...selectedDays, day]);
+                              } else {
+                                setSelectedDays(selectedDays.filter(d => d !== day));
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            tabIndex={0}
+                            onKeyDown={(e) => handleCheckboxKeyNavigation(e, 'day', day, selectedDays, setSelectedDays)}
+                          />
+                          <label htmlFor={optionId}>{day}</label>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1360,55 +1430,36 @@ const LearnerInfo = () => {
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.modality && (
-                  <div className="dropdown-options">
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setModality('Online');
-                        setDropdownOpen({ ...dropdownOpen, modality: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setModality('Online');
-                          setDropdownOpen({ ...dropdownOpen, modality: false });
-                        }
-                      }}
-                    >
-                      Online
-                    </div>
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setModality('In-person');
-                        setDropdownOpen({ ...dropdownOpen, modality: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setModality('In-person');
-                          setDropdownOpen({ ...dropdownOpen, modality: false });
-                        }
-                      }}
-                    >
-                      In-person
-                    </div>
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setModality('Hybrid');
-                        setDropdownOpen({ ...dropdownOpen, modality: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setModality('Hybrid');
-                          setDropdownOpen({ ...dropdownOpen, modality: false });
-                        }
-                      }}
-                    >
-                      Hybrid
-                    </div>
+                  <div
+                    id={modalityListboxId}
+                    className="dropdown-options modality-options"
+                    role="listbox"
+                    aria-multiselectable="false"
+                  >
+                    {modalityOptions.map((mod) => {
+                      const optionId = `modality-${mod}`;
+                      const isSelected = selectedModality === mod; // wire to your state
+                      return (
+                        <div
+                          key={mod}
+                          role="option"
+                          aria-selected={isSelected}
+                          tabIndex={-1}
+                          className="dropdown-option modality-option"
+                          onKeyDown={handleOptionKeyDown}
+                        >
+                          <input
+                            type="radio"
+                            name="modality"
+                            id={optionId}
+                            disabled={isSubmitting}
+                            checked={isSelected}
+                            onChange={() => setSelectedModality(mod)}
+                          />
+                          <label htmlFor={optionId}>{mod}</label>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

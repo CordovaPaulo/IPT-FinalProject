@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import api, { setAuthToken } from "@/lib/axios";
-import "./login.css";
+import styles from "./login.module.css";
 
 export default function Login() {
   const router = useRouter();
@@ -60,42 +60,41 @@ export default function Login() {
           focusNextElement();
         }
         break;
-      
+
       case 'Enter':
-        if (index === focusableElements.length - 2) { // Login button
+        if (index === focusableElements.length - 2) {
           if (!isLoading) {
             const formEvent = new Event('submit', { cancelable: true, bubbles: true });
             e.currentTarget.dispatchEvent(formEvent);
           }
-        } else if (index === focusableElements.length - 1) { // Forgot password link
+        } else if (index === focusableElements.length - 1) {
           forgotPasswordRef.current?.click();
         }
         break;
-      
+
       case ' ':
         e.preventDefault();
-        if (index === focusableElements.length - 2) { // Login button
+        if (index === focusableElements.length - 2) {
           if (!isLoading) {
             const formEvent = new Event('submit', { cancelable: true, bubbles: true });
             e.currentTarget.dispatchEvent(formEvent);
           }
-        } else if (index === focusableElements.length - 1) { // Forgot password link
+        } else if (index === focusableElements.length - 1) {
           forgotPasswordRef.current?.click();
         }
         break;
-      
+
       case 'ArrowDown':
         e.preventDefault();
         focusNextElement();
         break;
-      
+
       case 'ArrowUp':
         e.preventDefault();
         focusPreviousElement();
         break;
-      
+
       case 'Escape':
-        // Reset focus to first element
         setFocusedIndex(0);
         iniCredRef.current?.focus();
         break;
@@ -118,26 +117,20 @@ export default function Login() {
         password: password,
       };
 
-      // ensure leading slash so baseURL + path is correct
       const response = await api.post("/api/auth/login", loginData);
       const { token, userRole, user } = response.data;
 
-      // store token for future requests (axios interceptor reads localStorage token)
       if (token) {
         setAuthToken(token);
       }
 
-      // Check if user has a role, if not redirect to signup
       const role = userRole || user?.role;
 
       if (!role || role === "user" || role === "") {
-        // User exists but has no specific role - redirect to signup
-        console.log("User has no role, redirecting to signup");
         router.push("/auth/signup");
         return;
       }
 
-      // Navigate based on user role
       switch (role) {
         case "learner":
           router.push("/learner");
@@ -149,30 +142,25 @@ export default function Login() {
           router.push("/admin");
           break;
         default:
-          // Unknown role - redirect to signup
           router.push("/signup");
       }
-
-      console.log("Login successful:", { role, user: user?.username });
     } catch (error) {
-      // Log the error (no navigation)
       console.error("Login failed:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Auto-focus first input on component mount
   useEffect(() => {
     iniCredRef.current?.focus();
   }, []);
 
   return (
-    <div className="login-container">
+    <div className={styles.container}>
       <Navbar />
 
-      <main>
-        <div className="main-image">
+      <main className={styles.main}>
+        <div className={styles.mainImage}>
           <Image
             src="/logo_gccoed.png"
             alt="MindMates Logo"
@@ -182,12 +170,12 @@ export default function Login() {
           />
         </div>
 
-        <div className="main-content">
+        <div className={styles.mainContent}>
           <h1>Login</h1>
-          <form onSubmit={login}>
-            <div className="input-field">
+          <form onSubmit={login} className={styles.form}>
+            <div className={styles.inputField}>
               <label htmlFor="iniCred">DOMAIN LOGIN</label>
-              <div className="input-with-icon">
+              <div className={styles.inputWithIcon}>
                 <input
                   ref={iniCredRef}
                   id="iniCred"
@@ -201,16 +189,16 @@ export default function Login() {
                   required
                   aria-describedby="iniCred-description"
                 />
-                <i className="fas fa-user input-icon"></i>
+                <i className={`fas fa-user ${styles.inputIcon}`}></i>
               </div>
-              <span id="iniCred-description" className="sr-only">
+              <span id="iniCred-description" className={styles.srOnly}>
                 Enter your email, username, or Student ID
               </span>
             </div>
 
-            <div className="input-field">
+            <div className={styles.inputField}>
               <label htmlFor="password">PASSWORD</label>
-              <div className="input-with-icon">
+              <div className={styles.inputWithIcon}>
                 <input
                   ref={passwordRef}
                   id="password"
@@ -225,9 +213,9 @@ export default function Login() {
                   aria-describedby="password-description"
                 />
                 <i
-                  className={`fas ${
+                  className={`${styles.inputIcon} ${styles.passwordToggle} fas ${
                     passwordVisible ? "fa-eye" : "fa-eye-slash"
-                  } input-icon password-toggle`}
+                  }`}
                   onClick={togglePasswordVisibility}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -241,11 +229,11 @@ export default function Login() {
                   aria-controls="password"
                 ></i>
               </div>
-              <span id="password-description" className="sr-only">
+              <span id="password-description" className={styles.srOnly}>
                 Enter your password. Use Tab to navigate to next field.
               </span>
-              <p className="switch-link">
-                <a 
+              <p className={styles.switchLink}>
+                <a
                   href="/auth/forgot-password"
                   ref={forgotPasswordRef}
                   onKeyDown={(e) => handleKeyDown(e, 3)}
@@ -259,8 +247,8 @@ export default function Login() {
             <button
               ref={loginButtonRef}
               type="submit"
-              className={`${isLoading ? "loading" : ""} ${
-                isButtonActive ? "active" : ""
+              className={`${styles.button} ${isLoading ? styles.loading : ""} ${
+                isButtonActive ? styles.active : ""
               }`}
               onMouseDown={() => setButtonActive(true)}
               onMouseUp={() => setButtonActive(false)}
@@ -270,26 +258,12 @@ export default function Login() {
               disabled={isLoading}
               aria-busy={isLoading}
             >
-              {isLoading && <span className="loading-spinner"></span>}
+              {isLoading && <span className={styles.loadingSpinner}></span>}
               {isLoading ? "Logging in..." : "Login"}
             </button>
           </form>
         </div>
       </main>
-
-      <style jsx>{`
-        .sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border: 0;
-        }
-      `}</style>
     </div>
   );
 }

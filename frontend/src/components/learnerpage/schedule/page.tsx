@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
+import notify from '@/lib/toast';
 import styles from './Schedule.module.css';
 
 function getCookie(name: string) {
@@ -255,19 +256,18 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
   // Confirm schedule
   const confirmSchedule = async () => {
     if (!selectedDate || !selectedTime || !selectedSubject) {
-      alert("Please select date, time and subject");
+      notify.warn('Please select date, time and subject');
       return;
     }
 
     if (sessionType === "in-person" && !meetingLocation) {
-      alert("Please enter a meeting location");
+      notify.warn("Please enter a meeting location");
       return;
     }
 
-    // Guard: ensure mentorId is present before calling backend
     if (!mentorId) {
       console.error("Missing mentorId - cannot create schedule", { mentorId, info });
-      alert("Unable to schedule: mentor information is incomplete. Please try again.");
+      notify.error("Unable to schedule: mentor information is incomplete. Please try again.");
       return;
     }
 
@@ -316,12 +316,11 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
         console.error("Unexpected response creating schedule:", response.status, response.data);
         throw new Error('Failed to create schedule');
       }
-
       const result = response.data;
+      notify.success('Session scheduled successfully!');
       onConfirm(result);
       onClose();
     } catch (error: any) {
-      // Improved error logging for Axios errors
       if (error?.isAxiosError) {
         console.error("Axios error scheduling:", {
           message: error.message,
@@ -329,10 +328,10 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
           responseData: error?.response?.data,
           headers: error?.response?.headers,
         });
-        alert(`Failed to create schedule: ${error?.response?.data?.message || error.message}`);
+        notify.error(error?.response?.data?.message || error.message || 'Failed to create schedule');
       } else {
         console.error("Error scheduling:", error);
-        alert("Failed to create schedule. Please try again.");
+        notify.error("Failed to create schedule. Please try again.");
       }
     } finally {
       setIsSubmitting(false);

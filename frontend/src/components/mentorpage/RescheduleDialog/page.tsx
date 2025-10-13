@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import styles from './RescheduleDialog.module.css';
+import notify from '@/lib/toast';
 
 interface RescheduleDialogProps {
   id: number;
@@ -47,34 +46,14 @@ export default function RescheduleDialog({ id, onClose, onReschedule }: Reschedu
       });
 
       if (response.ok) {
-        toast.success("Session rescheduled successfully!", {
-          position: "bottom-right",
-          autoClose: 2000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          style: {
-            backgroundColor: '#319cb0',
-          },
-          className: styles.rescheduleToast
-        });
-        
+        notify.success('Session rescheduled successfully!');
         onReschedule(selectedDate);
         onClose();
       } else {
         throw new Error('Failed to reschedule session');
       }
     } catch (error) {
-      toast.error("Failed to reschedule session", {
-        position: "bottom-right",
-        autoClose: 2000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        className: styles.rescheduleToast
-      });
+      notify.error('Failed to reschedule session');
     } finally {
       setIsSubmitting(false);
     }

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './reschedule.module.css';
-import api from '@/lib/axios'; // Add this import
+import api from '@/lib/axios';
+import notify from '@/lib/toast';
 
 interface RescheduleDialogProps {
   sessionId: number;
@@ -21,7 +22,7 @@ export default function RescheduleDialog({ sessionId, currentDate, currentTime, 
   const rescheduleSession = async () => {
     try {
       if (!selectedDate) {
-        alert('Please select a date and time');
+        notify.warn('Please select a date and time');
         return;
       }
 
@@ -56,14 +57,14 @@ export default function RescheduleDialog({ sessionId, currentDate, currentTime, 
       });
 
       if (response.status === 200) {
-        console.log("Session rescheduled successfully!");
+        notify.success('Session rescheduled successfully!');
         onReschedule(formattedDate, formattedTime);
         onClose();
       }
     } catch (error: any) {
       console.error("Failed to reschedule session:", error);
       const errorMessage = error.response?.data?.message || 'Failed to reschedule session';
-      alert(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

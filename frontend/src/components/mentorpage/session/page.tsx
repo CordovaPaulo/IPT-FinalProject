@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import RescheduleDialog from '../RescheduleDialog/page';
 import api from '@/lib/axios';
+import notify from '@/lib/toast';
 import styles from './session.module.css';
 
 // Updated interface to match API response
@@ -107,16 +108,13 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
       });
 
       if (response.status === 200) {
-        console.log('Reminder sent successfully!');
-        // You can add toast notification here
-        alert('Reminder sent successfully!');
+        notify.success('Reminder sent successfully!');
       } else {
-        console.error('Failed to send reminder.');
-        alert('Failed to send reminder.');
+        notify.error('Failed to send reminder.');
       }
     } catch (error) {
       console.error('Error sending reminder:', error);
-      alert('Error sending reminder. Please try again.');
+      notify.error('Error sending reminder. Please try again.');
     } finally {
       setShowRemindConfirmation(false);
     }
@@ -136,18 +134,15 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
       });
 
       if (response.status === 200) {
-        console.log('Session cancelled successfully!');
-        // Remove from schedules
         setTodaySchedule(prev => prev.filter(session => session.id !== item.id));
         setUpcommingSchedule(prev => prev.filter(session => session.id !== item.id));
-        alert('Session cancelled successfully!');
+        notify.success('Session cancelled successfully!');
       } else {
-        console.error('Failed to cancel session.');
-        alert('Failed to cancel session.');
+        notify.error('Failed to cancel session.');
       }
     } catch (error) {
       console.error('Error cancelling session:', error);
-      alert('Error cancelling session. Please try again.');
+      notify.error('Error cancelling session. Please try again.');
     } finally {
       setShowCancelConfirmation(false);
     }
@@ -180,8 +175,6 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
       });
 
       if (response.status === 200) {
-        console.log('Session rescheduled successfully!');
-        
         // Update the local state with new session details
         const updatedSession = {
           ...selectedItem,
@@ -197,14 +190,13 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
         ));
         
         setReschedIsOpen(false);
-        alert('Session rescheduled successfully!');
+        notify.success('Session rescheduled successfully!');
       } else {
-        console.error('Failed to reschedule session.');
-        alert('Failed to reschedule session.');
+        notify.error('Failed to reschedule session.');
       }
     } catch (error) {
       console.error('Error rescheduling session:', error);
-      alert('Error rescheduling session. Please try again.');
+      notify.error('Error rescheduling session. Please try again.');
     }
   };
 

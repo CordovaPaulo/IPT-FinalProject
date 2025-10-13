@@ -4,7 +4,7 @@ import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import './LearnerInfoalt.css';  
-
+import React, { useId } from 'react';
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {
@@ -860,6 +860,11 @@ const LearnerInfoAlt = () => {
     };
   }, [currentStep]);
 
+  const modalityComboboxId = useId();
+  const modalityListboxId = useId();
+  const availabilityComboboxId = useId();
+  const availabilityListboxId = useId();
+
   return (
     <div className="learnerinfo-container">
       <button 
@@ -1236,28 +1241,17 @@ const LearnerInfoAlt = () => {
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.availability && (
-                  <div className="dropdown-options availability-options">
-                    {daysOfWeek.map(day => (
-                      <div key={day} className="dropdown-option availability-option">
-                        <input
-                          type="checkbox"
-                          id={`day-${day}`}
-                          disabled={isSubmitting}
-                          checked={selectedDays.includes(day)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedDays([...selectedDays, day]);
-                            } else {
-                              setSelectedDays(selectedDays.filter(d => d !== day));
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          tabIndex={0}
-                          onKeyDown={(e) => handleCheckboxKeyNavigation(e, 'day', day, selectedDays, setSelectedDays)}
-                        />
-                        <label htmlFor={`day-${day}`}>{day}</label>
-                      </div>
-                    ))}
+                  <div id={availabilityListboxId} role="listbox" aria-multiselectable="true" className="dropdown-options availability-options">
+                    {daysOfWeek.map((day) => {
+                      const optionId = `day-${day}`;
+                      const isSelected = selectedDays.includes(day); // wire to your state
+                      return (
+                        <div key={day} role="option" aria-selected={isSelected} tabIndex={-1} className="dropdown-option availability-option" onKeyDown={handleOptionKeyDown}>
+                          <input type="checkbox" id={optionId} checked={isSelected} /* ...existing props... */ />
+                          <label htmlFor={optionId}>{day}</label>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1373,55 +1367,17 @@ const LearnerInfoAlt = () => {
                   <i className="fas fa-chevron-down dropdown-icon"></i>
                 </div>
                 {dropdownOpen.modality && (
-                  <div className="dropdown-options">
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setModality('Online');
-                        setDropdownOpen({ ...dropdownOpen, modality: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setModality('Online');
-                          setDropdownOpen({ ...dropdownOpen, modality: false });
-                        }
-                      }}
-                    >
-                      Online
-                    </div>
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setModality('In-person');
-                        setDropdownOpen({ ...dropdownOpen, modality: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setModality('In-person');
-                          setDropdownOpen({ ...dropdownOpen, modality: false });
-                        }
-                      }}
-                    >
-                      In-person
-                    </div>
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setModality('Hybrid');
-                        setDropdownOpen({ ...dropdownOpen, modality: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setModality('Hybrid');
-                          setDropdownOpen({ ...dropdownOpen, modality: false });
-                        }
-                      }}
-                    >
-                      Hybrid
-                    </div>
+                  <div id={modalityListboxId} role="listbox" aria-multiselectable="false" className="dropdown-options modality-options">
+                    {modalityOptions.map((mod) => {
+                      const optionId = `modality-${mod}`;
+                      const isSelected = selectedModality === mod; // wire to your state
+                      return (
+                        <div key={mod} role="option" aria-selected={isSelected} tabIndex={-1} className="dropdown-option modality-option" onKeyDown={handleOptionKeyDown}>
+                          <input type="radio" name="modality" id={optionId} checked={isSelected} /* ...existing props... */ />
+                          <label htmlFor={optionId}>{mod}</label>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

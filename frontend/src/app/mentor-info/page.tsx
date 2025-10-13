@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useId, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import './MentorInfo.css';
@@ -15,6 +15,7 @@ interface DropdownOpenState {
   availability: boolean;
   learningStyle: boolean;
   sessionDuration: boolean;
+  topics: boolean;
 }
 
 interface ValidationErrors {
@@ -42,7 +43,7 @@ interface CredentialFile extends File {
   // We can extend File if needed
 }
 
-const MentorInfo = () => {
+export default function MentorInfoPage() {
   const router = useRouter();
   
   // State variables
@@ -76,7 +77,8 @@ const MentorInfo = () => {
     proficiency: false,
     availability: false,
     learningStyle: false,
-    sessionDuration: false
+    sessionDuration: false,
+    topics: false
   });
   
   const [showFileList, setShowFileList] = useState(false);
@@ -901,6 +903,25 @@ const MentorInfo = () => {
     };
   }, [currentStep]);
   
+  // Reuse helpers
+  function focusFirstOption(listboxId: string) { const first = document.querySelector<HTMLElement>(`#${listboxId} [role="option"]`); first?.focus(); }
+  const handleComboboxKey = (toggleOpen: () => void, isOpen: boolean, listboxId: string) =>
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleOpen(); }
+      else if (e.key === 'Escape' && isOpen) { e.preventDefault(); toggleOpen(); }
+      else if ((e.key === 'ArrowDown' || e.key === 'Down') && isOpen) { e.preventDefault(); focusFirstOption(listboxId); }
+    };
+  const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
+    const current = e.currentTarget;
+    const options = Array.from(current.parentElement?.querySelectorAll<HTMLElement>('[role="option"]') || []);
+    const idx = options.indexOf(current);
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); current.querySelector<HTMLInputElement>('input')?.click(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'Down') { e.preventDefault(); options[Math.min(idx + 1, options.length - 1)]?.focus(); return; }
+    if (e.key === 'ArrowUp' || e.key === 'Up') { e.preventDefault(); options[Math.max(idx - 1, 0)]?.focus(); return; }
+    if (e.key === 'Home') { e.preventDefault(); options[0]?.focus(); return; }
+    if (e.key === 'End') { e.preventDefault(); options[options.length - 1]?.focus(); return; }
+  };
+
   return (
     <div className="mentorinfo-container">
       <Head>
@@ -1771,6 +1792,39 @@ const MentorInfo = () => {
                 </span>
               )}
             </div>
+
+            {/* Example: expertise/topics multi-select */}
+            <div
+              role="combobox"
+              id={topicComboboxId}
+              tabIndex={0}
+              aria-haspopup="listbox"
+              aria-expanded={dropdownOpen.topics}
+              aria-controls={topicListboxId}
+              onKeyDown={handleComboboxKey(
+                () => toggleDropdown('topics'),
+                dropdownOpen.topics,
+                topicListboxId
+              )}
+            >
+              <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('topics'); }}>
+                <input role="textbox" readOnly aria-autocomplete="none" aria-controls={topicListboxId} />
+              </div>
+              {dropdownOpen.topics && (
+                <div id={topicListboxId} role="listbox" aria-multiselectable="true" className="dropdown-options topics-options">
+                  {topicOptions.map((topic) => {
+                    const optionId = `topic-${topic}`;
+                    const isSelected = selectedTopics.includes(topic); // wire to your state
+                    return (
+                      <div key={topic} role="option" aria-selected={isSelected} tabIndex={-1} className="dropdown-option topic-option" onKeyDown={handleOptionKeyDown}>
+                        <input type="checkbox" id={optionId} checked={isSelected} />
+                        <label htmlFor={optionId}>{topic}</label>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1851,8 +1905,6 @@ const MentorInfo = () => {
     </div>
   );
 };
-
-export default MentorInfo;
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {
