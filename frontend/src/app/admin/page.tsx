@@ -6,7 +6,8 @@ import axios from 'axios';
 import Dashboard from '@/components/adminpage/dashboard/page';
 import Applications from '@/components/adminpage/applications/page';
 import Users from '@/components/adminpage/users/page'; 
-import './admin.css';
+import styles from './admin.module.css';
+
 
 interface User {
   id: number;
@@ -69,8 +70,8 @@ const AdminProfile: React.FC = () => {
   const LoadingOverlay: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
     if (!isLoading) return null;
     return (
-      <div className="loading-overlay">
-        <div className="loading-spinner"></div>
+      <div className={styles.loadingOverlay}>
+        <div className={styles.loadingSpinner}></div>
       </div>
     );
   };
@@ -226,14 +227,14 @@ const AdminProfile: React.FC = () => {
 
   return (
     <>
-      <div className="profile-page">
+      <div className={styles.profilePage}>
         {/* Loading Overlay */}
         <LoadingOverlay isLoading={isLoading} />
 
         {/* Mobile Sidebar Toggle Button */}
         {isMobileView && (
-          <button className="sidebar-toggle" onClick={toggleSidebar}>
-            <svg className="toggle-icon" viewBox="0 0 24 24">
+          <button className={styles.sidebarToggle} onClick={toggleSidebar}>
+            <svg className={styles.toggleIcon} viewBox="0 0 24 24">
               <path
                 fill="currentColor"
                 d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"
@@ -244,28 +245,28 @@ const AdminProfile: React.FC = () => {
 
         {/* Overlay to close sidebar on mobile */}
         {isMobileView && isSidebarVisible && (
-          <div className="sidebar-overlay" onClick={toggleSidebar}></div>
+          <div className={styles.sidebarOverlay} onClick={toggleSidebar}></div>
         )}
 
         {/* App Header */}
-        <header className={`app-header ${isMobileView && !isSidebarVisible ? 'header-expanded' : ''}`}>
-          <div className="profile-section">
-            <div className="avatar-container">
+        <header className={`${styles.appHeader} ${isMobileView && !isSidebarVisible ? styles.headerExpanded : ''}`}>
+          <div className={styles.profileSection}>
+            <div className={styles.avatarContainer}>
               <img
                 alt="Profile image"
-                className="avatar"
+                className={styles.avatar}
                 src="https://gordoncollegeccs.edu.ph/ccs/students/lamp/assets/profile.jpg"
               />
             </div>
-            <div className="profile-meta">
-              <h1 className="profile-name">{adminNameValue}</h1>
-              <p className="profile-title">
+            <div className={styles.profileMeta}>
+              <h1 className={styles.profileName}>{adminNameValue}</h1>
+              <p className={styles.profileTitle}>
                 College of Computer Studies | Program Coordinator
               </p>
             </div>
           </div>
-          <div className="topbar-date">
-            <svg className="date-icon" width="16" height="16" viewBox="0 0 24 24" fill="#066678">
+          <div className={styles.topbarDate}>
+            <svg className={styles.dateIcon} width="16" height="16" viewBox="0 0 24 24" fill="#066678">
               <path d="M19,3H18V1H16V3H8V1H6V3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19M7,10H12V15H7V10Z"/>
             </svg>
             {currentDate}
@@ -273,15 +274,15 @@ const AdminProfile: React.FC = () => {
         </header>
 
         {/* Main Content */}
-        <div className="main-container">
+        <div className={styles.mainContainer}>
           {/* Sidebar Navigation */}
-          <aside className={`sidebar ${isMobileView ? 'sidebar-mobile' : ''} ${isSidebarVisible ? 'sidebar-mobile-visible' : ''}`}>
-            <nav className="app-navigation">
+          <aside className={`${styles.sidebar} ${isMobileView ? styles.sidebarMobile : ''} ${isSidebarVisible ? styles.sidebarMobileVisible : ''}`}>
+            <nav className={styles.appNavigation}>
               <button
-                className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+                className={`${styles.navBtn} ${activeTab === 'dashboard' ? styles.navBtnActive : ''}`}
                 onClick={() => setActiveTab('dashboard')}
               >
-                <svg className="nav-icon" viewBox="0 0 24 24">
+                <svg className={styles.navIcon} viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M13,3V9H21V3M13,21H21V11H13M3,21H11V15H3M3,13H11V3H3V13Z"
@@ -290,10 +291,10 @@ const AdminProfile: React.FC = () => {
                 Dashboard
               </button>
               <button
-                className={`nav-btn ${activeTab === 'application' ? 'active' : ''}`}
+                className={`${styles.navBtn} ${activeTab === 'application' ? styles.navBtnActive : ''}`}
                 onClick={() => setActiveTab('application')}
               >
-                <svg className="nav-icon" viewBox="0 0 24 24">
+                <svg className={styles.navIcon} viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
@@ -302,10 +303,10 @@ const AdminProfile: React.FC = () => {
                 Applications
               </button>
               <button
-                className={`nav-btn ${activeTab === 'users' ? 'active' : ''}`}
+                className={`${styles.navBtn} ${activeTab === 'users' ? styles.navBtnActive : ''}`}
                 onClick={() => setActiveTab('users')}
               >
-                <svg className="nav-icon" viewBox="0 0 24 24">
+                <svg className={styles.navIcon} viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
@@ -315,12 +316,12 @@ const AdminProfile: React.FC = () => {
               </button>
 
               {/* Logout button */}
-              <div className="nav-bottom">
+              <div className={styles.navBottom}>
                 <button 
-                  className="nav-btn logout-btn" 
+                  className={`${styles.navBtn} ${styles.logoutBtn}`} 
                   onClick={() => setShowLogoutModal(true)}
                 >
-                  <svg className="nav-icon" viewBox="0 0 24 24">
+                  <svg className={styles.navIcon} viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
                       d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"
@@ -333,21 +334,16 @@ const AdminProfile: React.FC = () => {
           </aside>
 
           {/* Content Area */}
-          <main className={`content-area ${isMobileView && !isSidebarVisible ? 'content-expanded' : ''}`}>
-            {/* Dashboard shown by default */}
+          <main className={`${styles.contentArea} ${isMobileView && !isSidebarVisible ? styles.contentExpanded : ''}`}>
             {activeTab === 'dashboard' && (
               <Dashboard stats={stats} chartData={chartData} />
             )}
-
-            {/* Applications component */}
             {activeTab === 'application' && (
               <Applications 
                 applicants={applicantsList}
                 onUpdateApplicants={fetchApplicants}
               />
             )}
-
-            {/* Users component */}
             {activeTab === 'users' && (
               <Users 
                 users={usersFetch}
@@ -357,17 +353,17 @@ const AdminProfile: React.FC = () => {
           </main>
         </div>
 
-        {/* Add Logout Modal */}
+        {/* Logout Modal */}
         {showLogoutModal && (
-          <div className="modal-overlay">
-            <div className="modal-content">
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
               <h2>Confirm Logout</h2>
               <p>Are you sure you want to logout?</p>
-              <div className="modal-buttons">
-                <button onClick={handleLogout} className="confirm-btn">
+              <div className={styles.modalButtons}>
+                <button onClick={handleLogout} className={styles.confirmBtn}>
                   Logout
                 </button>
-                <button onClick={() => setShowLogoutModal(false)} className="cancel-btn">
+                <button onClick={() => setShowLogoutModal(false)} className={styles.cancelBtn}>
                   Cancel
                 </button>
               </div>

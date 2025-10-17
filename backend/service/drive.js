@@ -67,7 +67,6 @@ async function uploadFile({ buffer, originalname, mimetype, folder }) {
     }
   }
 
-  // Convert buffer to stream
   const bufferStream = new stream.PassThrough();
   bufferStream.end(buffer);
 
@@ -96,7 +95,6 @@ async function uploadFile({ buffer, originalname, mimetype, folder }) {
   };
 }
 
-// View/preview: get file metadata and links
 async function getFileMetadata(fileId) {
   const res = await drive.files.get({
     fileId,
@@ -112,9 +110,6 @@ async function deleteFile(fileId) {
   return { deleted: true };
 }
 
-/**
- * Resolve a folder path like "parent/child" to a folderId (creates if missing)
- */
 async function getFolderIdByPath(path) {
   const parts = (path || '').split('/').filter(Boolean);
   if (parts.length === 0) throw new Error('Invalid folder path');
@@ -125,9 +120,6 @@ async function getFolderIdByPath(path) {
   return parentId;
 }
 
-/**
- * List files inside a folder path
- */
 async function listFilesInFolderByPath(path) {
   const folderId = await getFolderIdByPath(path);
   const res = await drive.files.list({

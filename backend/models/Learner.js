@@ -16,7 +16,6 @@ const learnerSchema = new mongoose.Schema({
     availability: { type: [String], required: true, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] },
     style: { type: [String], required: true, enum: ['lecture-based', 'interactive-discussion', 'q-and-a-discussion', 'demonstrations', 'project-based', 'step-by-step-discussion'] },
     sessionDur: { type: String, required: true, enum: ['1hr', '2hrs', '3hrs'] },
-    status: { type: String, default: 'active', enum: ['active', 'pending', 'suspended', 'banned'] },
     image: { type: String, default: null },
     createdAt: { type: Date, default: Date.now }
 }, { collection: 'learners' });

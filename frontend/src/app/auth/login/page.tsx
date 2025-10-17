@@ -127,22 +127,22 @@ export default function Login() {
       const role = userRole || user?.role;
 
       if (!role || role === "user" || role === "") {
-        router.push("/auth/signup");
+        router.replace("/auth/signup");
         return;
       }
 
       switch (role) {
         case "learner":
-          router.push("/learner");
+          router.replace("/learner");
           break;
         case "mentor":
-          router.push("/mentor");
+          router.replace("/mentor");
           break;
         case "admin":
-          router.push("/admin");
+          router.replace("/admin");
           break;
         default:
-          router.push("/signup");
+          router.replace("/signup");
       }
     } catch (error) {
       console.error("Login failed:", error);

@@ -49,7 +49,7 @@ async function batchCreateStudents(filePath) {
             username: name,
             email,
             password: hashedPassword,
-            role: 'learner'
+            role: null
         });
     }
 

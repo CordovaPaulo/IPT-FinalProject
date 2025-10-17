@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
-const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'token';
-const COOKIE_MAX_AGE = parseInt(process.env.AUTH_COOKIE_MAX_AGE || `${7 * 24 * 60 * 60 * 1000}`, 10); // ms
+// const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'token';
+// const COOKIE_MAX_AGE = parseInt(process.env.AUTH_COOKIE_MAX_AGE || `${7 * 24 * 60 * 60 * 1000}`, 10); // ms
 
 function cookieOptions() {
   return {

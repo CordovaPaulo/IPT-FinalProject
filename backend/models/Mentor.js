@@ -17,7 +17,7 @@ const mentorSchema = new mongoose.Schema({
     availability: { type: [String], required: true, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] },
     style: { type: [String], required: true, enum: ['lecture-based', 'interactive-discussion', 'q-and-a-discussion', 'demonstrations', 'project-based', 'step-by-step-discussion'] },
     sessionDur: { type: String, required: true, enum: ['1hr', '2hrs', '3hrs'] },
-    status: { type: String, default: 'active', enum: ['active', 'pending', 'suspended', 'banned'] },
+    accountStatus: { type: String, default: 'pending', enum: ['accepted', 'pending', 'rejected'] },
     image: { type: String, default:null },
     aveRating: { type: Number, default: 0 },
     credentials: { type: [String], default: []  },

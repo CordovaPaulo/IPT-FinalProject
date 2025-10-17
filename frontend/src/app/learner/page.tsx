@@ -719,7 +719,7 @@ export default function LearnerPage() {
       schedule: todaySchedule,
       schedForReview: schedForReview,
       mentFiles: { files: mentorFiles },
-      onScheduleCreated: fetchSchedules // Add this to refresh schedules after creation
+      onScheduleCreated: fetchSchedules 
     };
 
     switch (activeComponent) {
@@ -728,12 +728,11 @@ export default function LearnerPage() {
       case 'session':
         return <SessionComponent {...props} />;
       case 'records':
-        // Pass both schedForReview and additional data prop
         return <ReviewsComponent 
           schedForReview={schedForReview}
           userData={userData}
           data={{
-            schedForReview: schedForReview // Pass the raw schedForReview array
+            schedForReview: schedForReview 
           }}
         />;
       default:

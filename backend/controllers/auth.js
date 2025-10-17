@@ -17,7 +17,6 @@ exports.learnerSignup = async (req, res) => {
     return res.status(403).json({ message: 'Invalid token', code: 403 });
   }
 
-  // Handle profile picture upload if file is present
   let learnerImage = null;
   if (req.file) {
     try {
@@ -42,7 +41,6 @@ exports.learnerSignup = async (req, res) => {
     learnerImage = req.body.image === null ? "null" : req.body.image;
   }
 
-  // Parse fields from req.body (FormData sends all as strings)
   const { 
     program,
     yearLevel,
@@ -383,7 +381,25 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const payload = { id: user._id, username: user.username, email: user.email, role: user.role };
+    if (user.role === 'mentor') {
+      const mentor = await Mentor.findOne({ userId: user._id });
+      if (mentor && mentor.accountStatus === 'pending') {
+        return res.status(403).json({ message: 'Mentor account is still pending approval' });
+      }
+      if (mentor && mentor.accountStatus === 'rejected') {
+        return res.status(403).json({ message: 'Mentor account has been rejected' });
+      }
+    }
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'User account is suspended' });
+    }
+
+    if (user.status === 'banned') {
+      return res.status(403).json({ message: 'User account is banned' });
+    }
+
+    const payload = { id: user._id, username: user.username, email: user.email, role: user.role, status: user.status };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.cookie('MindMateToken', token, {

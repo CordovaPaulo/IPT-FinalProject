@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
-import html2pdf from 'html2pdf.js';
-import "./module.css";
+// import html2pdf from 'html2pdf.js'; // removed: causes "self is not defined"
+import styles from "./page.module.css";
 
 interface User {
   id: number;
@@ -133,222 +133,29 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
     XLSX.writeFile(workbook, `${reportType}_report_${formattedDate}.xlsx`);
   };
 
-  const exportUserToPDF = async (user: User) => {
-    const element = document.createElement('div');
+  // Lazy PDF exporter hook
+  function usePdfExporter() {
+    const exportPdf = useCallback(async (element: HTMLElement, filename = 'export.pdf') => {
+      if (!element) return;
+      const mod = await import('html2pdf.js'); // loads only in browser
+      const html2pdf: any = (mod as any).default || (mod as any);
+      const opt = {
+        margin: 0.5,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+      };
+      html2pdf().set(opt).from(element).save();
+    }, []);
+    return exportPdf;
+  }
 
-    element.innerHTML = `
-      <style>
-        .pdf-header {
-          text-align: center; 
-          margin-bottom: 20px;
-        }
-        .logo-container {
-          display: flex; 
-          justify-content: center; 
-          align-items: center; 
-          margin-bottom: 10px;
-        }
-        .logo {
-          height: 80px;
-          margin-right: 20px;
-        }
-        .institution-name {
-          margin: 0; 
-          color: #0B3E8A; 
-          font-size: 24px;
-        }
-        .institution-sub {
-          margin: 0; 
-          color: #3B9AA9; 
-          font-size: 20px;
-        }
-        .report-title {
-          color: #0B3E8A; 
-          border-top: 2px solid #0B3E8A; 
-          border-bottom: 2px solid #0B3E8A; 
-          padding: 5px 0; 
-          margin: 0 auto; 
-          width: 80%;
-        }
-        .user-title {
-          color: #3B9AA9; 
-          border-bottom: 2px solid #3B9AA9; 
-          padding-bottom: 5px; 
-          margin-top: 20px;
-        }
-        .section-title {
-          color: #0B3E8A; 
-          margin-top: 20px;
-        }
-        .info-table {
-          width: 100%; 
-          border-collapse: collapse; 
-          margin-bottom: 20px;
-        }
-        .info-table td {
-          padding: 8px; 
-          border: 1px solid #ddd;
-        }
-        .info-label {
-          width: 30%; 
-          font-weight: bold; 
-          background-color: #f5f5f5;
-        }
-        .pdf-footer {
-          margin-top: 40px; 
-          text-align: center; 
-          color: #666; 
-          font-size: 12px; 
-          border-top: 1px solid #eee; 
-          padding-top: 10px;
-        }
-      </style>
+  const printRef = useRef<HTMLDivElement>(null);
+  const exportPdf = usePdfExporter();
 
-      <div class="pdf-header">
-        <div class="logo-container">
-          <div>
-            <h1 class="institution-name">GCCoEd</h1>
-            <h2 class="institution-sub">College of Computer Studies</h2>
-          </div>
-        </div>
-        <h3 class="report-title">User Report</h3>
-      </div>
-      
-      <h2 class="user-title">
-        ${user.name} <span style="font-size: 16px; color: #666;">(${user.role})</span>
-      </h2>
-      
-      <h3 class="section-title">Basic Information</h3>
-      <table class="info-table">
-        <tr>
-          <td class="info-label">Email</td>
-          <td>${user.email}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Contact Number</td>
-          <td>${user.phoneNum || 'Not provided'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Year Level</td>
-          <td>${user.year || 'N/A'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Program</td>
-          <td>${user.program || 'N/A'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Department</td>
-          <td>${user.department || 'College of Computer Studies'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Sex at Birth</td>
-          <td>${user.gender || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Address</td>
-          <td>${user.address || 'Not provided'}</td>
-        </tr>
-      </table>
-      
-      ${
-        user.role?.toLowerCase() === 'mentor'
-          ? `
-      <h3 class="section-title">Teaching Information</h3>
-      <table class="info-table">
-        <tr>
-          <td class="info-label">Teaching Modality</td>
-          <td>${user.learn_modality || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Days of Availability</td>
-          <td>${parseArrayString(user.availability) || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Proficiency Level</td>
-          <td>${user.proficiency || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Teaching Style</td>
-          <td>${parseArrayString(user.teach_sty) || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Preferred Session Duration</td>
-          <td>${user.prefSessDur || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Subjects</td>
-          <td>${parseArrayString(user.subjects) || 'Not specified'}</td>
-        </tr>
-      </table>
-      
-      <h3 class="section-title">Bio & Experience</h3>
-      <p style="margin-bottom: 10px;"><strong>Short Bio:</strong></p>
-      <p style="margin-bottom: 20px;">${user.bio || 'No bio provided'}</p>
-      <p style="margin-bottom: 10px;"><strong>Tutoring Experience:</strong></p>
-      <p>${user.exp || 'No experience provided'}</p>
-      `
-          : ''
-      }
-      
-      ${
-        user.role?.toLowerCase() === 'learner'
-          ? `
-      <h3 class="section-title">Learning Preferences</h3>
-      <table class="info-table">
-        <tr>
-          <td class="info-label">Learning Modality</td>
-          <td>${user.learn_modality || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Days of Availability</td>
-          <td>${parseArrayString(user.availability) || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Learning Style</td>
-          <td>${parseArrayString(user.learn_sty) || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Preferred Session Duration</td>
-          <td>${user.prefSessDur || 'Not specified'}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Subjects of Interest</td>
-          <td>${parseArrayString(user.subjects) || 'Not specified'}</td>
-        </tr>
-      </table>
-      
-      <h3 class="section-title">Bio & Goals</h3>
-      <p style="margin-bottom: 10px;"><strong>Short Bio:</strong></p>
-      <p style="margin-bottom: 20px;">${user.bio || 'No bio provided'}</p>
-      <p style="margin-bottom: 10px;"><strong>Learning Goals:</strong></p>
-      <p>${user.goals || 'No goals provided'}</p>
-      `
-          : ''
-      }
-      
-      <div class="pdf-footer">
-        <p>GCCoEd</p>
-        <p>Generated on ${new Date().toLocaleDateString()}</p>
-      </div>
-    `;
-
-    const opt = {
-      margin: 10,
-      filename: `user_${user.id}_${user.name.replace(' ', '_')}_report.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        logging: true,
-        useCORS: true,
-      },
-      jsPDF: {
-        unit: 'mm',
-        format: 'a4',
-        orientation: 'portrait',
-      },
-    };
-
-    html2pdf().from(element).set(opt).save();
+  const handleExportPdf = () => {
+    if (printRef.current) exportPdf(printRef.current, 'users.pdf');
   };
 
   // Helper functions
@@ -374,55 +181,65 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
     return match?.[1] || course;
   };
 
+  // utilities to combine module classes with role-specific classes
+  const roleBadgeClass = (role?: string) =>
+    `${styles['role-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
+
+  const secondaryRoleBadgeClass = (role?: string) =>
+    `${styles['secondary-role-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
+
+  const statusBadgeClass = (role?: string) =>
+    `${styles['status-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
+
   return (
     <>
-      <div className="applications-container">
-        <div className="applications-header">
-          <h2 className="applications-title">
-            <i className="fas fa-users header-icon"></i>
+      <div className={styles['applications-container']}>
+        <div className={styles['applications-header']}>
+          <h2 className={styles['applications-title']}>
+            <i className={`fas fa-users ${styles['header-icon']}`}></i>
             Users
           </h2>
 
-          <div className="filter-buttons">
+          <div className={styles['filter-buttons']}>
             <button
-              className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
+              className={`${styles['filter-btn']} ${activeFilter === 'all' ? styles.active : ''}`}
               onClick={() => setActiveFilter('all')}
             >
               All
             </button>
             <button
-              className={`filter-btn ${activeFilter === 'mentors' ? 'active' : ''}`}
+              className={`${styles['filter-btn']} ${activeFilter === 'mentors' ? styles.active : ''}`}
               onClick={() => setActiveFilter('mentors')}
             >
               Mentors
             </button>
             <button
-              className={`filter-btn ${activeFilter === 'learners' ? 'active' : ''}`}
+              className={`${styles['filter-btn']} ${activeFilter === 'learners' ? styles.active : ''}`}
               onClick={() => setActiveFilter('learners')}
             >
               Learners
             </button>
           </div>
 
-          <div className="search-container">
-            <div className="search-wrapper">
-              <i className="fas fa-search search-icon"></i>
+          <div className={styles['search-container']}>
+            <div className={styles['search-wrapper']}>
+              <i className={`fas fa-search ${styles['search-icon']}`}></i>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search users..."
-                className="search-input"
+                className={styles['search-input']}
               />
             </div>
-            <button className="export-btn" onClick={exportUsersToCSV}>
+            <button className={styles['export-btn']} onClick={exportUsersToCSV}>
               <i className="fas fa-download"></i> Export
             </button>
           </div>
         </div>
 
-        <div className="table-scroll-container">
-          <table className="applications-table">
+        <div className={styles['table-scroll-container']}>
+          <table className={styles['applications-table']}>
             <thead>
               <tr>
                 <th>ID</th>
@@ -439,30 +256,30 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
               {displayedUsers.map((user) => (
                 <tr key={user.id}>
                   <td>
-                    <span className="id-badge">{user.id}</span>
+                    <span className={styles['id-badge']}>{user.id}</span>
                   </td>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
                   <td>{user.year || 'N/A'}</td>
                   <td>{getProgramFromCourse(user.course)}</td>
                   <td>
-                    <span className={`role-badge ${user.role?.toLowerCase()}`}>
+                    <span className={roleBadgeClass(user.role)}>
                       {user.role}
                     </span>
                   </td>
                   <td>
                     <span
-                      className={`secondary-role-badge ${
+                      className={secondaryRoleBadgeClass(
                         user.secondary_role?.toLowerCase() === 'n/a'
                           ? 'na'
                           : user.secondary_role?.toLowerCase()
-                      }`}
+                      )}
                     >
                       {user.secondary_role || 'N/A'}
                     </span>
                   </td>
                   <td>
-                    <button className="credentials-btn" onClick={() => showUserDetails(user)}>
+                    <button className={styles['credentials-btn']} onClick={() => showUserDetails(user)}>
                       <i className="fas fa-eye"></i> <span>View</span>
                     </button>
                   </td>
@@ -470,7 +287,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
               ))}
               {displayedUsers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="no-applications">
+                  <td colSpan={8} className={styles['no-applications']}>
                     No users to display
                   </td>
                 </tr>
@@ -481,84 +298,84 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
 
         {/* User Details Modal */}
         {showUserModal && (
-          <div className="modal-overlay" onClick={hideUserDetails}>
-            <div className="credentials-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <div className="header-content">
-                  <i className="fas fa-user modal-title-icon"></i>
-                  <h3 className="modal-title">User Details</h3>
+          <div className={styles['modal-overlay']} onClick={hideUserDetails}>
+            <div className={styles['credentials-modal']} onClick={(e) => e.stopPropagation()}>
+              <div className={styles['modal-header']}>
+                <div className={styles['header-content']}>
+                  <i className={`fas fa-user ${styles['modal-title-icon']}`}></i>
+                  <h3 className={styles['modal-title']}>User Details</h3>
                 </div>
-                <button className="close-btn" onClick={hideUserDetails}>
+                <button className={styles['close-btn']} onClick={hideUserDetails}>
                   <i className="fas fa-times"></i>
                 </button>
               </div>
 
-              <div className="modal-body">
-                <div className="applicant-profile">
-                  <div className="profile-image-container">
+              <div className={styles['modal-body']}>
+                <div className={styles['applicant-profile']}>
+                  <div className={styles['profile-image-container']}>
                     <img
                       src={currentUser.image_url || "https://gordoncollegeccs.edu.ph/ccs/students/lamp/assets/profile.jpg"}
                       alt={`Portrait of ${currentUser.name}`}
-                      className="profile-image"
+                      className={styles['profile-image']}
                     />
                     <div
-                      className={`status-badge ${currentUser.role?.toLowerCase()}`}
+                      className={statusBadgeClass(currentUser.role)}
                     >
                       {currentUser.role}
                     </div>
                   </div>
 
-                  <div className="profile-info">
-                    <h4 className="applicant-name">{currentUser.name}</h4>
-                    <hr className="divider" />
-                    <div className="info-grid">
-                      <div className="info-item">
-                        <span className="info-label">
+                  <div className={styles['profile-info']}>
+                    <h4 className={styles['applicant-name']}>{currentUser.name}</h4>
+                    <hr className={styles['divider']} />
+                    <div className={styles['info-grid']}>
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-envelope"></i> Email
                         </span>
-                        <span className="info-value">{currentUser.email}</span>
+                        <span className={styles['info-value']}>{currentUser.email}</span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-phone"></i> Contact Number
                         </span>
-                        <span className="info-value">
+                        <span className={styles['info-value']}>
                           {currentUser.phoneNum || 'Not provided'}
                         </span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-calendar-alt"></i> Year Level
                         </span>
-                        <span className="info-value">{currentUser.year || 'N/A'}</span>
+                        <span className={styles['info-value']}>{currentUser.year || 'N/A'}</span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-graduation-cap"></i> Program
                         </span>
-                        <span className="info-value">{currentUser.program || 'N/A'}</span>
+                        <span className={styles['info-value']}>{currentUser.program || 'N/A'}</span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-university"></i> Department
                         </span>
-                        <span className="info-value">
+                        <span className={styles['info-value']}>
                           {currentUser.department || 'College of Computer Studies'}
                         </span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-venus-mars"></i> Sex at Birth
                         </span>
-                        <span className="info-value">
+                        <span className={styles['info-value']}>
                           {capitalizeFirstLetter(currentUser.gender)}
                         </span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-map-marker-alt"></i> Address
                         </span>
-                        <span className="info-value">
+                        <span className={styles['info-value']}>
                           {currentUser.address || 'Not provided'}
                         </span>
                       </div>
@@ -567,70 +384,70 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                 </div>
 
                 {/* Role-Specific Details Section */}
-                <div className="details-section">
+                <div className={styles['details-section']}>
                   {/* Mentor Specific Information */}
                   {currentUser.role?.toLowerCase() === 'mentor' && (
                     <>
-                      <div className="details-card">
-                        <h4 className="section-title">
+                      <div className={styles['details-card']}>
+                        <h4 className={styles['section-title']}>
                           <i className="fas fa-chalkboard-teacher"></i> Teaching Information
                         </h4>
-                        <hr className="divider2" />
-                        <div className="details-content">
-                          <div className="detail-item">
-                            <span className="detail-label">Teaching Modality:</span>
-                            <span className="detail-value">
+                        <hr className={styles['divider2']} />
+                        <div className={styles['details-content']}>
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Teaching Modality:</span>
+                            <span className={styles['detail-value']}>
                               {currentUser.learn_modality || 'Not specified'}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Days of Availability:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Days of Availability:</span>
+                            <span className={styles['detail-value']}>
                               {parseArrayString(currentUser.availability)}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Proficiency Level:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Proficiency Level:</span>
+                            <span className={styles['detail-value']}>
                               {currentUser.proficiency || 'Not specified'}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Teaching Style:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Teaching Style:</span>
+                            <span className={styles['detail-value']}>
                               {parseArrayString(currentUser.teach_sty)}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Preferred Session Duration:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Preferred Session Duration:</span>
+                            <span className={styles['detail-value']}>
                               {currentUser.prefSessDur || 'Not specified'}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Subjects:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Subjects:</span>
+                            <span className={styles['detail-value']}>
                               {parseArrayString(currentUser.subjects)}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="bio-card">
-                        <h4 className="section-title">
+                      <div className={styles['bio-card']}>
+                        <h4 className={styles['section-title']}>
                           <i className="fas fa-user-edit"></i> Bio & Experience
                         </h4>
-                        <hr className="divider2" />
-                        <div className="bio-content">
-                          <div className="detail-item2">
-                            <span className="detail-label">Short Bio:</span>
-                            <span className="detail-value2">
+                        <hr className={styles['divider2']} />
+                        <div className={styles['bio-content']}>
+                          <div className={styles['detail-item2']}>
+                            <span className={styles['detail-label']}>Short Bio:</span>
+                            <span className={styles['detail-value2']}>
                               {currentUser.bio || 'No bio provided'}
                             </span>
                           </div>
-                          <div className="detail-item2">
-                            <span className="detail-label">Tutoring Experience:</span>
-                            <span className="detail-value2">
+                          <div className={styles['detail-item2']}>
+                            <span className={styles['detail-label']}>Tutoring Experience:</span>
+                            <span className={styles['detail-value2']}>
                               {currentUser.exp || 'No experience provided'}
                             </span>
                           </div>
@@ -642,60 +459,60 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                   {/* Learner Specific Information */}
                   {currentUser.role?.toLowerCase() === 'learner' && (
                     <>
-                      <div className="details-card">
-                        <h4 className="section-title">
+                      <div className={styles['details-card']}>
+                        <h4 className={styles['section-title']}>
                           <i className="fas fa-book-open"></i> Learning Preferences
                         </h4>
-                        <hr className="divider2" />
-                        <div className="details-content">
-                          <div className="detail-item">
-                            <span className="detail-label">Learning Modality:</span>
-                            <span className="detail-value">
+                        <hr className={styles['divider2']} />
+                        <div className={styles['details-content']}>
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Learning Modality:</span>
+                            <span className={styles['detail-value']}>
                               {currentUser.learn_modality || 'Not specified'}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Days of Availability:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Days of Availability:</span>
+                            <span className={styles['detail-value']}>
                               {parseArrayString(currentUser.availability)}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Learning Style:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Learning Style:</span>
+                            <span className={styles['detail-value']}>
                               {parseArrayString(currentUser.learn_sty)}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Preferred Session Duration:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Preferred Session Duration:</span>
+                            <span className={styles['detail-value']}>
                               {currentUser.prefSessDur || 'Not specified'}
                             </span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Subject of Interest:</span>
-                            <span className="detail-value">
+                          <div className={styles['detail-item']}>
+                            <span className={styles['detail-label']}>Subject of Interest:</span>
+                            <span className={styles['detail-value']}>
                               {parseArrayString(currentUser.subjects)}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="bio-card">
-                        <h4 className="section-title">
+                      <div className={styles['bio-card']}>
+                        <h4 className={styles['section-title']}>
                           <i className="fas fa-user-edit"></i> Bio & Goals
                         </h4>
-                        <hr className="divider2" />
-                        <div className="bio-content">
-                          <div className="detail-item2">
-                            <span className="detail-label">Short Bio:</span>
-                            <span className="detail-value2">
+                        <hr className={styles['divider2']} />
+                        <div className={styles['bio-content']}>
+                          <div className={styles['detail-item2']}>
+                            <span className={styles['detail-label']}>Short Bio:</span>
+                            <span className={styles['detail-value2']}>
                               {currentUser.bio || 'No bio provided'}
                             </span>
                           </div>
-                          <div className="detail-item2">
-                            <span className="detail-label">Learning Goals:</span>
-                            <span className="detail-value2">
+                          <div className={styles['detail-item2']}>
+                            <span className={styles['detail-label']}>Learning Goals:</span>
+                            <span className={styles['detail-value2']}>
                               {currentUser.goals || 'No goals provided'}
                             </span>
                           </div>
@@ -706,14 +523,14 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <div className="footer-actions">
-                  <button className="footer-btn back" onClick={hideUserDetails}>
+              <div className={styles['modal-footer']}>
+                <div className={styles['footer-actions']}>
+                  <button className={`${styles['footer-btn']} ${styles.back}`} onClick={hideUserDetails}>
                     <i className="fas fa-arrow-left"></i> Back to Users
                   </button>
                   <button
-                    className="footer-btn export"
-                    onClick={() => exportUserToPDF(currentUser)}
+                    className={`${styles['footer-btn']} ${styles.export}`}
+                    onClick={handleExportPdf}
                   >
                     <i className="fas fa-file-pdf"></i> Export PDF
                   </button>
@@ -723,6 +540,12 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
           </div>
         )}
       </div>
+
+      <div ref={printRef}>
+        {/* ...existing table/content to export... */}
+      </div>
+
+      <button type="button" onClick={handleExportPdf}>Export PDF</button>
     </>
   );
 };
