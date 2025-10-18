@@ -6,6 +6,7 @@ import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import api, { setAuthToken } from "@/lib/axios";
 import styles from "./login.module.css";
+import { toast } from "react-toastify";
 
 export default function Login() {
   const router = useRouter();
@@ -124,6 +125,11 @@ export default function Login() {
         setAuthToken(token);
       }
 
+      if (response.status !== 200) {
+        toast.error("Login failed. Please check your credentials.");
+        return;
+      }
+
       const role = userRole || user?.role;
 
       if (!role || role === "user" || role === "") {
@@ -145,6 +151,7 @@ export default function Login() {
           router.replace("/signup");
       }
     } catch (error) {
+      toast.error("An error occurred during login. Please try again.");
       console.error("Login failed:", error);
     } finally {
       setIsLoading(false);

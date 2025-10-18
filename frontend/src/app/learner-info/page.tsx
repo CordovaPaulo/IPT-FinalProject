@@ -3,7 +3,7 @@
 import React, { useId, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
-import './LearnerInfo.css';
+import styles from './LearnerInfo.module.css';
 import api from "@/lib/axios";
 
 interface DropdownOpenState {
@@ -85,6 +85,11 @@ const LearnerInfo = () => {
     'Project-based',
     'Step-by-step process'
   ];
+
+  // Added missing IDs/options/state to prevent runtime ReferenceError
+  const availabilityListboxId = 'availability-listbox';
+  const modalityListboxId = 'modality-listbox';
+  const modalityOptions = ['Online', 'In-person', 'Hybrid'];
   
   const programs = [
     'Bachelor of Science in Information Technology (BSIT)',
@@ -733,8 +738,7 @@ const LearnerInfo = () => {
       const mapModality = (modality: string) => {
         const modalityMap: { [key: string]: string } = {
           'Online': 'online',
-          'In-person': 'face-to-face',
-          'Face-to-face': 'face-to-face',
+          'In-person': 'in-person',
           'Hybrid': 'mixed'
         };
         return modalityMap[modality] || modality.toLowerCase();
@@ -793,7 +797,7 @@ const LearnerInfo = () => {
       });
       
       console.log('Learner signup successful:', response.data);
-      router.push('/learner');
+      router.replace('/auth/login');
     } catch (error) {
       console.error('Learner signup error:', error);
       alert('There was an error submitting your information. Please try again.');
@@ -899,45 +903,37 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
 };
 
   return (
-    <div className="learnerinfo-container">
+    <div className={`${styles.root} ${styles['learnerinfo-container']}`}>
       <Head>
         <title>Learner Information</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
       </Head>
-      
+
       <button 
         ref={backButtonRef}
         onClick={() => router.push('/auth/signup')} 
-        className="back-btn"
+        className={styles['back-btn']}
         tabIndex={0}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-        >
-          <path
-            fillRule="evenodd"
-            d="M11.03 3.97a.75.75 0 010 1.06l-6.22 6.22H21a.75.75 0 010 1.5H4.81l6.22 6.22a.75.75 0 11-1.06 1.06l-7.5-7.5a.75.75 0 010-1.06l7.5-7.5a.75.75 0 011.06 0z"
-            clipRule="evenodd"
-          />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path fillRule="evenodd" d="M11.03 3.97a.75.75 0 010 1.06l-6.22 6.22H21a.75.75 0 010 1.5H4.81l6.22 6.22a.75.75 0 11-1.06 1.06l-7.5-7.5a.75.75 0 010-1.06l7.5-7.5a.75.75 0 011.06 0z" clipRule="evenodd"/>
         </svg>
         Back
       </button>
 
-      <header className="page-header">
+      <header className={styles['page-header']}>
         <h1>LEARNER INFO</h1>
         <p>Complete your profile to start learning.</p>
       </header>
 
-      <div className="form-container scrollable-content">
+      <div className={`${styles['form-container']} ${styles['scrollable-content']}`}>
         {currentStep === 1 && (
           <div>
-            <h2 className="title">I. PERSONAL INFORMATION</h2>
+            <h2 className={styles.title}>I. PERSONAL INFORMATION</h2>
 
-            <div className="personal-field">
-              <label className="personal-label required" htmlFor="address">ADDRESS</label>
+            <div className={styles['personal-field']}>
+              <label className={`${styles['personal-label']} ${styles.required}`} htmlFor="address">ADDRESS</label>
               <input
                 ref={addressRef}
                 type="text"
@@ -950,18 +946,18 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                 onBlur={() => validateField('address', address)}
                 placeholder="Enter your address"
                 disabled={isSubmitting}
-                className={`personal-input ${validationErrors.address ? 'error' : ''}`}
+                className={`${styles['personal-input']} ${validationErrors.address ? styles.error : ''}`}
                 tabIndex={0}
               />
               {validationErrors.address && (
-                <span className="validation-message">
+                <span className={styles['validation-message']}>
                   {validationErrors.address}
                 </span>
               )}
             </div>
 
-            <div className="personal-field">
-              <label className="personal-label required" htmlFor="contact-number">
+            <div className={styles['personal-field']}>
+              <label className={`${styles['personal-label']} ${styles.required}`} htmlFor="contact-number">
                 CONTACT NUMBER
               </label>
               <input
@@ -977,43 +973,43 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                 onBlur={() => validateField('contactNumber', contactNumber)}
                 placeholder="Enter your contact number (11 digits)"
                 disabled={isSubmitting}
-                className={`personal-input ${validationErrors.contactNumber ? 'error' : ''}`}
+                className={`${styles['personal-input']} ${validationErrors.contactNumber ? styles.error : ''}`}
                 maxLength={11}
                 tabIndex={0}
               />
               {validationErrors.contactNumber && (
-                <span className="validation-message">
+                <span className={styles['validation-message']}>
                   {validationErrors.contactNumber}
                 </span>
               )}
             </div>
 
-            <div className="personal-field">
-              <label className="personal-label required" htmlFor="gender">
+            <div className={styles['personal-field']}>
+              <label className={`${styles['personal-label']} ${styles.required}`} htmlFor="gender">
                 SEX AT BIRTH
               </label>
               <div 
                 ref={genderRef}
-                className="gender-dropdown"
+                className={styles['gender-dropdown']}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'gender')}
               >
-                <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('gender'); }}>
+                <div className={styles['dropdown-container']} onClick={(e) => { e.stopPropagation(); toggleDropdown('gender'); }}>
                   <input
                     type="text"
                     value={gender}
                     placeholder="Select your sex"
                     disabled={isSubmitting}
-                    className="personal-input"
+                    className={styles['personal-input']}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
                 {dropdownOpen.gender && (
-                  <div className="dropdown-options">
+                  <div className={styles['dropdown-options']}>
                     <div 
-                      className="dropdown-option" 
+                      className={styles['dropdown-option']} 
                       onClick={() => {
                         setGender('Female');
                         setDropdownOpen({ ...dropdownOpen, gender: false });
@@ -1029,7 +1025,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                       Female
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles['dropdown-option']} 
                       onClick={() => {
                         setGender('Male');
                         setDropdownOpen({ ...dropdownOpen, gender: false });
@@ -1047,130 +1043,70 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                   </div>
                 )}
                 {validationErrors.gender && (
-                  <span className="validation-message">
+                  <span className={styles['validation-message']}>
                     {validationErrors.gender}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="personal-field">
-              <label className="personal-label" htmlFor="year-level">YEAR LEVEL </label>
+            <div className={styles['personal-field']}>
+              <label className={styles['personal-label']} htmlFor="year-level">YEAR LEVEL </label>
               <div 
                 ref={yearLevelRef}
-                className="year-dropdown"
+                className={styles['year-dropdown']}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'yearLevel')}
               >
-                <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('yearLevel'); }}>
+                <div className={styles['dropdown-container']} onClick={(e) => { e.stopPropagation(); toggleDropdown('yearLevel'); }}>
                   <input
                     type="text"
                     value={yearLevel}
                     placeholder="Select your year level"
                     disabled={isSubmitting}
-                    className="personal-input"
+                    className={styles['personal-input']}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
                 {dropdownOpen.yearLevel && (
-                  <div className="dropdown-options">
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setYearLevel('1st Year');
-                        setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setYearLevel('1st Year');
-                          setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                        }
-                      }}
-                    >
-                      1st Year
-                    </div>
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setYearLevel('2nd Year');
-                        setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setYearLevel('2nd Year');
-                          setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                        }
-                      }}
-                    >
-                      2nd Year
-                    </div>
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setYearLevel('3rd Year');
-                        setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setYearLevel('3rd Year');
-                          setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                        }
-                      }}
-                    >
-                      3rd Year
-                    </div>
-                    <div 
-                      className="dropdown-option" 
-                      onClick={() => {
-                        setYearLevel('4th Year');
-                        setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                      }}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setYearLevel('4th Year');
-                          setDropdownOpen({ ...dropdownOpen, yearLevel: false });
-                        }
-                      }}
-                    >
-                      4th Year
-                    </div>
+                  <div className={styles['dropdown-options']}>
+                    <div className={styles['dropdown-option']} onClick={() => { setYearLevel('1st Year'); setDropdownOpen({ ...dropdownOpen, yearLevel: false }); }} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setYearLevel('1st Year'); setDropdownOpen({ ...dropdownOpen, yearLevel: false }); } }}>1st Year</div>
+                    <div className={styles['dropdown-option']} onClick={() => { setYearLevel('2nd Year'); setDropdownOpen({ ...dropdownOpen, yearLevel: false }); }} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setYearLevel('2nd Year'); setDropdownOpen({ ...dropdownOpen, yearLevel: false }); } }}>2nd Year</div>
+                    <div className={styles['dropdown-option']} onClick={() => { setYearLevel('3rd Year'); setDropdownOpen({ ...dropdownOpen, yearLevel: false }); }} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setYearLevel('3rd Year'); setDropdownOpen({ ...dropdownOpen, yearLevel: false }); } }}>3rd Year</div>
+                    <div className={styles['dropdown-option']} onClick={() => { setYearLevel('4th Year'); setDropdownOpen({ ...dropdownOpen, yearLevel: false }); }} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setYearLevel('4th Year'); setDropdownOpen({ ...dropdownOpen, yearLevel: false }); } }}>4th Year</div>
                   </div>
                 )}
               </div>
             </div>
             
-            <div className="personal-field">
-              <label className="personal-label" htmlFor="program">PROGRAM </label>
+            <div className={styles['personal-field']}>
+              <label className={styles['personal-label']} htmlFor="program">PROGRAM </label>
               <div 
                 ref={programRef}
-                className="program-dropdown"
+                className={styles['program-dropdown']}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'program')}
               >
-                <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('program'); }}>
+                <div className={styles['dropdown-container']} onClick={(e) => { e.stopPropagation(); toggleDropdown('program'); }}>
                   <input
                     type="text"
                     value={program}
                     placeholder="Select your program"
-                    className="personal-input"
+                    className={styles['personal-input']}
                     disabled={isSubmitting}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
                 {dropdownOpen.program && (
-                  <div className="dropdown-options">
+                  <div className={styles['dropdown-options']}>
                     {programs.map(programOption => (
                       <div
                         key={programOption}
-                        className="dropdown-option"
+                        className={styles['dropdown-option']}
                         onClick={() => {
                           setProgram(programOption);
                           setDropdownOpen({ ...dropdownOpen, program: false });
@@ -1195,14 +1131,14 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
 
         {currentStep === 2 && (
           <div>
-            <h2 className="title">II. PROFILE INFORMATION</h2>
+            <h2 className={styles.title}>II. PROFILE INFORMATION</h2>
 
-            <div className="upload-container">
-              <div className="profile-picture-upload">
-                <label className="profile-label">PROFILE PICTURE</label>
+            <div className={styles['upload-container']}>
+              <div className={styles['profile-picture-upload']}>
+                <label className={styles['profile-label']}>PROFILE PICTURE</label>
                 <div 
                   ref={profileUploadRef}
-                  className="upload-controls" 
+                  className={styles['upload-controls']} 
                   onClick={uploadProfilePicture}
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -1211,39 +1147,20 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                     }
                   }}
                 >
-                  <div className="profile-preview-container">
+                  <div className={styles['profile-preview-container']}>
                     {profileImage ? (
-                      <img
-                        src={profileImage}
-                        alt="Profile Preview"
-                        className="profile-preview"
-                      />
+                      <img src={profileImage} alt="Profile Preview" className={styles['profile-preview']} />
                     ) : (
                       <i className="fas fa-user-circle default-icon"></i>
                     )}
                   </div>
-                  <div className="upload-text">
-                    <div className="choose-file-container">
+                  <div className={styles['upload-text']}>
+                    <div className={styles['choose-file-container']}>
                       <i className="fas fa-upload"></i>
                       <span>Choose File</span>
                     </div>
-                    <input
-                      type="file"
-                      ref={profileInputRef}
-                      accept="image/*"
-                      disabled={isSubmitting}
-                      style={{ display: 'none' }}
-                      onChange={handleProfileUpload}
-                    />
-                    <span
-                      className="file-name"
-                      style={{
-                        maxWidth: '150px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
+                    <input type="file" ref={profileInputRef} accept="image/*" disabled={isSubmitting} style={{ display: 'none' }} onChange={handleProfileUpload} />
+                    <span className={styles['file-name']} style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {profilePictureName || 'No file chosen'}
                     </span>
                   </div>
@@ -1251,35 +1168,35 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
               </div>
             </div>
 
-            <div className="divider"></div>
+            <div className={styles.divider}></div>
 
-            <div className="profile-field">
-              <label className="profile-label" htmlFor="availability-days">
+            <div className={styles['profile-field']}>
+              <label className={styles['profile-label']} htmlFor="availability-days">
                 DAYS OF AVAILABILITY
               </label>
               <div 
                 ref={availabilityRef}
-                className="availability-dropdown"
+                className={styles['availability-dropdown']}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'availability')}
               >
-                <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('availability'); }}>
+                <div className={styles['dropdown-container']} onClick={(e) => { e.stopPropagation(); toggleDropdown('availability'); }}>
                   <input
                     type="text"
                     id="availability-days"
                     value={availabilityDaysDisplay}
                     placeholder="Select available days"
                     disabled={isSubmitting}
-                    className="profile-input"
+                    className={styles['profile-input']}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
                 {dropdownOpen.availability && (
                   <div
                     id={availabilityListboxId}
-                    className="dropdown-options availability-options"
+                    className={`${styles['dropdown-options']} ${styles['availability-options']}`}
                     role="listbox"
                     aria-multiselectable="true"
                   >
@@ -1292,7 +1209,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                           role="option"
                           aria-selected={isSelected}
                           tabIndex={-1}
-                          className="dropdown-option availability-option"
+                          className={`${styles['dropdown-option']} ${styles['availability-option']}`}
                           onKeyDown={handleOptionKeyDown}
                         >
                           <input
@@ -1320,15 +1237,10 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label required">SUBJECTS OF INTEREST</label>
-              <div 
-                ref={subjectsRef}
-                className="dropdown-wrapper"
-                tabIndex={0}
-                onKeyDown={handleSubjectsKeyNavigation}
-              >
-                <div className="dropdown-trigger" onClick={(e) => { e.stopPropagation(); toggleSubjectDropdown(); }}>
+            <div className={styles['profile-field']}>
+              <label className={`${styles['profile-label']} ${styles.required}`}>SUBJECTS OF INTEREST</label>
+              <div ref={subjectsRef} className={styles['dropdown-wrapper']} tabIndex={0} onKeyDown={handleSubjectsKeyNavigation}>
+                <div className={styles['dropdown-trigger']} onClick={(e) => { e.stopPropagation(); toggleSubjectDropdown(); }}>
                   <input
                     type="text"
                     placeholder={
@@ -1338,18 +1250,18 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                     }
                     readOnly
                     disabled={isSubmitting}
-                    className={`profile-input ${validationErrors.selectedSubjects ? 'error' : ''}`}
+                    className={`${styles['profile-input']} ${validationErrors.selectedSubjects ? styles.error : ''}`}
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
 
                 {showCategories && (
-                  <div className="dropdown-menu categories">
+                  <div className={`${styles['dropdown-menu']} ${styles.categories}`}>
                     {categories.map(category => (
                       <div
                         key={category.type}
-                        className="dropdown-item"
+                        className={styles['dropdown-item']}
                         onClick={() => selectCategory(category)}
                         tabIndex={0}
                         onKeyDown={(e) => {
@@ -1360,7 +1272,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                       >
                         {category.name}
                         {selectedSubjectsCount[category.type as keyof typeof selectedSubjectsCount] > 0 && (
-                          <span className="count-badge">
+                          <span className={styles['count-badge']}>
                             {selectedSubjectsCount[category.type as keyof typeof selectedSubjectsCount]}
                           </span>
                         )}
@@ -1370,10 +1282,10 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                 )}
 
                 {showSubjectsDropdown && (
-                  <div className="dropdown-menu subjects">
+                  <div className={`${styles['dropdown-menu']} ${styles.subjects}`}>
                     {currentSubjects.length > 0 ? (
                       currentSubjects.map(subject => (
-                        <div key={subject} className="dropdown-item subject-item">
+                        <div key={subject} className={`${styles['dropdown-item']} ${styles['subject-item']}`}>
                           <input
                             type="checkbox"
                             id={subject}
@@ -1393,7 +1305,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                         </div>
                       ))
                     ) : (
-                      <div className="dropdown-item no-subjects">
+                      <div className={`${styles['dropdown-item']} ${styles['no-subjects']}`}>
                         No subjects available
                       </div>
                     )}
@@ -1401,51 +1313,51 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                 )}
               </div>
               {validationErrors.selectedSubjects && (
-                <span className="validation-message">
+                <span className={styles['validation-message']}>
                   {validationErrors.selectedSubjects}
                 </span>
               )}
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label" htmlFor="modality">
+            <div className={styles['profile-field']}>
+              <label className={styles['profile-label']} htmlFor="modality">
                 LEARNING MODALITY
               </label>
               <div 
                 ref={modalityRef}
-                className="subjmodality-dropdown"
+                className={styles['subjmodality-dropdown']}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'modality')}
               >
-                <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('modality'); }}>
+                <div className={styles['dropdown-container']} onClick={(e) => { e.stopPropagation(); toggleDropdown('modality'); }}>
                   <input
                     type="text"
                     value={modality}
                     disabled={isSubmitting}
                     placeholder="Select learning modality"
-                    className="profile-input"
+                    className={styles['profile-input']}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
                 {dropdownOpen.modality && (
                   <div
                     id={modalityListboxId}
-                    className="dropdown-options modality-options"
+                    className={styles['dropdown-options']}
                     role="listbox"
                     aria-multiselectable="false"
                   >
                     {modalityOptions.map((mod) => {
                       const optionId = `modality-${mod}`;
-                      const isSelected = selectedModality === mod; // wire to your state
+                      const isSelected = modality === mod; // wire to your state
                       return (
                         <div
                           key={mod}
                           role="option"
                           aria-selected={isSelected}
                           tabIndex={-1}
-                          className="dropdown-option modality-option"
+                          className={styles['dropdown-option']}
                           onKeyDown={handleOptionKeyDown}
                         >
                           <input
@@ -1454,7 +1366,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                             id={optionId}
                             disabled={isSubmitting}
                             checked={isSelected}
-                            onChange={() => setSelectedModality(mod)}
+                            onChange={() => setModality(mod)}
                           />
                           <label htmlFor={optionId}>{mod}</label>
                         </div>
@@ -1465,32 +1377,32 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label" htmlFor="session-duration">
+            <div className={styles['profile-field']}>
+              <label className={styles['profile-label']} htmlFor="session-duration">
                 PREFERRED SESSION DURATION
               </label>
               <div 
                 ref={sessionDurationRef}
-                className="session-duration-dropdown"
+                className={styles['session-duration-dropdown']}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'sessionDuration')}
               >
-                <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('sessionDuration'); }}>
+                <div className={styles['dropdown-container']} onClick={(e) => { e.stopPropagation(); toggleDropdown('sessionDuration'); }}>
                   <input
                     type="text"
                     value={sessionDuration}
                     disabled={isSubmitting}
                     placeholder="Select duration"
-                    className="profile-input"
+                    className={styles['profile-input']}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
                 {dropdownOpen.sessionDuration && (
-                  <div className="dropdown-options">
+                  <div className={styles['dropdown-options']}>
                     <div 
-                      className="dropdown-option" 
+                      className={styles['dropdown-option']} 
                       onClick={() => {
                         setSessionDuration('1 hour');
                         setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
@@ -1506,7 +1418,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                       1 hour
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles['dropdown-option']} 
                       onClick={() => {
                         setSessionDuration('2 hours');
                         setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
@@ -1522,7 +1434,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                       2 hours
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles['dropdown-option']} 
                       onClick={() => {
                         setSessionDuration('3 hours');
                         setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
@@ -1542,33 +1454,33 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label" htmlFor="learning-style">
+            <div className={styles['profile-field']}>
+              <label className={styles['profile-label']} htmlFor="learning-style">
                 LEARNING STYLE
               </label>
               <div 
                 ref={learningStyleRef}
-                className="learning-style-dropdown"
+                className={styles['learning-style-dropdown']}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'learningStyle')}
               >
-                <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('learningStyle'); }}>
+                <div className={styles['dropdown-container']} onClick={(e) => { e.stopPropagation(); toggleDropdown('learningStyle'); }}>
                   <input
                     type="text"
                     id="learning-style"
                     value={learningStyleDisplay}
                     disabled={isSubmitting}
                     placeholder="Select learning style(s)"
-                    className="profile-input"
+                    className={styles['profile-input']}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
                 {dropdownOpen.learningStyle && (
-                  <div className="dropdown-options learning-style-options">
+                  <div className={styles['dropdown-options']}>
                     {sessionStyles.map(style => (
-                      <div key={style} className="dropdown-option learning-style-option">
+                      <div key={style} className={styles['dropdown-option']}>
                         <input
                           type="checkbox"
                           id={`style-${style}`}
@@ -1592,8 +1504,8 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label required" htmlFor="bio">SHORT BIO</label>
+            <div className={styles['profile-field']}>
+              <label className={styles['profile-label required']} htmlFor="bio">SHORT BIO</label>
               <textarea
                 ref={bioRef}
                 id="bio"
@@ -1606,18 +1518,18 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                 disabled={isSubmitting}
                 placeholder="Tell us about yourself (50-500 characters)"
                 rows={4}
-                className={`profile-textarea ${validationErrors.bio ? 'error' : ''}`}
+                className={`${styles['profile-textarea']} ${validationErrors.bio ? styles.error : ''}`}
                 tabIndex={0}
               ></textarea>
               {validationErrors.bio && (
-                <span className="validation-message">
+                <span className={styles['validation-message']}>
                   {validationErrors.bio}
                 </span>
               )}
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label required" htmlFor="goals">
+            <div className={styles['profile-field']}>
+              <label className={styles['profile-label required']} htmlFor="goals">
                 LEARNING GOALS
               </label>
               <textarea
@@ -1632,11 +1544,11 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                 disabled={isSubmitting}
                 placeholder="Describe your learning goals (50-500 characters)"
                 rows={4}
-                className={`profile-textarea ${validationErrors.goals ? 'error' : ''}`}
+                className={`${styles['profile-textarea']} ${validationErrors.goals ? styles.error : ''}`}
                 tabIndex={0}
               ></textarea>
               {validationErrors.goals && (
-                <span className="validation-message">
+                <span className={styles['validation-message']}>
                   {validationErrors.goals}
                 </span>
               )}
@@ -1645,21 +1557,15 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
         )}
       </div>
 
-      <div className="next-button-container">
+      <div className={styles['next-button-container']}>
         {currentStep === 2 && (
-          <button
-            ref={prevStepButtonRef}
-            className="prev-step-button"
-            onClick={prevStep}
-            disabled={isSubmitting}
-            tabIndex={0}
-          >
+          <button ref={prevStepButtonRef} className={styles['prev-step-button']} onClick={prevStep} disabled={isSubmitting} tabIndex={0}>
             PREVIOUS
           </button>
         )}
         <button
           ref={nextButtonRef}
-          className={`next-button ${isSubmitting ? 'loading' : ''} ${isButtonActive ? 'active' : ''}`}
+          className={`${styles['next-button']} ${isSubmitting ? styles.loading : ''} ${isButtonActive ? styles.active : ''}`}
           onClick={nextStep}
           onMouseDown={() => !isSubmitting && setIsButtonActive(true)}
           onMouseUp={() => setIsButtonActive(false)}
@@ -1668,7 +1574,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
           tabIndex={0}
         >
           {isSubmitting ? (
-            <span className="loading-spinner"></span>
+            <span className={styles['loading-spinner']}></span>
           ) : currentStep === totalSteps ? (
             'SUBMIT'
           ) : (

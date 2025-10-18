@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react'; // Added useRef
+import type React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainComponent from '@/components/learnerpage/main/page';
 import SessionComponent from '@/components/learnerpage/session/page';
@@ -8,7 +9,7 @@ import ReviewsComponent from '@/components/learnerpage/reviews/page';
 import EditInformation from '@/components/learnerpage/information/page';
 import LogoutComponent from '@/components/learnerpage/logout/page';
 import api from "@/lib/axios";
-import './learner.css';
+import styles from './learner.module.css';
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {
@@ -41,7 +42,6 @@ interface UserData {
   __v: number;
 }
 
-// Update the Schedule interface to match the API response
 interface Schedule {
   id: string;
   date: string;
@@ -94,7 +94,6 @@ interface Mentor {
   image_url: string;
 }
 
-// Update the Mentor interface to match the API response
 interface MentorFromAPI {
   id: string;
   name: string;
@@ -105,7 +104,16 @@ interface MentorFromAPI {
   proficiency: string
 }
 
-// Helper function to transform schedules for review component
+interface TransformedMentor {
+  id: string;
+  userName: string;
+  yearLevel: string;
+  course: string;
+  image_url: string;
+  proficiency: string;
+  rating_ave: number;
+}
+
 const transformSchedulesForReview = (schedules: any[]): any[] => {
   return schedules.map(schedule => ({
     id: schedule.id,
@@ -133,10 +141,9 @@ const transformSchedulesForReview = (schedules: any[]): any[] => {
   }));
 };
 
-// Transform function to convert API data to component format
-const transformMentorData = (apiMentors: MentorFromAPI[]): User[] => {
+const transformMentorData = (apiMentors: MentorFromAPI[]): TransformedMentor[] => {
   return apiMentors.map(mentor => ({
-    id: mentor.id, // Convert string ID to number
+    id: mentor.id,
     userName: mentor.name,
     yearLevel: mentor.yearLevel,
     course: mentor.program,
@@ -180,7 +187,7 @@ export default function LearnerPage() {
   const [users, setUsers] = useState<Mentor[]>([]);
   const [profile, setProfile] = useState<UserData[]>([]);
   const [mentors, setMentors] = useState<MentorFromAPI[]>([]);
-  const [transformedMentors, setTransformedMentors] = useState<User[]>([]);
+  const [transformedMentors, setTransformedMentors] = useState<TransformedMentor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoadingMentors, setIsLoadingMentors] = useState(false);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
@@ -194,12 +201,10 @@ export default function LearnerPage() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // NEW: Keyboard navigation state for topbar
   const [focusedTopbarIndex, setFocusedTopbarIndex] = useState(0);
   const [isTopbarFocused, setIsTopbarFocused] = useState(false);
   const topbarRef = useRef<HTMLDivElement>(null);
 
-  // Define topbar items in order
   const topbarItems = [
     { key: 'main', label: 'Mentors', icon: '/main.svg' },
     { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
@@ -209,7 +214,6 @@ export default function LearnerPage() {
   const startLoading = () => setIsLoading(true);
   const stopLoading = () => setIsLoading(false);
 
-  // NEW: Keyboard navigation functions for topbar
   const handleTopbarKeyDown = (e: React.KeyboardEvent) => {
     if (!isTopbarFocused) return;
 
@@ -257,7 +261,6 @@ export default function LearnerPage() {
 
   const focusTopbar = () => {
     setIsTopbarFocused(true);
-    // Set focus to current active component
     const currentIndex = topbarItems.findIndex(item => item.key === activeComponent);
     setFocusedTopbarIndex(currentIndex >= 0 ? currentIndex : 0);
   };
@@ -273,97 +276,9 @@ export default function LearnerPage() {
         },
       });
 
-      setTodaySchedule(res.data); // Or setSchedules(res.data) if you want all schedules in one state
-
-      // If you want to separate today's and upcoming schedules, you can filter here
-      // Example:
-      // const today = new Date().toISOString().split('T')[0];
-      // setTodaySchedule(res.data.filter(s => s.date === today));
-      // setUpcomingSchedule(res.data.filter(s => s.date > today));
-
+      setTodaySchedule(res.data);
     } catch (error) {
       console.error('Error fetching session info:', error);
-    }
-  };
-
-  const sessionForReview = async () => {
-    try {
-      console.log("Fetching sessions for review...");
-      const mockSchedForReview: Schedule[] = [
-        {
-          id: 5,
-          date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-          time: "9:00 AM",
-          mentor_name: "Dr. Davis",
-          subject: "Physics",
-          location: "Room 301",
-          mentor: {
-            user: {
-              name: "Dr. Davis"
-            },
-            year: "Professor",
-            course: "Physics (PHY)",
-            image: "https://placehold.co/600x400",
-            ment_inf_id: 5
-          },
-          feedback: {
-            rating: 0,
-            feedback: ""
-          },
-          has_feedback: false,
-          files: []
-        },
-        {
-          id: 6,
-          date: new Date(Date.now() - 172800000).toISOString().split('T')[0],
-          time: "1:00 PM",
-          mentor_name: "Prof. Miller",
-          subject: "Calculus",
-          location: "Online",
-          mentor: {
-            user: {
-              name: "Prof. Miller"
-            },
-            year: "Associate Professor",
-            course: "Mathematics (MATH)",
-            image: "https://placehold.co/600x400",
-            ment_inf_id: 6
-          },
-          feedback: {
-            rating: 4,
-            feedback: "Great session! Very helpful explanations and patient teaching style."
-          },
-          has_feedback: true,
-          files: []
-        },
-        {
-          id: 7,
-          date: new Date(Date.now() - 259200000).toISOString().split('T')[0],
-          time: "11:00 AM",
-          mentor_name: "Dr. Wilson",
-          subject: "Data Structures",
-          location: "Lab 101",
-          mentor: {
-            user: {
-              name: "Dr. Wilson"
-            },
-            year: "Professor",
-            course: "Computer Science (CS)",
-            image: "https://placehold.co/600x400",
-            ment_inf_id: 7
-          },
-          feedback: {
-            rating: 5,
-            feedback: "Excellent mentor! Very knowledgeable and provided great examples."
-          },
-          has_feedback: true,
-          files: []
-        }
-      ];
-      
-      setSchedForReview(mockSchedForReview);
-    } catch (error) {
-      console.error('Error fetching completed sessions:', error);
     }
   };
 
@@ -499,7 +414,6 @@ export default function LearnerPage() {
     }
   };
 
-  // Function to handle updating user data from the edit form
   const handleUpdateUserData = (updatedData: Partial<UserData>) => {
     setUserData(prev => ({
       ...prev,
@@ -559,14 +473,12 @@ export default function LearnerPage() {
       
     } catch (error) {
       console.error('Error fetching user data:', error);
-      
       console.log("Keeping mock data due to API error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch all mentors
   const fetchMentors = async () => {
     setIsLoadingMentors(true);
     try {
@@ -580,20 +492,13 @@ export default function LearnerPage() {
       });
       
       console.log("Mentors API Response:", res.data);
-      
-      // Set the raw API data
       setMentors(res.data);
-      
-      // Transform and set the data for the component
       const transformed = transformMentorData(res.data);
       setTransformedMentors(transformed);
-      
       console.log("Transformed mentors:", transformed);
       
     } catch (error) {
       console.error('Error fetching mentors:', error);
-      
-      // Fallback to mock data if API fails
       const mockMentors: MentorFromAPI[] = [
         {
           id: "1",
@@ -632,7 +537,6 @@ export default function LearnerPage() {
     }
   };
 
-  // Fetch schedules
   const fetchSchedules = async () => {
     setIsLoadingSchedules(true);
     try {
@@ -644,7 +548,6 @@ export default function LearnerPage() {
         },
       });
 
-      // Assign each array to its state
       setTodaySchedule(res.data.todaySchedule || []);
       setUpcomingSchedule(res.data.upcomingSchedule || []);
       setSchedForReview(res.data.schedForReview || []);
@@ -663,7 +566,6 @@ export default function LearnerPage() {
       if (isMobileView) {
         setIsSidebarVisible(false);
       }
-      // Update focused index when component changes via click
       const newIndex = topbarItems.findIndex(item => item.key === component);
       if (newIndex >= 0) {
         setFocusedTopbarIndex(newIndex);
@@ -686,7 +588,7 @@ export default function LearnerPage() {
           mentorProfile(),
           fetchMentFiles(),
           fetchMentors(),
-          fetchSchedules() // Only this for schedules
+          fetchSchedules()
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -704,7 +606,6 @@ export default function LearnerPage() {
     };
   }, []);
 
-  // Add debugging useEffect
   useEffect(() => {
     console.log("Current userData state:", userData);
   }, [userData]);
@@ -712,13 +613,38 @@ export default function LearnerPage() {
   const renderComponent = () => {
     const transformedSchedForReview = transformSchedulesForReview(schedForReview);
 
+    const normalizeForSession = (items: any[] = []) =>
+      items.map((s: any) => ({
+        id: Number(s.id) || 0,
+        subject: s.subject || '',
+        mentor: {
+          user: { name: s.mentor?.user?.name || s.mentor?.name || 'Unknown Mentor' },
+          ment_inf_id: Number(s.mentor?.ment_inf_id ?? s.mentor?.id ?? 0)
+        },
+        date: s.date ? String(s.date) : '',
+        time: s.time || '',
+        location: s.location || '',
+        files: s.files || []
+      }));
+
+    const sessionSchedule = normalizeForSession(todaySchedule as any[]);
+    const sessionUpcoming = normalizeForSession(upcomingSchedule as any[]);
+    const sessionMentFiles = {
+      files: (mentorFiles || []).map(f => ({
+        id: Number(f.id) || 0,
+        file_name: f.file_name || f.name || '',
+        file_id: f.file_id || '',
+        owner_id: Number(f.owner_id) || 0
+      }))
+    };
+
     const props = {
       userInformation: filteredUsers,
       userData,
-      upcomingSchedule,
-      schedule: todaySchedule,
+      upcomingSchedule: sessionUpcoming,
+      schedule: sessionSchedule,
       schedForReview: schedForReview,
-      mentFiles: { files: mentorFiles },
+      mentFiles: sessionMentFiles,
       onScheduleCreated: fetchSchedules 
     };
 
@@ -726,15 +652,24 @@ export default function LearnerPage() {
       case 'main':
         return <MainComponent {...props} />;
       case 'session':
-        return <SessionComponent {...props} />;
+        return (
+          <SessionComponent
+            schedule={sessionSchedule}
+            upcomingSchedule={sessionUpcoming}
+            mentFiles={sessionMentFiles}
+            schedForReview={transformSchedulesForReview(schedForReview)}
+            userInformation={filteredUsers}
+            userData={userData}
+          />
+        );
       case 'records':
-        return <ReviewsComponent 
-          schedForReview={schedForReview}
-          userData={userData}
-          data={{
-            schedForReview: schedForReview 
-          }}
-        />;
+        return (
+          <ReviewsComponent
+            schedForReview={schedForReview}
+            userData={userData}
+            data={{ schedForReview: schedForReview }}
+          />
+        );
       default:
         return <MainComponent {...props} />;
     }
@@ -745,35 +680,35 @@ export default function LearnerPage() {
   return (
     <>
       {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-backdrop"></div>
-          <div className="loading-spinner">Loading...</div>
+        <div className={styles['loading-overlay']}>
+          <div className={styles['loading-backdrop']}></div>
+          <div className={styles['loading-spinner']}></div>
         </div>
       )}
 
       {isMobileView && (
-        <button className="sidebar-toggle" onClick={toggleSidebar}>
+        <button className={styles['sidebar-toggle']} onClick={toggleSidebar}>
           ☰
         </button>
       )}
 
       {isMobileView && isSidebarVisible && (
-        <div className="sidebar-overlay" onClick={toggleSidebar}></div>
+        <div className={styles['sidebar-overlay']} onClick={toggleSidebar}></div>
       )}
 
-      <div 
-        className={`sidebar ${
-          isMobileView ? 'sidebar-mobile' : ''
-        } ${
-          isMobileView && isSidebarVisible ? 'sidebar-mobile-visible' : ''
-        }`}
+      <div
+        className={[
+          styles.sidebar,
+          isMobileView ? styles['sidebar-mobile'] : '',
+          isMobileView && isSidebarVisible ? styles['sidebar-mobile-visible'] : ''
+        ].filter(Boolean).join(' ')}
       >
-        <div className="logo-container">
-          <img src="/logo_gccoed.png" alt="GCCoEd Logo" className="logo" />
-          <span className="logo-text">MindMates</span>
+        <div className={styles['logo-container']}>
+          <img src="/logo_gccoed.png" alt="GCCoEd Logo" className={styles.logo} />
+          <span className={styles['logo-text']}>MindMates</span>
         </div>
 
-        <div className="upper-element">
+        <div className={styles['upper-element']}>
           <div>
             <h1>Hi, Learner!</h1>
             <img
@@ -781,7 +716,6 @@ export default function LearnerPage() {
               alt="profile-pic"
               width={100}
               height={100}
-              style={{ borderRadius: '50%', objectFit: 'cover' }}
             />
           </div>
           <div>
@@ -791,25 +725,23 @@ export default function LearnerPage() {
           </div>
         </div>
 
-        <div className="footer-element">
-          <div className="bio-container">
+        <div className={styles['footer-element']}>
+          <div className={styles['bio-container']}>
             <h1>BIO</h1>
-            <div className="lines">
-              <p style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
-                {userData.bio}
-              </p>
+            <div className={styles.lines}>
+              <p>{userData.bio}</p>
             </div>
           </div>
 
-          <div className="availability">
+          <div className={styles.availability}>
             <h1>Availability</h1>
-            <div className="lines">
+            <div className={styles.lines}>
               <h3>Days:</h3>
               <div>
                 <p>{userData.availability?.join(', ') || 'Not specified'}</p>
               </div>
             </div>
-            <div className="lines">
+            <div className={styles.lines}>
               <h3>Duration:</h3>
               <div>
                 <p>{userData.sessionDur || 'Not specified'}</p>
@@ -817,12 +749,12 @@ export default function LearnerPage() {
             </div>
           </div>
 
-          <div className="subject-interest">
+          <div className={styles['subject-interest']}>
             <h1>Subject of Interest</h1>
-            <div className="course-grid">
+            <div className={styles['course-grid']}>
               {userData.subjects?.slice(0, 5).map((subject, index) => (
-                <div key={index} className="course-card">
-                  <div className="lines">
+                <div key={index} className={styles['course-card']}>
+                  <div className={styles.lines}>
                     <div>
                       <p title={subject}>{subject}</p>
                     </div>
@@ -830,12 +762,14 @@ export default function LearnerPage() {
                 </div>
               )) || []}
               {(userData.subjects?.length || 0) > 5 && (
-                <div 
-                  className="course-card remaining-courses" 
+                <div
+                  className={[
+                    styles['course-card'],
+                    styles['remaining-courses']
+                  ].join(' ')}
                   onClick={() => setShowAllCourses(!showAllCourses)}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <div className="lines">
+                  <div className={styles.lines}>
                     <div>
                       <p>+{(userData.subjects?.length || 0) - 5}</p>
                     </div>
@@ -845,18 +779,22 @@ export default function LearnerPage() {
             </div>
 
             {showAllCourses && (
-              <div className="all-courses-popup">
-                <div className="popup-content">
+              <div className={styles['all-courses-popup']}>
+                <div
+                  className={styles['popup-overlay']}
+                  onClick={() => setShowAllCourses(false)}
+                />
+                <div className={styles['popup-content']}>
                   <h3>All Subject of Interest</h3>
-                  <div className="popup-courses">
+                  <div className={styles['popup-courses']}>
                     {userData.subjects?.map((subject, index) => (
-                      <div key={index} className="popup-course">
+                      <div key={index} className={styles['popup-course']}>
                         {subject}
                       </div>
                     )) || []}
                   </div>
-                  <button 
-                    className="popup-close-btn"
+                  <button
+                    className={styles['popup-close-btn']}
                     onClick={() => setShowAllCourses(false)}
                   >
                     Close
@@ -866,23 +804,23 @@ export default function LearnerPage() {
             )}
           </div>
 
-          <div className="account-actions">
-            <div className="account-dropdown">
-              <button className="account-dropbtn">
-                <img src="/person.svg" alt="Account" className="account-icon" />
+          <div className={styles['account-actions']}>
+            <div className={styles['account-dropdown']}>
+              <button className={styles['account-dropbtn']}>
+                <img src="/person.svg" alt="Account" className={styles['account-icon']} />
                 Account
               </button>
-              <div className="account-dropdown-content">
-                <a onClick={() => setIsEdit(true)} style={{ cursor: 'pointer' }}>
+              <div className={styles['account-dropdown-content']}>
+                <a onClick={() => setIsEdit(true)}>
                   <img src="/edit.svg" alt="Edit" /> Edit Information
                 </a>
-                <a onClick={registerMentorRole} style={{ cursor: 'pointer' }}>
+                <a onClick={registerMentorRole}>
                   <img src="/register.svg" alt="Register" /> Register as Mentor
                 </a>
-                <a onClick={switchRole} style={{ cursor: 'pointer' }}>
+                <a onClick={switchRole}>
                   <img src="/switch.svg" alt="Switch" /> Switch Account Role
                 </a>
-                <a onClick={() => setConfirmLogout(true)} style={{ cursor: 'pointer' }}>
+                <a onClick={() => setConfirmLogout(true)}>
                   <img src="/logout.svg" alt="Logout" /> Logout
                 </a>
               </div>
@@ -891,33 +829,35 @@ export default function LearnerPage() {
         </div>
       </div>
 
-      {/* UPDATED Topbar with keyboard navigation */}
-      <div 
+      <div
         ref={topbarRef}
-        className={`topbar ${
-          isMobileView && !isSidebarVisible ? 'topbar-expanded' : ''
-        } ${isTopbarFocused ? 'topbar-focused' : ''}`}
+        className={[
+          styles.topbar,
+          isTopbarFocused ? styles['topbar-focused'] : ''
+        ].filter(Boolean).join(' ')}
         tabIndex={0}
         onKeyDown={handleTopbarKeyDown}
         onFocus={focusTopbar}
         onBlur={() => setIsTopbarFocused(false)}
         onClick={focusTopbar}
       >
-        <div className="topbar-left">
+        <div className={styles['topbar-left']}>
           {topbarItems.map((item, index) => (
-            <div 
+            <div
               key={item.key}
               onClick={() => switchComponent(item.key)}
-              className={`topbar-option ${
-                activeComponent === item.key ? 'active' : ''
-              } ${index === focusedTopbarIndex && isTopbarFocused ? 'focused' : ''}`}
+              className={[
+                styles['topbar-option'],
+                activeComponent === item.key ? styles['active'] : '',
+                index === focusedTopbarIndex && isTopbarFocused ? styles['focused'] : ''
+              ].filter(Boolean).join(' ')}
             >
-              <img src={item.icon} alt={item.label} className="nav-icon" />
-              <span className="nav-text">{item.label}</span>
+              <img src={item.icon} alt={item.label} className={styles['nav-icon']} />
+              <span className={styles['nav-text']}>{item.label}</span>
             </div>
           ))}
         </div>
-        <div className="topbar-date">
+        <div className={styles['topbar-date']}>
           {new Date().toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
@@ -927,14 +867,19 @@ export default function LearnerPage() {
         </div>
       </div>
 
-      <div className={`main-content ${isMobileView && !isSidebarVisible ? 'content-expanded' : ''}`}>
+      <div
+        className={[
+          styles['main-content'],
+          isMobileView && !isSidebarVisible ? styles['content-expanded'] : ''
+        ].filter(Boolean).join(' ')}
+      >
         {renderComponent()}
       </div>
 
       {isEdit && (
-        <div className="edit-information-popup">
+        <div className={styles['edit-information-popup']}>
           <EditInformation 
-            userData={userData}
+            UserData={userData}
             onClose={() => setIsEdit(false)}
             onUpdateUserData={handleUpdateUserData}
           />
