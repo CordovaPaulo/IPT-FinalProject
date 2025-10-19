@@ -23,9 +23,17 @@ export default function RootLayout({
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
         />
       </head>
-      <body className="bg-white">
-        {children}
-        <ToastContainer />
+      <body>
+        {/* Skip link for keyboard users */}
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+        {/* Ensure a single main landmark exists */}
+        <main id="main-content" role="main">
+          {/* Providers should already wrap within layout or pages */}
+          <Providers>
+            {children}
+          </Providers>
+          <ToastContainer />
+        </main>
       </body>
     </html>
   );

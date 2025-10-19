@@ -22,6 +22,7 @@ export default function Navbar() {
 
   const navItems = [...links, { name: 'Login', href: '#login', isButton: true }];
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const menuId = 'primary-navigation';
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -244,80 +245,82 @@ export default function Navbar() {
   }, [isMenuOpen]);
 
   return (
-    <header>
-      <div className="header-logo">
-        <Image 
-          alt="Company logo" 
-          src="/logo_gccoed.png" 
-          width={56} 
-          height={40}
-        />
-        <span>MindMates</span>
-      </div>
-
-      <button
-        ref={hamburgerRef}
-        className="hamburger"
-        onClick={toggleMenu}
-        aria-label="Toggle navigation"
-        aria-expanded={isMenuOpen}
-        aria-controls="header-nav"
-      >
-        <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
-        <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
-        <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
-      </button>
-
-      <nav 
-        id="header-nav"
-        className={`header-nav ${isMenuOpen ? 'active' : ''}`}
-        role="navigation"
-        aria-label="Main navigation"
-      >
-        <div className="nav-links">
-          {links.map((link, index) => (
-            <a
-              key={link.name}
-              href={link.href}
-              data-index={index}
-              className={`
-                nav-link 
-                ${activeLink === link.name ? 'active' : ''}
-                ${clickedLink === link.name ? 'clicked' : ''}
-                ${focusedIndex === index ? 'focused' : ''}
-              `}
-              onClick={(e) => {
-                e.preventDefault();
-                handleLinkClick(link);
-              }}
-              onKeyDown={(e) => handleItemKeyDown(e, index)}
-              onMouseDown={() => setClickedLink(link.name)}
-              onMouseUp={() => setClickedLink(null)}
-              onMouseLeave={() => setClickedLink(null)}
-              onFocus={() => setFocusedIndex(index)}
-              tabIndex={isMenuOpen || !isMenuOpen ? 0 : -1}
-            >
-              <span className="link-text">{link.name}</span>
-              <span className="link-underline"></span>
-            </a>
-          ))}
+    <>
+      <header>
+        <div className="header-logo">
+          <Image 
+            alt="Company logo" 
+            src="/logo_gccoed.png" 
+            width={56} 
+            height={40}
+          />
+          <span>MindMates</span>
         </div>
+
+        {/* Mobile menu toggle button */}
         <button
-          className={`nav-button ${isLoginClicked ? 'clicked' : ''} ${focusedIndex === links.length ? 'focused' : ''}`}
-          onClick={goToLogin}
-          onKeyDown={(e) => handleItemKeyDown(e, links.length)}
-          onFocus={() => setFocusedIndex(links.length)}
-          tabIndex={isMenuOpen || !isMenuOpen ? 0 : -1}
+          className="menu-toggle"
+          aria-label="Toggle navigation menu"
+          aria-expanded={isMenuOpen}
+          aria-controls={menuId}
+          onClick={toggleMenu}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMenu(); }
+            if (e.key === 'Escape' && isMenuOpen) { e.preventDefault(); closeMenu(); }
+          }}
         >
-          <svg className="login-icon" viewBox="0 0 24 24" width="18" height="18">
-            <path
-              fill="currentColor"
-              d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13M12,14.9C9.03,14.9 5.9,16.36 5.9,17V18.1H18.1V17C18.1,16.36 14.97,14.9 12,14.9Z"
-            />
-          </svg>
-          Login
+          <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
+          <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
+          <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
         </button>
-      </nav>
+
+        {/* Nav container */}
+        <nav id={menuId} aria-label="Primary" role="navigation">
+          <div className="nav-links">
+            {links.map((link, index) => (
+              <a
+                key={link.name}
+                href={link.href}
+                data-index={index}
+                className={`
+                  nav-link 
+                  ${activeLink === link.name ? 'active' : ''}
+                  ${clickedLink === link.name ? 'clicked' : ''}
+                  ${focusedIndex === index ? 'focused' : ''}
+                `}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleLinkClick(link);
+                }}
+                onKeyDown={(e) => handleItemKeyDown(e, index)}
+                onMouseDown={() => setClickedLink(link.name)}
+                onMouseUp={() => setClickedLink(null)}
+                onMouseLeave={() => setClickedLink(null)}
+                onFocus={() => setFocusedIndex(index)}
+                tabIndex={isMenuOpen || !isMenuOpen ? 0 : -1}
+              >
+                <span className="link-text">{link.name}</span>
+                <span className="link-underline"></span>
+              </a>
+            ))}
+          </div>
+          <button
+            className={`nav-button ${isLoginClicked ? 'clicked' : ''} ${focusedIndex === links.length ? 'focused' : ''}`}
+            onClick={goToLogin}
+            onKeyDown={(e) => handleItemKeyDown(e, links.length)}
+            onFocus={() => setFocusedIndex(links.length)}
+            tabIndex={isMenuOpen || !isMenuOpen ? 0 : -1}
+          >
+            <svg className="login-icon" viewBox="0 0 24 24" width="18" height="18">
+              <path
+                fill="currentColor"
+                d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13M12,14.9C9.03,14.9 5.9,16.36 5.9,17V18.1H18.1V17C18.1,16.36 14.97,14.9 12,14.9Z"
+              />
+            </svg>
+            Login
+          </button>
+        </nav>
+      </header>
 
       {/* Add overlay when menu is open */}
       {isMenuOpen && (
@@ -325,6 +328,7 @@ export default function Navbar() {
           className="nav-overlay" 
           onClick={closeMenu}
           tabIndex={-1}
+          aria-hidden="true"
         />
       )}
 
@@ -701,6 +705,6 @@ export default function Navbar() {
           }
         }
       `}</style>
-    </header>
+    </>
   );
 }

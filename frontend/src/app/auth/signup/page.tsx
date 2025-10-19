@@ -4,7 +4,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import './Signup.css';
+// switched to CSS Module
+import styles from './Signup.module.css';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -197,11 +198,11 @@ export default function SignupPage() {
   }, []);
 
   return (
-    <div className="signup-container">
+    <div className={styles.signupContainer}>
       <button 
         ref={backButtonRef}
         onClick={scrollToGetStarted} 
-        className="back-btn"
+        className={styles.backBtn}
         onFocus={() => setFocusedIndex(0)}
         tabIndex={0}
       >
@@ -221,18 +222,18 @@ export default function SignupPage() {
 
       {/* Confirmation Modal */}
       {showConfirmationModal && (
-        <div className="modal-overlay">
-          <div className="confirmation-modal">
+        <div className={styles.modalOverlay}>
+          <div className={styles.confirmationModal}>
             <h3>Confirm Your Role</h3>
             <p>
               You've selected to proceed as
               <strong> {selectedRole.toUpperCase()}</strong>. Is this correct?
             </p>
-            <div className="modal-actions">
+            <div className={styles.modalActions}>
               <button 
                 ref={cancelButtonRef}
                 onClick={cancelSelection} 
-                className="cancel-btn"
+                className={styles.cancelBtn}
                 tabIndex={0}
               >
                 Cancel
@@ -240,7 +241,7 @@ export default function SignupPage() {
               <button 
                 ref={confirmButtonRef}
                 onClick={confirmSelection} 
-                className="confirm-btn"
+                className={styles.confirmBtn}
                 tabIndex={0}
               >
                 Confirm
@@ -250,15 +251,15 @@ export default function SignupPage() {
         </div>
       )}
 
-      <div className="header-text">
+      <div className={styles.headerText}>
         <h1>Complete Your Account</h1>
         <p>Pick a role to proceed with your profile setup</p>
       </div>
 
-      <section className="join-section" id="get-started">
+      <section className={styles.joinSection} id="get-started">
         <div 
           ref={learnerCardRef}
-          className="join-card learner-card" 
+          className={`${styles.joinCard} ${styles.learnerCard}`} 
           onClick={() => initiateSignUp('learner')}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -271,13 +272,13 @@ export default function SignupPage() {
           role="button"
           aria-label="Select Learner role"
         >
-          <div className="card-content">
-            <div className="role-title">
+          <div className={styles.cardContent}>
+            <div className={styles.roleTitle}>
               <span>PROCEED AS</span>
               <h3>LEARNER</h3>
-              <hr className="divider" />
+              <hr className={styles.divider} />
             </div>
-            <div className="card-icon">
+            <div className={styles.cardIcon}>
               <Image 
                 src="/learners.png" 
                 alt="Learner Icon" 
@@ -285,7 +286,7 @@ export default function SignupPage() {
                 height={200}
               />
             </div>
-            <button className="join-btn" tabIndex={-1}>
+            <button className={styles.joinBtn} tabIndex={-1}>
               Get Started
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -304,7 +305,7 @@ export default function SignupPage() {
 
         <div 
           ref={mentorCardRef}
-          className="join-card mentor-card" 
+          className={`${styles.joinCard} ${styles.mentorCard}`} 
           onClick={() => initiateSignUp('mentor')}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -317,13 +318,13 @@ export default function SignupPage() {
           role="button"
           aria-label="Select Mentor role"
         >
-          <div className="card-content">
-            <div className="role-title">
+          <div className={styles.cardContent}>
+            <div className={styles.roleTitle}>
               <span>PROCEED AS</span>
               <h3>MENTOR</h3>
-              <hr className="divider" />
+              <hr className={styles.divider} />
             </div>
-            <div className="card-icon">
+            <div className={styles.cardIcon}>
               <Image 
                 src="/mentors.png" 
                 alt="Mentor Icon" 
@@ -331,7 +332,7 @@ export default function SignupPage() {
                 height={200}
               />
             </div>
-            <button className="join-btn" tabIndex={-1}>
+            <button className={styles.joinBtn} tabIndex={-1}>
               Get Started
               <svg
                 xmlns="http://www.w3.org/2000/svg"

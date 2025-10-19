@@ -4,8 +4,16 @@ const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Feedback = require('../models/feedback');
 const { getValuesFromToken } = require('../service/jwt');
+const { uploadFile } = require('../service/drive');
+const stream = require('stream');
 const mailingController = require('./mailing'); // added
 const uploadController = require('./upload');   // already present
+
+function bufferToStream(buffer) {
+  const pass = new stream.PassThrough();
+  pass.end(buffer);
+  return pass;
+}
 
 exports.getAllLearners = async (req, res) => {
   try {
@@ -643,4 +651,46 @@ exports.sendOffer = async (req, res) => {
         console.error('sendOffer error:', error);
         return res.status(500).json({ message: error.message, code: 500 });
     }
+};
+
+exports.uploadFiles = async (req, res) => {
+  try {
+    const decoded = getValuesFromToken(req);
+    if (!decoded?.id) return res.status(401).json({ message: 'Unauthorized', code: 401 });
+
+    const user = await User.findById(decoded.id);
+    if (!user || user.role !== 'mentor') {
+      return res.status(403).json({ message: 'Only mentors can upload files', code: 403 });
+    }
+
+    const files = Array.isArray(req.files) ? req.files : [];
+    if (files.length === 0) {
+      return res.status(400).json({ message: 'No files provided.', code: 400 });
+    }
+
+    const folderPath = `learning_materials/${user.username}`;
+    const results = [];
+    for (const f of files) {
+      const uploaded = await uploadFile(
+        bufferToStream(f.buffer),
+        f.originalname,
+        f.mimetype,
+        folderPath
+      );
+      results.push({
+        id: uploaded.id,
+        name: uploaded.name || f.originalname,
+        mimeType: uploaded.mimeType || f.mimetype,
+        size: uploaded.size,
+        webViewLink: uploaded.webViewLink,
+        webContentLink: uploaded.webContentLink,
+        createdTime: uploaded.createdTime,
+      });
+    }
+
+    return res.status(201).json({ message: 'Files uploaded successfully', files: results, code: 201 });
+  } catch (err) {
+    console.error('[mentor.uploadFiles]', err);
+    return res.status(500).json({ message: 'Failed to upload files', code: 500 });
+  }
 };

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import "./module.css";
+import styles from "./page.module.css";
 
 
 interface Applicant {
@@ -464,56 +464,56 @@ const Applications: React.FC<ApplicationsProps> = ({
 
   return (
     <>
-      <div className="applications-container">
-        <div className="applications-header">
-          <h2 className="applications-title">
-            <i className="fas fa-file-alt header-icon"></i>
+      <div className={styles['applications-container']}>
+        <div className={styles['applications-header']}>
+          <h2 className={styles['applications-title']}>
+            <i className={`fas fa-file-alt ${styles['header-icon']}`}></i>
             Applications
           </h2>
 
-          <div className="filter-buttons">
+          <div className={styles['filter-buttons']}>
             <button
-              className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
+              className={`${styles['filter-btn']} ${activeFilter === 'all' ? styles.active : ''}`}
               onClick={() => setActiveFilter('all')}
             >
               All
             </button>
             <button
-              className={`filter-btn ${activeFilter === 'approved' ? 'active' : ''}`}
+              className={`${styles['filter-btn']} ${activeFilter === 'approved' ? styles.active : ''}`}
               onClick={() => setActiveFilter('approved')}
             >
               Approved
             </button>
             <button
-              className={`filter-btn ${activeFilter === 'rejected' ? 'active' : ''}`}
+              className={`${styles['filter-btn']} ${activeFilter === 'rejected' ? styles.active : ''}`}
               onClick={() => setActiveFilter('rejected')}
             >
               Rejected
             </button>
             <button
-              className={`filter-btn ${activeFilter === 'pending' ? 'active' : ''}`}
+              className={`${styles['filter-btn']} ${activeFilter === 'pending' ? styles.active : ''}`}
               onClick={() => setActiveFilter('pending')}
             >
               Pending
             </button>
           </div>
 
-          <div className="search-container">
-            <div className="search-wrapper">
-              <i className="fas fa-search search-icon"></i>
+          <div className={styles['search-container']}>
+            <div className={styles['search-wrapper']}>
+              <i className={`fas fa-search ${styles['search-icon']}`}></i>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search applications..."
-                className="search-input"
+                className={styles['search-input']}
               />
             </div>
           </div>
         </div>
 
-        <div className="table-scroll-container">
-          <table className="applications-table">
+        <div className={styles['table-scroll-container']}>
+          <table className={styles['applications-table']}>
             <thead>
               <tr>
                 <th>ID</th>
@@ -528,25 +528,25 @@ const Applications: React.FC<ApplicationsProps> = ({
               {filteredApplicants.map((app: any) => (
                 <tr key={app.user_id}>
                   <td>
-                    <span className="id-badge">{app.user_id}</span>
+                    <span className={styles['id-badge']}>{app.user_id}</span>
                   </td>
                   <td>{app.name}</td>
                   <td>{getProgramName(app.course)}</td>
                   <td>
-                    <span className="date-badge">{formatDate(app.applied_on)}</span>
+                    <span className={styles['date-badge']}>{formatDate(app.applied_on)}</span>
                   </td>
                   <td>
                     <button
-                      className="credentials-btn"
+                      className={styles['credentials-btn']}
                       onClick={() => showCredentials(app)}
                     >
                       <i className="fas fa-eye"></i> <span>View</span>
                     </button>
                   </td>
                   {activeFilter === 'all' ? (
-                    <td className="action-buttons">
+                    <td className={styles['action-buttons']}>
                       <button
-                        className={`action-btn accept ${app.status === 'approved' ? 'active' : ''}`}
+                        className={`${styles['action-btn']} ${styles.accept} ${app.status === 'approved' ? styles.active : ''}`}
                         onClick={() => showConfirmation(app.user_id, 'Approved')}
                         disabled={app.status === 'approved' || app.status === 'rejected' || isLoading}
                       >
@@ -554,7 +554,7 @@ const Applications: React.FC<ApplicationsProps> = ({
                         <span>{app.status === 'approved' ? 'Approved' : 'Approve'}</span>
                       </button>
                       <button
-                        className={`action-btn reject ${app.status === 'rejected' ? 'active' : ''}`}
+                        className={`${styles['action-btn']} ${styles.reject} ${app.status === 'rejected' ? styles.active : ''}`}
                         onClick={() => showConfirmation(app.user_id, 'Rejected')}
                         disabled={app.status === 'approved' || app.status === 'rejected' || isLoading}
                       >
@@ -564,7 +564,7 @@ const Applications: React.FC<ApplicationsProps> = ({
                     </td>
                   ) : (
                     <td>
-                      <span className={`status-text ${app.status.toLowerCase()}`}>
+                      <span className={`${styles['status-text']} ${styles[app.status?.toLowerCase() || '']}`}>
                         {capitalizeFirstLetter(app.status)}
                       </span>
                     </td>
@@ -573,7 +573,7 @@ const Applications: React.FC<ApplicationsProps> = ({
               ))}
               {filteredApplicants.length === 0 && (
                 <tr>
-                  <td colSpan={activeFilter === 'all' ? 6 : 6} className="no-applications">
+                  <td colSpan={activeFilter === 'all' ? 6 : 6} className={styles['no-applications']}>
                     No applications to display
                   </td>
                 </tr>
@@ -583,19 +583,19 @@ const Applications: React.FC<ApplicationsProps> = ({
         </div>
 
         {showModal && (
-          <div className="modal-overlay" onClick={hideConfirmation}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className={styles['modal-overlay']} onClick={hideConfirmation}>
+            <div className={styles['modal']} onClick={(e) => e.stopPropagation()}>
               <h3>Confirm Action</h3>
               <hr />
               <p>
                 Are you sure you want to mark this application as
                 <strong> {actionToConfirm}</strong>?
               </p>
-              <div className="modal-actions">
-                <button className="modal-btn cancel" onClick={hideConfirmation}>
+              <div className={styles['modal-actions']}>
+                <button className={`${styles['modal-btn']} ${styles.cancel}`} onClick={hideConfirmation}>
                   Cancel
                 </button>
-                <button className="modal-btn confirm" onClick={confirmAction}>
+                <button className={`${styles['modal-btn']} ${styles.confirm}`} onClick={confirmAction}>
                   Confirm
                 </button>
               </div>
@@ -604,127 +604,127 @@ const Applications: React.FC<ApplicationsProps> = ({
         )}
 
         {showCredentialsModal && (
-          <div className="modal-overlay" onClick={hideCredentials}>
-            <div className="credentials-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <div className="header-content">
-                  <i className="fas fa-user-graduate modal-title-icon"></i>
-                  <h3 className="modal-title">Applicant Credentials</h3>
+          <div className={styles['modal-overlay']} onClick={hideCredentials}>
+            <div className={styles['credentials-modal']} onClick={(e) => e.stopPropagation()}>
+              <div className={styles['modal-header']}>
+                <div className={styles['header-content']}>
+                  <i className={`fas fa-user-graduate ${styles['modal-title-icon']}`}></i>
+                  <h3 className={styles['modal-title']}>Applicant Credentials</h3>
                 </div>
-                <button className="close-btn" onClick={hideCredentials}>
+                <button className={styles['close-btn']} onClick={hideCredentials}>
                   <i className="fas fa-times"></i>
                 </button>
               </div>
 
-              <div className="modal-body">
-                <div className="applicant-profile">
-                  <div className="profile-image-container">
+              <div className={styles['modal-body']}>
+                <div className={styles['applicant-profile']}>
+                  <div className={styles['profile-image-container']}>
                     <img
                       src={currentApp.image_url || '/default-avatar.png'}
                       alt={`Portrait of ${currentApp.applicant}`}
-                      className="profile-image"
+                      className={styles['profile-image']}
                     />
                     {currentApp.status && (
-                      <div className={`status-badge ${currentApp.status.toLowerCase()}`}>
+                      <div className={`${styles['status-badge']} ${styles[currentApp.status?.toLowerCase() || '']}`}>
                         {currentApp.status}
                       </div>
                     )}
                   </div>
 
-                  <div className="profile-info">
-                    <h4 className="applicant-name">{currentApp.applicant}</h4>
-                    <hr className="divider" />
-                    <div className="info-grid">
-                      <div className="info-item">
-                        <span className="info-label">
+                  <div className={styles['profile-info']}>
+                    <h4 className={styles['applicant-name']}>{currentApp.applicant}</h4>
+                    <hr className={styles['divider']} />
+                    <div className={styles['info-grid']}>
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-venus-mars"></i> Sex at Birth
                         </span>
-                        <span className="info-value">{currentApp.gender || 'NON-BINARY'}</span>
+                        <span className={styles['info-value']}>{currentApp.gender || 'NON-BINARY'}</span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-calendar-alt"></i> Year
                         </span>
-                        <span className="info-value">{currentApp.year || '2nd Year'}</span>
+                        <span className={styles['info-value']}>{currentApp.year || '2nd Year'}</span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-graduation-cap"></i> Program
                         </span>
-                        <span className="info-value">
+                        <span className={styles['info-value']}>
                           {currentApp.program || 'Bachelor of Science in Information Technology'}
                         </span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-university"></i> College
                         </span>
-                        <span className="info-value">
+                        <span className={styles['info-value']}>
                           {currentApp.college || 'College of Computer Studies'}
                         </span>
                       </div>
-                      <div className="info-item">
-                        <span className="info-label">
+                      <div className={styles['info-item']}>
+                        <span className={styles['info-label']}>
                           <i className="fas fa-map-marker-alt"></i> Location
                         </span>
-                        <span className="info-value">{currentApp.city || 'Olongapo City'}</span>
+                        <span className={styles['info-value']}>{currentApp.city || 'Olongapo City'}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="details-section">
-                  <div className="details-card">
-                    <h4 className="section-title">
+                <div className={styles['details-section']}>
+                  <div className={styles['details-card']}>
+                    <h4 className={styles['section-title']}>
                       <i className="fas fa-info-circle"></i> Application Details
                     </h4>
-                    <hr className="divider2" />
-                    <div className="details-content">
-                      <div className="detail-item">
-                        <span className="detail-label">Proficiency Level:</span>
-                        <span className="detail-value">{currentApp.proficiency || 'Advanced'}</span>
+                    <hr className={styles['divider2']} />
+                    <div className={styles['details-content']}>
+                      <div className={styles['detail-item']}>
+                        <span className={styles['detail-label']}>Proficiency Level:</span>
+                        <span className={styles['detail-value']}>{currentApp.proficiency || 'Advanced'}</span>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Teaching Modality:</span>
-                        <span className="detail-value">
+                      <div className={styles['detail-item']}>
+                        <span className={styles['detail-label']}>Teaching Modality:</span>
+                        <span className={styles['detail-value']}>
                           {currentApp.modality || 'Online and In-Person'}
                         </span>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Teaching Style:</span>
-                        <span className="detail-value">{currentApp.style || 'Interactive'}</span>
+                      <div className={styles['detail-item']}>
+                        <span className={styles['detail-label']}>Teaching Style:</span>
+                        <span className={styles['detail-value']}>{currentApp.style || 'Interactive'}</span>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Availability:</span>
-                        <span className="detail-value">
+                      <div className={styles['detail-item']}>
+                        <span className={styles['detail-label']}>Availability:</span>
+                        <span className={styles['detail-value']}>
                           {currentApp.availability || 'Monday, Wednesday, Friday'}
                         </span>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Subjects Offered:</span>
-                        <span className="detail-value">
+                      <div className={styles['detail-item']}>
+                        <span className={styles['detail-label']}>Subjects Offered:</span>
+                        <span className={styles['detail-value']}>
                           {currentApp.subjects || 'Web Development, Database Management'}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bio-card">
-                    <h4 className="section-title">
+                  <div className={styles['bio-card']}>
+                    <h4 className={styles['section-title']}>
                       <i className="fas fa-user-edit"></i> Bio & Experience
                     </h4>
-                    <hr className="divider2" />
-                    <div className="bio-content">
-                      <div className="detail-item2">
-                        <span className="detail-label">Bio:</span>
-                        <span className="detail-value2">
+                    <hr className={styles['divider2']} />
+                    <div className={styles['bio-content']}>
+                      <div className={styles['detail-item2']}>
+                        <span className={styles['detail-label']}>Bio:</span>
+                        <span className={styles['detail-value2']}>
                           {currentApp.bio ||
                             'Passionate tutor with a love for helping students excel in technology and programming.'}
                         </span>
                       </div>
-                      <div className="detail-item2">
-                        <span className="detail-label">Tutoring Experience:</span>
-                        <span className="detail-value2">
+                      <div className={styles['detail-item2']}>
+                        <span className={styles['detail-label']}>Tutoring Experience:</span>
+                        <span className={styles['detail-value2']}>
                           {currentApp.experience ||
                             '2 years of experience in tutoring web development and database management.'}
                         </span>
@@ -733,28 +733,28 @@ const Applications: React.FC<ApplicationsProps> = ({
                   </div>
                 </div>
 
-                <div className="credentials-section">
-                  <h4 className="section-title">
+                <div className={styles['credentials-section']}>
+                  <h4 className={styles['section-title']}>
                     <i className="fas fa-file-alt"></i> Submitted Credentials
                   </h4>
-                  <div className="credentials-grid">
+                  <div className={styles['credentials-grid']}>
                     {currentApp.files?.map((file: any) => (
-                      <div key={file.id} className="credential-card">
-                        <div className="file-icon">
+                      <div key={file.id} className={styles['credential-card']}>
+                        <div className={styles['file-icon']}>
                           <i className="fas fa-file-pdf"></i>
                         </div>
-                        <div className="file-info">
-                          <span className="file-name">{file.name}</span>
-                          <div className="file-actions">
+                        <div className={styles['file-info']}>
+                          <span className={styles['file-name']}>{file.name}</span>
+                          <div className={styles['file-actions']}>
                             <button
                               onClick={() => previewFile(file.previewLink)}
-                              className="action-btn preview"
+                              className={`${styles['action-btn']} ${styles.preview}`}
                             >
                               <i className="fas fa-eye"></i> Preview
                             </button>
                             <button
                               onClick={() => downloadFile(file.downloadLink, file.name)}
-                              className="action-btn download"
+                              className={`${styles['action-btn']} ${styles.download}`}
                             >
                               <i className="fas fa-download"></i> Download
                             </button>
@@ -763,15 +763,15 @@ const Applications: React.FC<ApplicationsProps> = ({
                       </div>
                     ))}
                     {!currentApp.files?.length && (
-                      <div className="no-credentials">No credentials submitted</div>
+                      <div className={styles['no-credentials']}>No credentials submitted</div>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <div className="footer-actions">
-                  <button className="footer-btn back" onClick={hideCredentials}>
+              <div className={styles['modal-footer']}>
+                <div className={styles['footer-actions']}>
+                  <button className={`${styles['footer-btn']} ${styles.back}`} onClick={hideCredentials}>
                     <i className="fas fa-arrow-left"></i> Back to Applications
                   </button>
                 </div>
@@ -782,8 +782,8 @@ const Applications: React.FC<ApplicationsProps> = ({
       </div>
 
       {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
+        <div className={styles['loading-overlay']}>
+          <div className={styles['loading-spinner']}></div>
         </div>
       )}
     </>

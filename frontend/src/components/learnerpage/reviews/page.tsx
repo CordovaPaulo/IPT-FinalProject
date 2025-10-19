@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
+import notify from '@/lib/toast';
 import './ReviewsComponent.css';
 
 interface Reviewer {
@@ -236,31 +237,28 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
       await fetchExistingFeedbacks();
       
       closeFeedback();
-      alert('Feedback submitted successfully!');
+      // alert('Feedback submitted successfully!');
+      notify.success('Feedback submitted successfully!');
 
     } catch (error: any) {
       console.error('Error submitting feedback:', error);
-      
       if (error.response) {
         const statusCode = error.response.status;
         const errorMessage = error.response.data?.message || 'Failed to submit feedback';
-        
         if (statusCode === 401) {
-          alert('Session expired. Please log in again.');
-          if (typeof window !== 'undefined') {
-            window.location.href = '/auth/login';
-          }
+          notify.error('Session expired. Please log in again.');
+          if (typeof window !== 'undefined') window.location.href = '/auth/login';
         } else if (statusCode === 403) {
-          alert('You are not authorized to perform this action.');
+          notify.error('You are not authorized to perform this action.');
         } else if (statusCode === 400) {
-          alert(errorMessage);
+          notify.error(errorMessage);
         } else {
-          alert(`Server error: ${errorMessage}`);
+          notify.error(`Server error: ${errorMessage}`);
         }
       } else if (error.request) {
-        alert('Network error. Please check your connection and try again.');
+        notify.error('Network error. Please check your connection and try again.');
       } else {
-        alert('An unexpected error occurred. Please try again.');
+        notify.error('Unexpected error. Please try again.');
       }
     } finally {
       setIsSubmitting(false);

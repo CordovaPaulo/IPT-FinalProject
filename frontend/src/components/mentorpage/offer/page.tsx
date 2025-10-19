@@ -134,13 +134,18 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
 
   const confirmSchedule = async () => {
     if (!selectedDate || !selectedTime || !selectedSubject) {
-      alert('Please select date, time and subject'); return;
+      notify.warn('Please select date, time and subject');
+      return;
     }
     if (sessionType === 'in-person' && !meetingLocation) {
-      alert('Please enter a meeting location'); return;
+      notify.warn('Please enter a meeting location');
+      return;
     }
     const match = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    if (!match) { alert('Invalid time format'); return; }
+    if (!match) {
+      notify.error('Invalid time format');
+      return;
+    }
     let h = parseInt(match[1], 10); const minutes = match[2]; const period = match[3].toUpperCase();
     if (period === 'PM' && h < 12) h += 12;
     if (period === 'AM' && h === 12) h = 0;

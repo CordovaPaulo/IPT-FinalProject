@@ -2,14 +2,17 @@
 
 import { useState, useEffect, useRef } from 'react';
 import styles from './filemanager.module.css';
+import api from '@/lib/axios';
+import notify from '@/lib/toast';
 
 interface File {
-  id: number;
-  file_name: string;
-  created_at: string;
-  File_type: string;
-  file_size: number;
+  id: string;            // Drive file id
+  file_name: string;     // name
+  created_at: string;    // createdTime
+  File_type: string;     // mimeType simplified label
+  file_size: number;     // bytes (we show KB)
   webViewLink?: string;
+  webContentLink?: string;
 }
 
 interface FileManagerComponentProps {
@@ -22,7 +25,6 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
   const [showFileActions, setShowFileActions] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Sorting and filtering
   const [sortKey, setSortKey] = useState<keyof File | ''>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedFileType, setSelectedFileType] = useState('all');
@@ -32,127 +34,101 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
 
   const typeFilterRef = useRef<HTMLDivElement>(null);
 
-  // Sample data with proper File_type values
-  const sampleFiles: File[] = [
-    {
-      id: 1,
-      file_name: "Mathematics_Notes.pdf",
-      created_at: "2024-01-15",
-      File_type: "PDF",
-      file_size: 2450,
-      webViewLink: "https://example.com/file1"
-    },
-    {
-      id: 2,
-      file_name: "Programming_Exercises.zip",
-      created_at: "2024-01-14",
-      File_type: "ZIP",
-      file_size: 5120
-    },
-    {
-      id: 3,
-      file_name: "Physics_Lab_Report.docx",
-      created_at: "2024-01-13",
-      File_type: "Word",
-      file_size: 1800
-    },
-    {
-      id: 4,
-      file_name: "Data_Structures_Guide.pdf",
-      created_at: "2024-01-12",
-      File_type: "PDF",
-      file_size: 3200
-    },
-    {
-      id: 5,
-      file_name: "Chemistry_Formula_Sheet.xlsx",
-      created_at: "2024-01-11",
-      File_type: "Excel",
-      file_size: 950
-    },
-    {
-      id: 6,
-      file_name: "Web_Development_Tutorials.zip",
-      created_at: "2024-01-10",
-      File_type: "ZIP",
-      file_size: 7800
-    },
-    {
-      id: 7,
-      file_name: "Algorithms_Presentation.pptx",
-      created_at: "2024-01-09",
-      File_type: "PowerPoint",
-      file_size: 4200
-    },
-    {
-      id: 8,
-      file_name: "Database_Diagrams.pdf",
-      created_at: "2024-01-08",
-      File_type: "PDF",
-      file_size: 1500
-    }
-  ];
+  // Add: simplify MIME/extension to friendly label
+  function simplifyMimeType(mime?: string, name?: string): string {
+    const ext = (name?.split('.').pop() || '').toLowerCase();
+    const m = (mime || '').toLowerCase();
 
-  // Safe data processing function
-  const processFiles = (fileList: File[]) => {
-    return fileList.map(file => ({
-      ...file,
-      File_type: file.File_type || 'Unknown',
-      file_name: file.file_name || 'Unnamed File',
-      created_at: file.created_at || new Date().toISOString(),
-      file_size: file.file_size || 0
+    if (m.includes('pdf') || ext === 'pdf') return 'PDF';
+
+    if (m.includes('msword') || m.includes('word') || ['doc', 'docx', 'rtf', 'odt', 'pages'].includes(ext))
+      return ext === 'doc' ? 'DOC' : 'DOCX';
+
+    if (m.includes('presentation') || m.includes('powerpoint') || ['ppt', 'pptx', 'key'].includes(ext))
+      return ext === 'ppt' ? 'PPT' : 'PPTX';
+
+    if (m.includes('spreadsheet') || m.includes('excel') || ['xls', 'xlsx', 'csv', 'ods', 'tsv'].includes(ext)) {
+      if (ext === 'xls') return 'XLS';
+      if (ext === 'csv') return 'CSV';
+      return 'XLSX';
+    }
+
+    if (m.startsWith('image/') || ['jpg','jpeg','png','gif','bmp','svg','webp','heic','ico'].includes(ext)) return 'Image';
+    if (m.startsWith('video/') || ['mp4','mov','avi','wmv','flv','mkv','webm'].includes(ext)) return 'Video';
+    if (m.startsWith('audio/') || ['mp3','wav','aac','flac','ogg','m4a'].includes(ext)) return 'Audio';
+
+    if (m === 'text/plain' || ['txt','log','md'].includes(ext)) return ext === 'md' ? 'Markdown' : 'TXT';
+
+    if (['zip','rar','7z','tar','gz','tgz'].includes(ext) || m.includes('zip') || m.includes('compressed')) return 'Archive';
+
+    if (['json','yml','yaml','xml'].includes(ext) || m.includes('json') || m.includes('xml')) return ext.toUpperCase();
+
+    if (['js','ts','tsx','jsx','py','java','cs','cpp','c','php','html','css','sql','sh','bat'].includes(ext)) return ext.toUpperCase();
+
+    return 'File';
+  }
+
+  const processFiles = (fileList: any[]): File[] => {
+    return (fileList || []).map((f) => ({
+      id: String(f.id),
+      file_name: f.name || f.file_name || 'Unnamed File',
+      created_at: f.createdTime || f.created_at || new Date().toISOString(),
+      // CHANGED: use simplified label
+      File_type: simplifyMimeType(f.mimeType, f.name) || 'File',
+      file_size: Number(f.size || f.file_size || 0),
+      webViewLink: f.webViewLink,
+      webContentLink: f.webContentLink,
     }));
   };
 
-  // Update internal files state when propFiles changes or use sample data
-  useEffect(() => {
-    const filesToUse = propFiles && propFiles.length > 0 ? propFiles : sampleFiles;
-    const processedFiles = processFiles(filesToUse);
-    setFilesState(processedFiles);
-    
-    const types = ['all', ...new Set(processedFiles.map((file) => file.File_type))];
-    setUniqueFileTypes(types);
-  }, [propFiles]);
+  // Load from backend; if parent passes files, prefer backend anyway to ensure "owned-only"
+  const loadFromServer = async () => {
+    try {
+      const res = await api.get('/api/mentor/files', { withCredentials: true });
+      const list = processFiles(res.data?.files || []);
+      setFilesState(list);
+      setFiles(list);
+      const types = ['all', ...new Set(list.map((file) => (file.File_type || 'Unknown')))];
+      setUniqueFileTypes(types);
+    } catch (e: any) {
+      console.error('Fetch files error:', e?.response?.data || e.message);
+      notify.error(e?.response?.data?.message || 'Failed to fetch files');
+    }
+  };
+
+  useEffect(() => { loadFromServer(); }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
-  const filteredFiles = files.filter(file => {
-    if (selectedFileType !== 'all' && file.File_type !== selectedFileType) {
-      return false;
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        file.file_name.toLowerCase().includes(query) ||
-        file.File_type.toLowerCase().includes(query)
-      );
-    }
-
-    return true;
-  }).sort((a, b) => {
-    if (!sortKey) return 0;
-
-    let compareA: any = sortKey === 'file_size' ? Number(a[sortKey]) : a[sortKey];
-    let compareB: any = sortKey === 'file_size' ? Number(b[sortKey]) : b[sortKey];
-
-    if (sortKey === 'created_at') {
-      compareA = new Date(a[sortKey]).getTime();
-      compareB = new Date(b[sortKey]).getTime();
-    }
-
-    if (compareA < compareB) return sortOrder === 'asc' ? -1 : 1;
-    if (compareA > compareB) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
+  const filteredFiles = files
+    .filter((file) => {
+      if (selectedFileType !== 'all' && file.File_type !== selectedFileType) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return file.file_name.toLowerCase().includes(q) || (file.File_type || '').toLowerCase().includes(q);
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (!sortKey) return 0;
+      let A: any = sortKey === 'file_size' ? Number(a[sortKey]) : a[sortKey];
+      let B: any = sortKey === 'file_size' ? Number(b[sortKey]) : b[sortKey];
+      if (sortKey === 'created_at') {
+        A = new Date(a[sortKey]).getTime();
+        B = new Date(b[sortKey]).getTime();
+      }
+      if (A < B) return sortOrder === 'asc' ? -1 : 1;
+      if (A > B) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   const formatDate = (dateString: string) => {
     try {
       const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
       return new Date(dateString).toLocaleDateString(undefined, options);
-    } catch (error) {
+    } catch {
       return 'Invalid Date';
     }
   };
@@ -162,67 +138,81 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
     setShowFileActions(true);
     event.stopPropagation();
   };
+  const closeFileActions = () => { setShowFileActions(false); setSelectedFile(null); };
 
-  const closeFileActions = () => {
-    setShowFileActions(false);
-    setSelectedFile(null);
-  };
-
-  const viewFile = (file: File) => {
-    console.log('View file:', file.id);
-    if (file.webViewLink) {
-      window.open(file.webViewLink, '_blank');
-    } else {
-      alert(`Viewing file: ${file.file_name}\n(Web view link not available)`);
-    }
-    closeFileActions();
-  };
-
-  const downloadFile = (file: File) => {
-    console.log('Download file:', file.id);
-    alert(`Downloading file: ${file.file_name}`);
-    closeFileActions();
-  };
-
-  const deleteFile = (file: File) => {
-    console.log('Delete file:', file.id);
-    if (confirm(`Are you sure you want to delete "${file.file_name}"?`)) {
-      const updatedFiles = files.filter((f) => f.id !== file.id);
-      setFilesState(updatedFiles);
-      setFiles(updatedFiles);
-    }
-    closeFileActions();
-  };
-
-  const sortFiles = (key: keyof File) => {
-    if (sortKey === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortKey(key);
-      setSortOrder('asc');
-    }
-  };
-
-  const handleFileTypeFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedFileType(e.target.value);
-    setShowTypeFilter(false);
-  };
-
-  const toggleTypeFilter = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    setShowTypeFilter(!showTypeFilter);
-  };
-
-  const getFileIcon = (fileType: string | undefined) => {
-    const type = (fileType || 'file').toLowerCase();
-    if (type.includes('pdf')) return 'fas fa-file-pdf';
-    if (type.includes('word') || type.includes('doc')) return 'fas fa-file-word';
-    if (type.includes('excel') || type.includes('xls')) return 'fas fa-file-excel';
-    if (type.includes('powerpoint') || type.includes('ppt')) return 'fas fa-file-powerpoint';
-    if (type.includes('image')) return 'fas fa-file-image';
-    if (type.includes('video')) return 'fas fa-file-video';
-    if (type.includes('zip') || type.includes('rar')) return 'fas fa-file-archive';
+  const getFileIcon = (fileType?: string) => {
+    const t = (fileType || 'File').toUpperCase();
+    if (t === 'PDF') return 'fas fa-file-pdf';
+    if (['DOC','DOCX','RTF','ODT'].includes(t)) return 'fas fa-file-word';
+    if (['PPT','PPTX','KEY'].includes(t)) return 'fas fa-file-powerpoint';
+    if (['XLS','XLSX','CSV','ODS','TSV'].includes(t)) return 'fas fa-file-excel';
+    if (t === 'IMAGE') return 'fas fa-file-image';
+    if (t === 'VIDEO') return 'fas fa-file-video';
+    if (t === 'AUDIO') return 'fas fa-file-audio';
+    if (t === 'ARCHIVE') return 'fas fa-file-archive';
+    if (['TXT','MARKDOWN','JSON','XML','YML','YAML'].includes(t)) return 'fas fa-file-lines';
     return 'fas fa-file';
+    };
+
+  const viewFile = async (file: File) => {
+    try {
+      let link = file.webViewLink;
+      if (!link) {
+        const meta = await api.get(`/api/mentor/files/${encodeURIComponent(file.id)}`, { withCredentials: true });
+        link = meta.data?.webViewLink || meta.data?.webContentLink;
+      }
+      if (link) {
+        window.open(link, '_blank', 'noopener,noreferrer');
+      } else {
+        notify.error('No preview link available');
+      }
+      closeFileActions();
+    } catch (e: any) {
+      console.error('Get file meta error:', e?.response?.data || e.message);
+      notify.error(e?.response?.data?.message || 'Failed to open file');
+      closeFileActions();
+    }
+  };
+
+  const downloadFile = async (file: File) => {
+    try {
+      let link = file.webContentLink;
+      if (!link) {
+        const meta = await api.get(`/api/mentor/files/${encodeURIComponent(file.id)}`, { withCredentials: true });
+        link = meta.data?.webContentLink || meta.data?.webViewLink;
+      }
+      if (link) {
+        window.open(link, '_blank', 'noopener,noreferrer');
+      } else {
+        notify.error('No download link available');
+      }
+      closeFileActions();
+    } catch (e: any) {
+      console.error('Get file meta error:', e?.response?.data || e.message);
+      notify.error(e?.response?.data?.message || 'Failed to download file');
+      closeFileActions();
+    }
+  };
+
+  const deleteFile = async (file: File) => {
+    try {
+      const ok = confirm(`Delete "${file.file_name}"?`);
+      if (!ok) return;
+      const res = await api.delete(`/api/mentor/files/${encodeURIComponent(file.id)}`, { withCredentials: true });
+      if (res.status === 200) {
+        const updated = files.filter((f) => f.id !== file.id);
+        setFilesState(updated);
+        setFiles(updated);
+        notify.success('File deleted');
+      } else {
+        notify.error(res.data?.message || 'Failed to delete file');
+      }
+      closeFileActions();
+    } catch (e: any) {
+      console.error('Delete error:', e?.response?.data || e.message);
+      notify.error(e?.response?.data?.message || 'Failed to delete file');
+      closeFileActions();
+    }
   };
 
   // Close type filter when clicking outside
@@ -232,33 +222,19 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
         setShowTypeFilter(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close modal when clicking outside or pressing Escape
+  // Close modal when ESC or clicking outside
   useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeFileActions();
-      }
-    };
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showFileActions) {
-        closeFileActions();
-      }
-    };
-
+    const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') closeFileActions(); };
+    const handleClickOutside = () => { if (showFileActions) closeFileActions(); };
     if (showFileActions) {
       document.addEventListener('keydown', handleEscape);
       document.addEventListener('click', handleClickOutside);
       document.body.style.overflow = 'hidden';
     }
-
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.removeEventListener('click', handleClickOutside);
@@ -292,65 +268,42 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
         <table className={styles.fileManagerDataTable}>
           <thead>
             <tr>
-              <th 
-                onClick={() => sortFiles('file_name')} 
-                className={styles.fileManagerSortableHeader}
-              >
+              <th onClick={() => { setSortKey('file_name'); setSortOrder(sortKey === 'file_name' && sortOrder === 'asc' ? 'desc' : 'asc'); }} className={styles.fileManagerSortableHeader}>
                 FILE NAME
                 {sortKey === 'file_name' && (
-                  <span className={`${styles.fileManagerSortArrow} ${sortOrder === 'desc' ? styles.fileManagerSortArrowDesc : ''}`}>
-                    ▲
-                  </span>
+                  <span className={`${styles.fileManagerSortArrow} ${sortOrder === 'desc' ? styles.fileManagerSortArrowDesc : ''}`}>▲</span>
                 )}
               </th>
-              <th 
-                onClick={() => sortFiles('created_at')} 
-                className={styles.fileManagerSortableHeader}
-              >
+              <th onClick={() => { setSortKey('created_at'); setSortOrder(sortKey === 'created_at' && sortOrder === 'asc' ? 'desc' : 'asc'); }} className={styles.fileManagerSortableHeader}>
                 DATE
                 {sortKey === 'created_at' && (
-                  <span className={`${styles.fileManagerSortArrow} ${sortOrder === 'desc' ? styles.fileManagerSortArrowDesc : ''}`}>
-                    ▲
-                  </span>
+                  <span className={`${styles.fileManagerSortArrow} ${sortOrder === 'desc' ? styles.fileManagerSortArrowDesc : ''}`}>▲</span>
                 )}
               </th>
               <th>
                 <div className={styles.fileManagerThContent} ref={typeFilterRef}>
                   <span>FILE TYPE</span>
-                  <i
-                    className={`fas fa-filter ${styles.fileManagerFilterIcon}`}
-                    onClick={toggleTypeFilter}
-                  ></i>
+                  <i className={`fas fa-filter ${styles.fileManagerFilterIcon}`} onClick={(e) => { e.stopPropagation(); setShowTypeFilter(!showTypeFilter); }}></i>
                   {showTypeFilter && (
                     <div className={styles.fileManagerTypeFilterDropdown}>
                       <select
                         value={selectedFileType}
-                        onChange={handleFileTypeFilter}
+                        onChange={(e) => { setSelectedFileType(e.target.value); setShowTypeFilter(false); }}
                         onClick={(e) => e.stopPropagation()}
                         className={styles.fileManagerHeaderFilter}
                       >
                         {uniqueFileTypes.map((type) => (
-                          <option key={type} value={type}>
-                            {type === 'all' 
-                              ? 'All Types' 
-                              : type.charAt(0).toUpperCase() + type.slice(1)
-                            }
-                          </option>
+                          <option key={type} value={type}>{type === 'all' ? 'All Types' : type}</option>
                         ))}
                       </select>
                     </div>
                   )}
                 </div>
               </th>
-              <th 
-                onClick={() => sortFiles('file_size')} 
-                className={styles.fileManagerSortableHeader}
-              >
+              <th onClick={() => { setSortKey('file_size'); setSortOrder(sortKey === 'file_size' && sortOrder === 'asc' ? 'desc' : 'asc'); }} className={styles.fileManagerSortableHeader}>
                 FILE SIZE
                 {sortKey === 'file_size' && (
-                  <span className={`${styles.fileManagerSortArrow} ${sortOrder === 'desc' ? styles.fileManagerSortArrowDesc : ''}`}>
-                    ▲
-                  </span>
+                  <span className={`${styles.fileManagerSortArrow} ${sortOrder === 'desc' ? styles.fileManagerSortArrowDesc : ''}`}>▲</span>
                 )}
               </th>
               <th>ACTIONS</th>
@@ -364,55 +317,38 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
                   {file.file_name}
                 </td>
                 <td>{formatDate(file.created_at)}</td>
+                <td><span className={styles.fileManagerFileTypeBadge}>{file.File_type}</span></td>
+                <td>{Math.round((file.file_size || 0) / 1024).toLocaleString()} KB</td>
                 <td>
-                  <span className={styles.fileManagerFileTypeBadge}>{file.File_type}</span>
-                </td>
-                <td>{file.file_size.toLocaleString()} KB</td>
-                <td>
-                  <button
-                    onClick={(e) => openFileActions(file, e)}
-                    className={styles.fileManagerDetailsBtn}
-                  >
+                  <button onClick={(e) => openFileActions(file, e)} className={styles.fileManagerDetailsBtn}>
                     <i className="fas fa-ellipsis-v"></i> <span>Actions</span>
                   </button>
                 </td>
               </tr>
             ))}
             {filteredFiles.length === 0 && (
-              <tr>
-                <td colSpan={5} className={styles.fileManagerNoFiles}>
-                  <i className="fas fa-search" style={{marginRight: '10px'}}></i>
-                  No files found
-                </td>
-              </tr>
+              <tr><td colSpan={5} className={styles.fileManagerNoFiles}>
+                <i className="fas fa-search" style={{ marginRight: 10 }}></i>No files found
+              </td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* File Actions Modal */}
       {showFileActions && selectedFile && (
         <div className={styles.fileManagerModalOverlay}>
           <div className={styles.fileManagerFileModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.fileManagerModalHeader}>
-              <h3 className={styles.fileManagerModalTitle}>
-                <i className="fas fa-file-alt"></i> File Actions
-              </h3>
-              <button className={styles.fileManagerCloseBtn} onClick={closeFileActions}>
-                <i className="fas fa-times"></i>
-              </button>
+              <h3 className={styles.fileManagerModalTitle}><i className="fas fa-file-alt"></i> File Actions</h3>
+              <button className={styles.fileManagerCloseBtn} onClick={closeFileActions}><i className="fas fa-times"></i></button>
             </div>
 
             <div className={styles.fileManagerModalBody}>
               <div className={styles.fileManagerFileInfo}>
-                <div className={styles.fileManagerFileIconLarge}>
-                  <i className={getFileIcon(selectedFile.File_type)}></i>
-                </div>
+                <div className={styles.fileManagerFileIconLarge}><i className={getFileIcon(selectedFile.File_type)}></i></div>
                 <div className={styles.fileManagerFileDetails}>
                   <h4>{selectedFile.file_name}</h4>
-                  <p>
-                    {selectedFile.File_type} • {selectedFile.file_size.toLocaleString()} KB • {formatDate(selectedFile.created_at)}
-                  </p>
+                  <p>{selectedFile.File_type} • {Math.round((selectedFile.file_size || 0) / 1024).toLocaleString()} KB • {formatDate(selectedFile.created_at)}</p>
                 </div>
               </div>
 
@@ -432,7 +368,6 @@ export default function FileManagerComponent({ files: propFiles, setFiles }: Fil
         </div>
       )}
 
-      {/* Add Font Awesome CSS */}
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     </div>
   );

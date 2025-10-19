@@ -16,6 +16,7 @@ const learnerRoute = require('./routes/learner');
 const mentorRoute = require('./routes/mentor');
 const httpCookieRouter = require('./routes/httpCookie');
 const messageRouter = require('./routes/message')
+const adminRouter = require('./routes/admin');
 
 const app = express();
 
@@ -42,7 +43,8 @@ app.use('/api/test', testRouter);
 app.use('/api/learner', learnerRoute);
 app.use('/api/mentor', mentorRoute);
 app.use('/api/cookie', httpCookieRouter);
-app.use('/api/message', messageRouter)
+app.use('/api/message', messageRouter);
+app.use('/api/admin', adminRouter);
 
 // 404 handler
 app.use((req, res, next) => {
