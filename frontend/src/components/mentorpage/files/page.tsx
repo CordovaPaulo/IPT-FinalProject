@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import styles from './files.module.css'; // Corrected import path
+import styles from './files.module.css';
 
 interface FileItem {
   id: number;

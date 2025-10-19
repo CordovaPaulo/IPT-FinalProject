@@ -15,7 +15,7 @@ import {
   faFile
 } from '@fortawesome/free-solid-svg-icons';
 import RescheduleDialog from '@/components/learnerpage/RescheduleDialog/page';
-import api from '@/lib/axios'; // Add this import
+import api from '@/lib/axios';
 
 interface ScheduleItem {
   id: number;

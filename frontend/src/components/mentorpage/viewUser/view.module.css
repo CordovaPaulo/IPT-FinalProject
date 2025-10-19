@@ -80,7 +80,6 @@
   font-size: 1.1rem;
 }
 
-/* Updated Close Button - Border Only */
 .viewCloseBtn {
   background: transparent;
   border: 2px solid rgba(255, 255, 255, 0.7);
@@ -397,7 +396,6 @@
   z-index: 3000;
 }
 
-/* Updated Button Group - Buttons side by side */
 .viewButtonGroup {
   display: flex;
   justify-content: flex-end;
@@ -471,10 +469,6 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-
-/* =========================================== */
-/* RESPONSIVE DESIGN - TABLET & MOBILE */
-/* =========================================== */
 
 /* Large Tablets (769px - 1024px) */
 @media (max-width: 1024px) {
@@ -569,7 +563,6 @@
     padding: 0.8rem;
   }
   
-  /* Updated: Buttons remain side by side on tablet */
   .viewButtonGroup {
     justify-content: flex-end;
     flex-direction: row;
@@ -611,6 +604,7 @@
     height: 32px;
     font-size: 1.1rem;
     border-width: 1.5px;
+  
   }
   
   .viewLowerElement {
@@ -632,7 +626,6 @@
     margin: 0.2rem 0 0.8rem 0;
   }
   
-  /* Updated: Buttons remain side by side on larger mobile */
   .viewButtonGroup {
     justify-content: flex-end;
     flex-direction: row;
@@ -728,7 +721,6 @@
     );
   }
   
-  /* Updated: Buttons remain side by side on mobile */
   .viewButtonGroup {
     justify-content: flex-end;
     flex-direction: row;
@@ -743,7 +735,6 @@
     gap: 0.3rem;
   }
   
-  /* Confirmation Modal Responsive */
   .viewConfirmationModal {
     margin: 1rem;
     padding: 1.2rem;
@@ -760,7 +751,6 @@
   }
 }
 
-/* Very Small Mobile Devices (360px and below) */
 @media (max-width: 360px) {
   .viewModalOverlay {
     padding: 0.4rem;
@@ -801,7 +791,6 @@
     padding: 0.6rem;
   }
   
-  /* Updated: Buttons adjust for very small screens but remain side by side */
   .viewButtonGroup {
     gap: 0.4rem;
   }
@@ -814,7 +803,6 @@
   }
 }
 
-/* Landscape Mode for Mobile */
 @media (max-height: 600px) and (orientation: landscape) {
   .viewModalOverlay {
     padding: 0.5rem;
@@ -848,14 +836,12 @@
     grid-template-columns: repeat(2, 1fr);
   }
   
-  /* Buttons remain side by side in landscape */
   .viewButtonGroup {
     justify-content: flex-end;
     flex-direction: row;
   }
 }
 
-/* High-DPI Displays */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   .viewProfileImage {
     border-width: 2px;
