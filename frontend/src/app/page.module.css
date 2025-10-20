@@ -1,5 +1,3 @@
-/* src/app/page.module.css */
-
 .homeContainer {
   width: 100%;
   margin: 0;
@@ -320,6 +318,7 @@
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.561);
   backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   z-index: 1;
 }
 
@@ -334,6 +333,7 @@
   color: white;
   text-align: center;
   backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin: 1rem 0;
 }

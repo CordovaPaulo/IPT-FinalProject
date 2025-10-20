@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useId, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
-import './MentorInfoalt.css';
+import styles from '../MentorInfo.module.css';
 import api from "@/lib/axios";
 
 interface DropdownOpenState {
@@ -15,6 +15,7 @@ interface DropdownOpenState {
   availability: boolean;
   learningStyle: boolean;
   sessionDuration: boolean;
+  topics: boolean;
 }
 
 interface ValidationErrors {
@@ -42,7 +43,7 @@ interface CredentialFile extends File {
   // We can extend File if needed
 }
 
-const MentorInfo = () => {
+export default function MentorInfoPage() {
   const router = useRouter();
   
   // State variables
@@ -76,7 +77,8 @@ const MentorInfo = () => {
     proficiency: false,
     availability: false,
     learningStyle: false,
-    sessionDuration: false
+    sessionDuration: false,
+    topics: false
   });
   
   const [showFileList, setShowFileList] = useState(false);
@@ -147,6 +149,16 @@ const MentorInfo = () => {
   const nextButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const prevStepButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // IDs for accessibility
+  const availabilityListboxId = useId();
+  const modalityListboxId = useId();
+  const topicComboboxId = useId();
+  const topicListboxId = useId();
+  
+  // Options
+  const modalityOptions = ['Online', 'In-person', 'Hybrid'];
+  const topicOptions = ['Programming', 'Mathematics', 'Science', 'Literature']; // Example topics
   
   // Computed values
   const availabilityDaysDisplay = selectedDays.join(', ') || 'Select available days';
@@ -275,7 +287,7 @@ const MentorInfo = () => {
       '.file-link'
     ].join(',');
 
-    const currentStepElement = document.querySelector('.form-container');
+    const currentStepElement = document.querySelector(`.${styles.formContainer}`);
     if (!currentStepElement) return [];
 
     const elements = Array.from(currentStepElement.querySelectorAll(focusableSelectors)) as HTMLElement[];
@@ -298,7 +310,7 @@ const MentorInfo = () => {
 
   // Focus management for dropdowns
   const focusFirstDropdownOption = (dropdownElement: HTMLElement) => {
-    const firstOption = dropdownElement.querySelector('.dropdown-option') as HTMLElement;
+    const firstOption = dropdownElement.querySelector(`.${styles.dropdownOption}`) as HTMLElement;
     firstOption?.focus();
   };
 
@@ -309,7 +321,7 @@ const MentorInfo = () => {
       if (!dropdownOpen[dropdownType]) {
         toggleDropdown(dropdownType);
         setTimeout(() => {
-          const dropdownElement = document.querySelector(`.${dropdownType}-dropdown`) as HTMLElement;
+          const dropdownElement = document.querySelector(`.${styles[dropdownType + 'Dropdown']}`) as HTMLElement;
           if (dropdownElement) {
             focusFirstDropdownOption(dropdownElement);
           }
@@ -418,12 +430,19 @@ const MentorInfo = () => {
     
     if (currentStep === 1) {
       if (!gender) errors.gender = 'Gender is required';
+      if (!yearLevel) errors.yearLevel = 'Year level is required';
+      if (!program) errors.program = 'Program is required';
       if (!contactNumber || contactNumber.length !== 11) errors.contactNumber = 'Valid Contact Number is required (11 digits)';
       if (!address.trim()) errors.address = 'Address is required';
     }
     
     if (currentStep === 2) {
       if (selectedSubjects.length === 0) errors.selectedSubjects = 'At least one subject is required';
+      if (!modality) errors.modality = 'Teaching modality is required';
+      if (!proficiency) errors.proficiency = 'Proficiency level is required';
+      if (!sessionDuration) errors.sessionDuration = 'Session duration is required';
+      if (selectedDays.length === 0) errors.selectedDays = 'At least one day of availability is required';
+      if (selectedSessionStyles.length === 0) errors.selectedSessionStyles = 'At least one teaching style is required';
       if (!bio.trim()) errors.bio = 'Short Bio is required';
       if (!experience.trim()) errors.experience = 'Tutoring experience is required';
     }
@@ -758,8 +777,8 @@ const MentorInfo = () => {
       const mapModality = (modality: string) => {
         const modalityMap: { [key: string]: string } = {
           'Online': 'online',
-          'Offline': 'offline',
-          'Mixed': 'mixed'
+          'In-person': 'in-person',
+          'Hybrid': 'hybrid'
         };
         return modalityMap[modality] || modality.toLowerCase();
       };
@@ -783,6 +802,7 @@ const MentorInfo = () => {
       };
 
       const mapAvailability = (days: string[]) => days.map(day => day.toLowerCase());
+    
       const mapLearningStyle = (styles: string[]) => {
         const styleMap: { [key: string]: string } = {
           'Lecture-Based': 'lecture-based',
@@ -795,13 +815,13 @@ const MentorInfo = () => {
         return styles.map(style => styleMap[style] || style.toLowerCase().replace(/\s+/g, '-'));
       };
 
-      // Append all required fields
+      // Append all required fields to match backend expectations exactly
       formData.append('sex', gender.toLowerCase());
       formData.append('program', mapProgram(program));
       formData.append('yearLevel', mapYearLevel(yearLevel));
       formData.append('phoneNumber', contactNumber);
       formData.append('bio', bio);
-      formData.append('exp', experience); // experience field required
+      formData.append('exp', experience);
       formData.append('address', address);
       formData.append('modality', mapModality(modality));
       formData.append('proficiency', mapProficiency(proficiency));
@@ -810,22 +830,24 @@ const MentorInfo = () => {
       formData.append('availability', JSON.stringify(mapAvailability(selectedDays)));
       formData.append('style', JSON.stringify(mapLearningStyle(selectedSessionStyles)));
 
-      // Add profile image if selected
+      // Handle profile image properly
       if (profileInputRef.current?.files?.[0]) {
         formData.append('image', profileInputRef.current.files[0]);
+      } else {
+        formData.append('image', 'null');
       }
 
-      // Add credentials (multiple files)
-      if (credentialInputRef.current?.files) {
+      // Handle credentials - append multiple files with same field name
+      if (credentialInputRef.current?.files && credentialInputRef.current.files.length > 0) {
         Array.from(credentialInputRef.current.files).forEach(file => {
           formData.append('credentials', file);
         });
       }
 
-      // Get MindMateToken from cookie
+      // Get token from cookie
       const token = getCookie('MindMateToken');
 
-      // Send request to mentor signup endpoint with Authorization header
+      // Send request with proper headers
       const response = await api.post('/api/auth/mentor/signup', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -834,10 +856,21 @@ const MentorInfo = () => {
       });
 
       console.log('Mentor signup successful:', response.data);
-      router.push('/mentor');
-    } catch (error) {
+      setShowStatusPopup(true);
+    } catch (error: any) {
       console.error('Mentor signup error:', error);
-      alert('There was an error submitting your information. Please try again.');
+      
+      // Enhanced error handling
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.validOptions) {
+          alert(`Error: ${errorData.message}\nValid options: ${errorData.validOptions.join(', ')}`);
+        } else {
+          alert(`Error: ${errorData.message || 'Unknown error occurred'}`);
+        }
+      } else {
+        alert('There was an error submitting your information. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
       setIsButtonActive(false);
@@ -857,11 +890,6 @@ const MentorInfo = () => {
     router.push('/login');
   };
   
-  const scrollToGetStarted = () => {
-    // Implementation for scrolling to a specific section
-    // This would depend on your page structure
-  };
-  
   // Effects
   useEffect(() => {
     updateAvailableSubjects();
@@ -878,8 +906,61 @@ const MentorInfo = () => {
     };
   }, [currentStep]);
   
+  // Helper functions for keyboard navigation
+  function focusFirstOption(listboxId: string) { 
+    const first = document.querySelector<HTMLElement>(`#${listboxId} [role="option"]`); 
+    first?.focus(); 
+  }
+  
+  const handleComboboxKey = (toggleOpen: () => void, isOpen: boolean, listboxId: string) =>
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') { 
+        e.preventDefault(); 
+        toggleOpen(); 
+      }
+      else if (e.key === 'Escape' && isOpen) { 
+        e.preventDefault(); 
+        toggleOpen(); 
+      }
+      else if ((e.key === 'ArrowDown' || e.key === 'Down') && isOpen) { 
+        e.preventDefault(); 
+        focusFirstOption(listboxId); 
+      }
+    };
+  
+  const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
+    const current = e.currentTarget;
+    const options = Array.from(current.parentElement?.querySelectorAll<HTMLElement>('[role="option"]') || []);
+    const idx = options.indexOf(current);
+    if (e.key === 'Enter' || e.key === ' ') { 
+      e.preventDefault(); 
+      current.querySelector<HTMLInputElement>('input')?.click(); 
+      return; 
+    }
+    if (e.key === 'ArrowDown' || e.key === 'Down') { 
+      e.preventDefault(); 
+      options[Math.min(idx + 1, options.length - 1)]?.focus(); 
+      return; 
+    }
+    if (e.key === 'ArrowUp' || e.key === 'Up') { 
+      e.preventDefault(); 
+      options[Math.max(idx - 1, 0)]?.focus(); 
+      return; 
+    }
+    if (e.key === 'Home') { 
+      e.preventDefault(); 
+      options[0]?.focus(); 
+      return; 
+    }
+    if (e.key === 'End') { 
+      e.preventDefault(); 
+      options[options.length - 1]?.focus(); 
+      return; 
+    }
+  };
+
   return (
-    <div className="mentorinfo-container">
+    <div className={styles.root}>
       <Head>
         <title>Mentor Information</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -889,7 +970,7 @@ const MentorInfo = () => {
       <button 
         ref={backButtonRef}
         onClick={() => router.push('/auth/signup')} 
-        className="back-btn"
+        className={styles.backBtn}
         tabIndex={0}
       >
         <svg
@@ -906,19 +987,19 @@ const MentorInfo = () => {
         Back
       </button>
 
-      <header className="page-header">
+      <header className={styles.pageHeader}>
         <h1>MENTOR INFO</h1>
         <p>Complete your profile to start mentoring.</p>
       </header>
 
-      <div className="form-container scrollable-content">
+      <div className={`${styles.formContainer} ${styles.scrollableContent}`}>
         {/* Step 1 Content */}
         {currentStep === 1 && (
           <div>
-            <h2 className="title">I. PERSONAL INFORMATION</h2>
+            <h2 className={styles.title}>I. PERSONAL INFORMATION</h2>
 
-            <div className="personal-field">
-              <label className="personal-label required" htmlFor="address">ADDRESS</label>
+            <div className={styles.personalField}>
+              <label className={`${styles.personalLabel} ${styles.required}`} htmlFor="address">ADDRESS</label>
               <input
                 ref={addressRef}
                 type="text"
@@ -931,18 +1012,18 @@ const MentorInfo = () => {
                 onBlur={() => validateField('address', address)}
                 placeholder="Enter your address"
                 disabled={isSubmitting}
-                className={`personal-input ${validationErrors.address ? 'error' : ''}`}
+                className={`${styles.personalInput} ${validationErrors.address ? styles.error : ''}`}
                 tabIndex={0}
               />
               {validationErrors.address && (
-                <span className="validation-message">
+                <span className={styles.validationMessage}>
                   {validationErrors.address}
                 </span>
               )}
             </div>
 
-            <div className="personal-field">
-              <label className="personal-label required" htmlFor="contact-number">
+            <div className={styles.personalField}>
+              <label className={`${styles.personalLabel} ${styles.required}`} htmlFor="contact-number">
                 CONTACT NUMBER
               </label>
               <input
@@ -958,43 +1039,43 @@ const MentorInfo = () => {
                 onBlur={() => validateField('contactNumber', contactNumber)}
                 placeholder="Enter your contact number (11 digits)"
                 disabled={isSubmitting}
-                className={`personal-input ${validationErrors.contactNumber ? 'error' : ''}`}
+                className={`${styles.personalInput} ${validationErrors.contactNumber ? styles.error : ''}`}
                 maxLength={11}
                 tabIndex={0}
               />
               {validationErrors.contactNumber && (
-                <span className="validation-message">
+                <span className={styles.validationMessage}>
                   {validationErrors.contactNumber}
                 </span>
               )}
             </div>
 
-            <div className="personal-field">
-              <label className="personal-label required" htmlFor="gender">
+            <div className={styles.personalField}>
+              <label className={`${styles.personalLabel} ${styles.required}`} htmlFor="gender">
                 SEX AT BIRTH
               </label>
               <div 
                 ref={genderRef}
-                className="gender-dropdown"
+                className={styles.genderDropdown}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'gender')}
               >
-                <div className="dropdown-container" onClick={() => toggleDropdown('gender')}>
+                <div className={styles.dropdownContainer} onClick={() => toggleDropdown('gender')}>
                   <input
                     type="text"
                     value={gender}
                     placeholder="Select your sex"
                     disabled={isSubmitting}
-                    className="personal-input"
+                    className={styles.personalInput}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
                 {dropdownOpen.gender && (
-                  <div className="dropdown-options">
+                  <div className={styles.dropdownOptions}>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setGender('Female');
                         setDropdownOpen({ ...dropdownOpen, gender: false });
@@ -1010,7 +1091,7 @@ const MentorInfo = () => {
                       Female
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setGender('Male');
                         setDropdownOpen({ ...dropdownOpen, gender: false });
@@ -1028,37 +1109,37 @@ const MentorInfo = () => {
                   </div>
                 )}
                 {validationErrors.gender && (
-                  <span className="validation-message">
+                  <span className={styles.validationMessage}>
                     {validationErrors.gender}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="personal-field">
-              <label className="personal-label" htmlFor="year-level">YEAR LEVEL </label>
+            <div className={styles.personalField}>
+               <label className={`${styles.personalLabel} ${styles.required}`} htmlFor="year-level">YEAR LEVEL</label>
               <div 
                 ref={yearLevelRef}
-                className="year-dropdown"
+                className={styles.yearDropdown}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'yearLevel')}
               >
-                <div className="dropdown-container" onClick={() => toggleDropdown('yearLevel')}>
+                <div className={styles.dropdownContainer} onClick={() => toggleDropdown('yearLevel')}>
                   <input
                     type="text"
                     value={yearLevel}
                     placeholder="Select your year level"
                     disabled={isSubmitting}
-                    className="personal-input"
+                    className={styles.personalInput}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
                 {dropdownOpen.yearLevel && (
-                  <div className="dropdown-options">
+                  <div className={styles.dropdownOptions}>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setYearLevel('1st Year');
                         setDropdownOpen({ ...dropdownOpen, yearLevel: false });
@@ -1074,7 +1155,7 @@ const MentorInfo = () => {
                       1st Year
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setYearLevel('2nd Year');
                         setDropdownOpen({ ...dropdownOpen, yearLevel: false });
@@ -1090,7 +1171,7 @@ const MentorInfo = () => {
                       2nd Year
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setYearLevel('3rd Year');
                         setDropdownOpen({ ...dropdownOpen, yearLevel: false });
@@ -1106,7 +1187,7 @@ const MentorInfo = () => {
                       3rd Year
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setYearLevel('4th Year');
                         setDropdownOpen({ ...dropdownOpen, yearLevel: false });
@@ -1126,32 +1207,32 @@ const MentorInfo = () => {
               </div>
             </div>
             
-            <div className="personal-field">
-              <label className="personal-label" htmlFor="program">PROGRAM </label>
+            <div className={styles.personalField}>
+               <label className={`${styles.personalLabel} ${styles.required}`} htmlFor="program">PROGRAM</label>
               <div 
                 ref={programRef}
-                className="program-dropdown"
+                className={styles.programDropdown}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'program')}
               >
-                <div className="dropdown-container" onClick={() => toggleDropdown('program')}>
+                <div className={styles.dropdownContainer} onClick={() => toggleDropdown('program')}>
                   <input
                     type="text"
                     value={program}
                     placeholder="Select your program"
-                    className="personal-input"
+                    className={styles.personalInput}
                     disabled={isSubmitting}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
                 {dropdownOpen.program && (
-                  <div className="dropdown-options">
+                  <div className={styles.dropdownOptions}>
                     {programs.map(programOption => (
                       <div
                         key={programOption}
-                        className="dropdown-option"
+                        className={styles.dropdownOption}
                         onClick={() => {
                           setProgram(programOption);
                           setDropdownOpen({ ...dropdownOpen, program: false });
@@ -1177,32 +1258,32 @@ const MentorInfo = () => {
         {/* Step 2 Content */}
         {currentStep === 2 && (
           <div>
-            <h2 className="title">II. PROFILE INFORMATION</h2>
+            <h2 className={styles.title}>II. PROFILE INFORMATION</h2>
 
             {/* Profile Picture and Credentials Upload */}
-            <div className="upload-container">
-              <div className="profile-picture-upload">
-                <label className="profile-label">PROFILE PICTURE</label>
+            <div className={styles.uploadContainer}>
+              <div className={styles.profilePictureUpload}>
+                <label className={styles.profileLabel}>PROFILE PICTURE</label>
                 <div 
                   ref={profileUploadRef}
-                  className="upload-controls" 
+                  className={styles.uploadControls} 
                   onClick={uploadProfilePicture}
                   tabIndex={0}
                   onKeyDown={(e) => handleUploadKeyNavigation(e, 'profile')}
                 >
-                  <div className="profile-preview-container">
+                  <div className={styles.profilePreviewContainer}>
                     {profileImage ? (
                       <img
                         src={profileImage}
                         alt="Profile Preview"
-                        className="profile-preview"
+                        className={styles.profilePreview}
                       />
                     ) : (
-                      <i className="fas fa-user-circle default-icon"></i>
+                      <i className={`fas fa-user-circle ${styles.defaultIcon}`}></i>
                     )}
                   </div>
-                  <div className="upload-text">
-                    <div className="choose-file-container">
+                  <div className={styles.uploadText}>
+                    <div className={styles.chooseFileContainer}>
                       <i className="fas fa-upload"></i>
                       <span>Choose File</span>
                     </div>
@@ -1215,7 +1296,7 @@ const MentorInfo = () => {
                       onChange={handleProfileUpload}
                     />
                     <span
-                      className="file-name"
+                      className={styles.fileName}
                       style={{
                         maxWidth: '150px',
                         overflow: 'hidden',
@@ -1229,16 +1310,17 @@ const MentorInfo = () => {
                 </div>
               </div>
 
-              <div className="credentials-upload">
-                <label className="profile-label">CREDENTIALS</label>
+              <div className={styles.credentialsUpload}>
+                <label className={styles.profileLabel}>CREDENTIALS</label>
                 <div 
                   ref={credentialsUploadRef}
-                  className="upload-controls"
+                  className={styles.uploadControls}
                   tabIndex={0}
                   onKeyDown={(e) => handleUploadKeyNavigation(e, 'credentials')}
                 >
-                  <i className="fas fa-file-upload upload-icon"></i>
-                  <div className="choose-file-container" onClick={uploadCredentials}>
+                  <i className={`fas fa-file-upload ${styles.uploadIcon}`}></i>
+                  <div className={styles.chooseFileContainer} onClick={uploadCredentials}>
+                    <i className="fas fa-upload"></i>
                     <span>Upload Credentials</span>
                   </div>
                   <input
@@ -1253,7 +1335,7 @@ const MentorInfo = () => {
                   <a 
                     href="#" 
                     onClick={(e) => { e.preventDefault(); toggleFileList(); }} 
-                    className="file-link"
+                    className={styles.fileLink}
                     tabIndex={0}
                     onKeyDown={handleFileListKeyNavigation}
                   >
@@ -1263,68 +1345,84 @@ const MentorInfo = () => {
               </div>
             </div>
 
-            <div className="divider"></div>
+            <div className={styles.divider}></div>
 
-            <div className="profile-field">
-              <label className="profile-label" htmlFor="availability-days">
+            <div className={styles.profileField}>
+              <label className={styles.profileLabel} htmlFor="availability-days">
                 DAYS OF AVAILABILITY
               </label>
               <div 
                 ref={availabilityRef}
-                className="availability-dropdown"
+                className={styles.availabilityDropdown}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'availability')}
               >
-                <div className="dropdown-container" onClick={() => toggleDropdown('availability')}>
+                <div className={styles.dropdownContainer} onClick={() => toggleDropdown('availability')}>
                   <input
                     type="text"
                     id="availability-days"
                     value={availabilityDaysDisplay}
                     placeholder="Select available days"
                     disabled={isSubmitting}
-                    className="profile-input"
+                    className={styles.profileInput}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
                 {dropdownOpen.availability && (
-                  <div className="dropdown-options availability-options">
-                    {daysOfWeek.map(day => (
-                      <div key={day} className="dropdown-option availability-option">
-                        <input
-                          type="checkbox"
-                          id={`day-${day}`}
-                          disabled={isSubmitting}
-                          checked={selectedDays.includes(day)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedDays([...selectedDays, day]);
-                            } else {
-                              setSelectedDays(selectedDays.filter(d => d !== day));
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          tabIndex={0}
-                          onKeyDown={(e) => handleCheckboxKeyNavigation(e, 'day', day, selectedDays, setSelectedDays)}
-                        />
-                        <label htmlFor={`day-${day}`}>{day}</label>
-                      </div>
-                    ))}
+                  <div
+                    id={availabilityListboxId}
+                    className={`${styles.dropdownOptions} ${styles.availabilityOptions}`}
+                    role="listbox"
+                    aria-multiselectable="true"
+                  >
+                    {daysOfWeek.map((day) => {
+                      const optionId = `day-${day}`;
+                      const isSelected = selectedDays.includes(day);
+                      return (
+                        <div
+                          key={day}
+                          role="option"
+                          aria-selected={isSelected}
+                          tabIndex={-1}
+                          className={`${styles.dropdownOption} ${styles.availabilityOption}`}
+                          onKeyDown={handleOptionKeyDown}
+                        >
+                          <input
+                            type="checkbox"
+                            id={optionId}
+                            disabled={isSubmitting}
+                            checked={selectedDays.includes(day)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDays([...selectedDays, day]);
+                              } else {
+                                setSelectedDays(selectedDays.filter(d => d !== day));
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            tabIndex={0}
+                            onKeyDown={(e) => handleCheckboxKeyNavigation(e, 'day', day, selectedDays, setSelectedDays)}
+                          />
+                          <label htmlFor={optionId}>{day}</label>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label required">SUBJECTS OFFERED</label>
+            <div className={styles.profileField}>
+              <label className={`${styles.profileLabel} ${styles.required}`}>SUBJECTS OFFERED</label>
               <div 
                 ref={subjectsRef}
-                className="dropdown-wrapper"
+                className={styles.dropdownWrapper}
                 tabIndex={0}
                 onKeyDown={handleSubjectsKeyNavigation}
               >
-                <div className="dropdown-trigger" onClick={toggleSubjectDropdown}>
+                <div className={styles.dropdownTrigger} onClick={toggleSubjectDropdown}>
                   <input
                     type="text"
                     placeholder={
@@ -1334,18 +1432,18 @@ const MentorInfo = () => {
                     }
                     readOnly
                     disabled={isSubmitting}
-                    className={`profile-input ${validationErrors.selectedSubjects ? 'error' : ''}`}
+                    className={`${styles.profileInput} ${validationErrors.selectedSubjects ? styles.error : ''}`}
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
 
                 {showCategories && (
-                  <div className="dropdown-menu categories">
+                  <div className={`${styles.dropdownMenu} ${styles.categories}`}>
                     {categories.map(category => (
                       <div
                         key={category.type}
-                        className="dropdown-item"
+                        className={styles.dropdownItem}
                         onClick={() => selectCategory(category)}
                         tabIndex={0}
                         onKeyDown={(e) => {
@@ -1356,7 +1454,7 @@ const MentorInfo = () => {
                       >
                         {category.name}
                         {selectedSubjectsCount[category.type as keyof typeof selectedSubjectsCount] > 0 && (
-                          <span className="count-badge">
+                          <span className={styles.countBadge}>
                             {selectedSubjectsCount[category.type as keyof typeof selectedSubjectsCount]}
                           </span>
                         )}
@@ -1366,10 +1464,10 @@ const MentorInfo = () => {
                 )}
 
                 {showSubjectsDropdown && (
-                  <div className="dropdown-menu subjects">
+                  <div className={`${styles.dropdownMenu} ${styles.subjects}`}>
                     {currentSubjects.length > 0 ? (
                       currentSubjects.map(subject => (
-                        <div key={subject} className="dropdown-item subject-item">
+                        <div key={subject} className={`${styles.dropdownItem} ${styles.subjectItem}`}>
                           <input
                             type="checkbox"
                             id={subject}
@@ -1389,7 +1487,7 @@ const MentorInfo = () => {
                         </div>
                       ))
                     ) : (
-                      <div className="dropdown-item no-subjects">
+                      <div className={`${styles.dropdownItem} ${styles.noSubjects}`}>
                         No subjects available
                       </div>
                     )}
@@ -1397,39 +1495,39 @@ const MentorInfo = () => {
                 )}
               </div>
               {validationErrors.selectedSubjects && (
-                <span className="validation-message">
+                <span className={styles.validationMessage}>
                   {validationErrors.selectedSubjects}
                 </span>
               )}
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label" htmlFor="teaching-style">
+            <div className={styles.profileField}>
+              <label className={styles.profileLabel} htmlFor="teaching-style">
                 TEACHING STYLE
               </label>
               <div 
                 ref={teachingStyleRef}
-                className="teaching-style-dropdown"
+                className={styles.teachingStyleDropdown}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'learningStyle')}
               >
-                <div className="dropdown-container" onClick={() => toggleDropdown('learningStyle')}>
+                <div className={styles.dropdownContainer} onClick={() => toggleDropdown('learningStyle')}>
                   <input
                     type="text"
                     id="teaching-style"
                     value={learningStyleDisplay}
                     disabled={isSubmitting}
                     placeholder="Select teaching style(s)"
-                    className="profile-input"
+                    className={styles.profileInput}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
                 {dropdownOpen.learningStyle && (
-                  <div className="dropdown-options teaching-style-options">
+                  <div className={`${styles.dropdownOptions} ${styles.teachingStyleOptions}`}>
                     {sessionStyles.map(style => (
-                      <div key={style} className="dropdown-option teaching-style-option">
+                      <div key={style} className={`${styles.dropdownOption} ${styles.teachingStyleOption}`}>
                         <input
                           type="checkbox"
                           id={`style-${style}`}
@@ -1453,32 +1551,32 @@ const MentorInfo = () => {
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label required" htmlFor="modality">
+            <div className={styles.profileField}>
+              <label className={`${styles.profileLabel} ${styles.required}`} htmlFor="modality">
                 TEACHING MODALITY
               </label>
               <div 
                 ref={modalityRef}
-                className="subjmodality-dropdown"
+                className={styles.subjmodalityDropdown}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'modality')}
               >
-                <div className="dropdown-container" onClick={() => toggleDropdown('modality')}>
+                <div className={styles.dropdownContainer} onClick={() => toggleDropdown('modality')}>
                   <input
                     type="text"
                     value={modality}
                     disabled={isSubmitting}
                     placeholder="Select teaching modality"
-                    className="profile-input"
+                    className={`${styles.profileInput} ${validationErrors.modality ? styles.error : ''}`}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
                 {dropdownOpen.modality && (
-                  <div className="dropdown-options">
+                  <div className={styles.dropdownOptions}>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setModality('Online');
                         setDropdownOpen({ ...dropdownOpen, modality: false });
@@ -1494,7 +1592,7 @@ const MentorInfo = () => {
                       Online
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setModality('In-person');
                         setDropdownOpen({ ...dropdownOpen, modality: false });
@@ -1510,7 +1608,7 @@ const MentorInfo = () => {
                       In-person
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setModality('Hybrid');
                         setDropdownOpen({ ...dropdownOpen, modality: false });
@@ -1527,35 +1625,38 @@ const MentorInfo = () => {
                     </div>
                   </div>
                 )}
+                {validationErrors.modality && (
+                  <span className={styles.validationMessage}>
+                    {validationErrors.modality}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label" htmlFor="session-duration">
-                PREFERRED SESSION DURATION
-              </label>
+            <div className={styles.profileField}>
+               <label className={`${styles.profileLabel} ${styles.required}`} htmlFor="session-duration">PREFERRED SESSION DURATION</label>
               <div 
                 ref={sessionDurationRef}
-                className="session-duration-dropdown"
+                className={styles.sessionDurationDropdown}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'sessionDuration')}
               >
-                <div className="dropdown-container" onClick={() => toggleDropdown('sessionDuration')}>
+                <div className={styles.dropdownContainer} onClick={() => toggleDropdown('sessionDuration')}>
                   <input
                     type="text"
                     value={sessionDuration}
                     disabled={isSubmitting}
                     placeholder="Select duration"
-                    className="profile-input"
+                    className={`${styles.profileInput} ${validationErrors.sessionDuration ? styles.error : ''}`}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
                 {dropdownOpen.sessionDuration && (
-                  <div className="dropdown-options">
+                  <div className={styles.dropdownOptions}>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setSessionDuration('1 hour');
                         setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
@@ -1571,7 +1672,7 @@ const MentorInfo = () => {
                       1 hour
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setSessionDuration('2 hours');
                         setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
@@ -1587,7 +1688,7 @@ const MentorInfo = () => {
                       2 hours
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setSessionDuration('3 hours');
                         setDropdownOpen({ ...dropdownOpen, sessionDuration: false });
@@ -1604,35 +1705,38 @@ const MentorInfo = () => {
                     </div>
                   </div>
                 )}
+                {validationErrors.sessionDuration && (
+                  <span className={styles.validationMessage}>
+                    {validationErrors.sessionDuration}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label" htmlFor="proficiency">
-                PROFICIENCY LEVEL
-              </label>
+            <div className={styles.profileField}>
+               <label className={`${styles.profileLabel} ${styles.required}`} htmlFor="proficiency">PROFICIENCY LEVEL</label>
               <div 
                 ref={proficiencyRef}
-                className="proficiency-dropdown"
+                className={styles.proficiencyDropdown}
                 tabIndex={0}
                 onKeyDown={(e) => handleDropdownKeyNavigation(e, 'proficiency')}
               >
-                <div className="dropdown-container" onClick={() => toggleDropdown('proficiency')}>
+                <div className={styles.dropdownContainer} onClick={() => toggleDropdown('proficiency')}>
                   <input
                     type="text"
                     value={proficiency}
                     disabled={isSubmitting}
                     placeholder="Select proficiency level"
-                    className="profile-input"
+                    className={`${styles.profileInput} ${validationErrors.proficiency ? styles.error : ''}`}
                     readOnly
                     tabIndex={-1}
                   />
-                  <i className="fas fa-chevron-down dropdown-icon"></i>
+                  <i className={`fas fa-chevron-down ${styles.dropdownIcon}`}></i>
                 </div>
                 {dropdownOpen.proficiency && (
-                  <div className="dropdown-options">
+                  <div className={styles.dropdownOptions}>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setProficiency('Beginner');
                         setDropdownOpen({ ...dropdownOpen, proficiency: false });
@@ -1648,7 +1752,7 @@ const MentorInfo = () => {
                       Beginner
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setProficiency('Intermediate');
                         setDropdownOpen({ ...dropdownOpen, proficiency: false });
@@ -1664,7 +1768,7 @@ const MentorInfo = () => {
                       Intermediate
                     </div>
                     <div 
-                      className="dropdown-option" 
+                      className={styles.dropdownOption} 
                       onClick={() => {
                         setProficiency('Advanced');
                         setDropdownOpen({ ...dropdownOpen, proficiency: false });
@@ -1681,11 +1785,16 @@ const MentorInfo = () => {
                     </div>
                   </div>
                 )}
+                {validationErrors.proficiency && (
+                  <span className={styles.validationMessage}>
+                    {validationErrors.proficiency}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label required" htmlFor="bio">SHORT BIO</label>
+            <div className={styles.profileField}>
+              <label className={`${styles.profileLabel} ${styles.required}`} htmlFor="bio">SHORT BIO</label>
               <textarea
                 ref={bioRef}
                 id="bio"
@@ -1698,18 +1807,18 @@ const MentorInfo = () => {
                 disabled={isSubmitting}
                 placeholder="Tell us about yourself (50-500 characters)"
                 rows={4}
-                className={`profile-textarea ${validationErrors.bio ? 'error' : ''}`}
+                className={`${styles.profileTextarea} ${validationErrors.bio ? styles.error : ''}`}
                 tabIndex={0}
               ></textarea>
               {validationErrors.bio && (
-                <span className="validation-message">
+                <span className={styles.validationMessage}>
                   {validationErrors.bio}
                 </span>
               )}
             </div>
 
-            <div className="profile-field">
-              <label className="profile-label required" htmlFor="experience">
+            <div className={styles.profileField}>
+              <label className={`${styles.profileLabel} ${styles.required}`} htmlFor="experience">
                 TUTORING EXPERIENCE
               </label>
               <textarea
@@ -1724,11 +1833,11 @@ const MentorInfo = () => {
                 disabled={isSubmitting}
                 placeholder="Describe your tutoring experience (50-500 characters)"
                 rows={4}
-                className={`profile-textarea ${validationErrors.experience ? 'error' : ''}`}
+                className={`${styles.profileTextarea} ${validationErrors.experience ? styles.error : ''}`}
                 tabIndex={0}
               ></textarea>
               {validationErrors.experience && (
-                <span className="validation-message">
+                <span className={styles.validationMessage}>
                   {validationErrors.experience}
                 </span>
               )}
@@ -1737,12 +1846,12 @@ const MentorInfo = () => {
         )}
       </div>
 
-      {/* Buttons Container - Step indicator removed */}
-      <div className="next-button-container">
+      {/* Buttons Container */}
+      <div className={styles.nextButtonContainer}>
         {currentStep === 2 && (
           <button
             ref={prevStepButtonRef}
-            className="prev-step-button"
+            className={styles.prevStepButton}
             onClick={prevStep}
             disabled={isSubmitting}
             tabIndex={0}
@@ -1752,7 +1861,7 @@ const MentorInfo = () => {
         )}
         <button
           ref={nextButtonRef}
-          className={`next-button ${isSubmitting ? 'loading' : ''} ${isButtonActive ? 'active' : ''}`}
+          className={`${styles.nextButton} ${isSubmitting ? styles.loading : ''} ${isButtonActive ? styles.active : ''}`}
           onClick={nextStep}
           onMouseDown={() => !isSubmitting && setIsButtonActive(true)}
           onMouseUp={() => setIsButtonActive(false)}
@@ -1761,7 +1870,7 @@ const MentorInfo = () => {
           tabIndex={0}
         >
           {isSubmitting ? (
-            <span className="loading-spinner"></span>
+            <span className={styles.loadingSpinner}></span>
           ) : currentStep === totalSteps ? (
             'SUBMIT'
           ) : (
@@ -1772,13 +1881,13 @@ const MentorInfo = () => {
 
       {/* File List Modal */}
       {showFileList && (
-        <div className="Credmodal-overlay" onClick={closeFileList}>
-          <div className="Credmodal-content" onClick={(e) => e.stopPropagation()}>
+        <div className={styles.credModalOverlay} onClick={closeFileList}>
+          <div className={styles.credModalContent} onClick={(e) => e.stopPropagation()}>
             <h3>Uploaded Files</h3>
-            <ul className="file-list">
+            <ul className={styles.fileList}>
               {credentials.map((file, index) => (
                 <li key={index}>
-                  <span className="file-info">
+                  <span className={styles.fileInfo}>
                     <i className="fas fa-file-alt"></i>
                     {file.name}
                   </span>
@@ -1789,7 +1898,7 @@ const MentorInfo = () => {
               ))}
             </ul>
             <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <button className="close-button" onClick={closeFileList}>Close</button>
+              <button className={styles.closeButton} onClick={closeFileList}>Close</button>
             </div>
           </div>
         </div>
@@ -1797,14 +1906,14 @@ const MentorInfo = () => {
 
       {/* Application Status Popup */}
       {showStatusPopup && (
-        <div className="status-popup-overlay">
-          <div className="status-popup-content">
+        <div className={styles.statusPopupOverlay}>
+          <div className={styles.statusPopupContent}>
             <h3>APPLICATION STATUS</h3>
-            <p className="status-text">
+            <p className={styles.statusText}>
               Your mentor application is under review. You will receive an email once
               it&apos;s approved. Thank you!
             </p>
-            <button className="proceed-button" onClick={proceedToHome}>
+            <button className={styles.proceedButton} onClick={proceedToHome}>
               PROCEED TO HOME
             </button>
           </div>
@@ -1812,9 +1921,7 @@ const MentorInfo = () => {
       )}
     </div>
   );
-};
-
-export default MentorInfo;
+}
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {

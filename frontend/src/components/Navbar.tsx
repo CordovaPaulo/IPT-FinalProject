@@ -25,9 +25,9 @@ export default function Navbar() {
   const menuId = 'primary-navigation';
 
   const toggleMenu = () => {
+    console.log('Toggle menu clicked, current state:', isMenuOpen); // Debug
     setIsMenuOpen(!isMenuOpen);
     if (!isMenuOpen) {
-      // When opening menu, focus first item
       setTimeout(() => {
         setFocusedIndex(0);
         const firstLink = document.querySelector('[data-index="0"]') as HTMLElement;
@@ -43,7 +43,6 @@ export default function Navbar() {
   const closeMenu = () => {
     setIsMenuOpen(false);
     setFocusedIndex(-1);
-    // Return focus to hamburger button when closing menu
     setTimeout(() => {
       if (hamburgerRef.current) {
         hamburgerRef.current.focus();
@@ -119,10 +118,8 @@ export default function Navbar() {
     }
   };
 
-  // Handle keyboard navigation for arrow keys
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!isMenuOpen) {
-      // Handle navigation when menu is closed (desktop)
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault();
         const currentIndex = navItems.findIndex(item => item.name === activeLink);
@@ -138,13 +135,11 @@ export default function Navbar() {
         setActiveLink(newItem.name);
 
         if (newItem.isButton) {
-          // Focus login button
           const loginButton = document.querySelector('.nav-button') as HTMLElement;
           if (loginButton) {
             loginButton.focus();
           }
         } else {
-          // Focus nav link and scroll to section
           const linkElement = document.querySelector(`[data-index="${newIndex}"]`) as HTMLElement;
           if (linkElement) {
             linkElement.focus();
@@ -155,7 +150,6 @@ export default function Navbar() {
       return;
     }
 
-    // Handle navigation when menu is open (mobile/tablet)
     switch (event.key) {
       case 'ArrowLeft':
         event.preventDefault();
@@ -190,13 +184,11 @@ export default function Navbar() {
 
   const focusNavItem = (index: number) => {
     if (index < links.length) {
-      // Focus navigation link
       const linkElement = document.querySelector(`[data-index="${index}"]`) as HTMLElement;
       if (linkElement) {
         linkElement.focus();
       }
     } else if (index === links.length) {
-      // Focus login button
       const loginButton = document.querySelector('.nav-button') as HTMLElement;
       if (loginButton) {
         loginButton.focus();
@@ -204,7 +196,6 @@ export default function Navbar() {
     }
   };
 
-  // Handle individual item key down for better accessibility
   const handleItemKeyDown = (event: React.KeyboardEvent, index: number) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -213,12 +204,10 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    // Check if we're on login page
     setIsLoginClicked(pathname === '/auth/login');    
-    // Set up scroll listener if on home page
     if (pathname === '/') {
       window.addEventListener('scroll', handleScroll);
-      handleScroll(); // Check initial position
+      handleScroll();
       
       const scrollToSectionId = sessionStorage.getItem('scrollToSection');
       if (scrollToSectionId) {
@@ -237,7 +226,6 @@ export default function Navbar() {
     };
   }, [pathname, isMenuOpen, focusedIndex, activeLink]);
 
-  // Reset focused index when menu closes
   useEffect(() => {
     if (!isMenuOpen) {
       setFocusedIndex(-1);
@@ -257,13 +245,13 @@ export default function Navbar() {
           <span>MindMates</span>
         </div>
 
-        {/* Mobile menu toggle button */}
         <button
-          className="menu-toggle"
+          className="hamburger"
           aria-label="Toggle navigation menu"
           aria-expanded={isMenuOpen}
           aria-controls={menuId}
           onClick={toggleMenu}
+          ref={hamburgerRef} 
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMenu(); }
             if (e.key === 'Escape' && isMenuOpen) { e.preventDefault(); closeMenu(); }
@@ -274,8 +262,12 @@ export default function Navbar() {
           <span className={`hamburger-line ${isMenuOpen ? 'active' : ''}`}></span>
         </button>
 
-        {/* Nav container */}
-        <nav id={menuId} aria-label="Primary" role="navigation">
+        <nav 
+          id={menuId} 
+          aria-label="Primary" 
+          role="navigation"
+          className={`header-nav ${isMenuOpen ? 'active' : ''}`} // Added dynamic class
+        >
           <div className="nav-links">
             {links.map((link, index) => (
               <a
@@ -297,7 +289,7 @@ export default function Navbar() {
                 onMouseUp={() => setClickedLink(null)}
                 onMouseLeave={() => setClickedLink(null)}
                 onFocus={() => setFocusedIndex(index)}
-                tabIndex={isMenuOpen || !isMenuOpen ? 0 : -1}
+                tabIndex={isMenuOpen ? 0 : -1}
               >
                 <span className="link-text">{link.name}</span>
                 <span className="link-underline"></span>
@@ -309,7 +301,7 @@ export default function Navbar() {
             onClick={goToLogin}
             onKeyDown={(e) => handleItemKeyDown(e, links.length)}
             onFocus={() => setFocusedIndex(links.length)}
-            tabIndex={isMenuOpen || !isMenuOpen ? 0 : -1}
+            tabIndex={isMenuOpen ? 0 : -1}
           >
             <svg className="login-icon" viewBox="0 0 24 24" width="18" height="18">
               <path
@@ -322,7 +314,6 @@ export default function Navbar() {
         </nav>
       </header>
 
-      {/* Add overlay when menu is open */}
       {isMenuOpen && (
         <div 
           className="nav-overlay" 
@@ -349,7 +340,6 @@ export default function Navbar() {
           height: auto;
         }
 
-        /* Logo Styles */
         .header-logo {
           display: flex;
           align-items: center;
@@ -364,7 +354,6 @@ export default function Navbar() {
           color: #0e8ca3;
         }
 
-        /* Improved Hamburger Styles */
         .hamburger {
           display: flex;
           flex-direction: column;
@@ -391,16 +380,17 @@ export default function Navbar() {
           transform-origin: center;
         }
 
-        .hamburger-line:nth-child(1).active {
+        /* FIXED: Corrected animation selectors */
+        .hamburger-line:nth-of-type(1).active {
           transform: translateY(9px) rotate(45deg);
         }
 
-        .hamburger-line:nth-child(2).active {
+        .hamburger-line:nth-of-type(2).active {
           opacity: 0;
           transform: scale(0);
         }
 
-        .hamburger-line:nth-child(3).active {
+        .hamburger-line:nth-of-type(3).active {
           transform: translateY(-9px) rotate(-45deg);
         }
 
@@ -450,8 +440,7 @@ export default function Navbar() {
 
         .nav-link:focus,
         .nav-link.focused {
-          border-color: transparent;
-          outline-offset: 1px;
+          outline: none;
         }
 
         .link-text {
@@ -506,7 +495,8 @@ export default function Navbar() {
         .nav-button.focused {
           background: #0e8ca3;
           color: white;
-          outline-offset: 1px;
+          outline: 2px solid #0e8ca3;
+          outline-offset: 2px;
         }
 
         .login-icon {
@@ -530,14 +520,13 @@ export default function Navbar() {
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(0, 0, 0, 0.5);
           z-index: 104;
         }
 
         /* Mobile and Tablet Styles */
         @media (max-width: 1023px) {
           .hamburger {
-            display: flex;
+            display: flex !important; /* Force show on mobile */
           }
 
           .header-nav {
@@ -574,10 +563,10 @@ export default function Navbar() {
           }
         }
 
-        /* Desktop Styles (1024px and up) */
+        /* Desktop Styles */
         @media (min-width: 1024px) {
           .hamburger {
-            display: none;
+            display: none !important;
           }
 
           .header-nav {
@@ -592,6 +581,10 @@ export default function Navbar() {
             background-color: transparent;
             box-shadow: none;
             transform: none;
+            right: auto;
+          }
+
+          .header-nav.active {
             right: auto;
           }
 
@@ -633,47 +626,7 @@ export default function Navbar() {
           }
         }
 
-        /* Tablet Styles (768px - 1023px) */
-        @media (min-width: 768px) and (max-width: 1023px) {
-          .hamburger {
-            display: flex;
-          }
-
-          .header-nav {
-            position: fixed;
-            right: -120%;
-            width: 100%;
-            height: 100%;
-            background-color: rgb(220, 226, 230);
-            padding: 6rem 1.5rem 2rem;
-            flex-direction: column;
-          }
-
-          .header-nav.active {
-            right: 0;
-          }
-
-          .nav-links {
-            flex-direction: column;
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-          }
-
-          .nav-link {
-            padding: 0.5rem 1rem;
-            font-size: 1.1rem;
-          }
-
-          .nav-button {
-            margin: 13rem auto 0;
-          }
-
-          .nav-overlay {
-            display: block;
-          }
-        }
-
-        /* Small Mobile Styles (480px and below) */
+        /* Small Mobile Styles */
         @media (max-width: 480px) {
           header {
             padding: 1rem 1.5rem;
@@ -688,11 +641,11 @@ export default function Navbar() {
             height: 2.5px;
           }
 
-          .hamburger-line:nth-child(1).active {
+          .hamburger-line:nth-of-type(1).active {
             transform: translateY(8.5px) rotate(45deg);
           }
 
-          .hamburger-line:nth-child(3).active {
+          .hamburger-line:nth-of-type(3).active {
             transform: translateY(-8.5px) rotate(-45deg);
           }
 

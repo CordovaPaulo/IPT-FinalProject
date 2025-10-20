@@ -3,7 +3,7 @@
 import React, { useId, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
-import styles from './LearnerInfo.module.css';
+import styles from '../LearnerInfo.module.css';
 import api from "@/lib/axios";
 
 interface DropdownOpenState {
@@ -1051,7 +1051,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
             </div>
 
             <div className={styles['personal-field']}>
-              <label className={styles['personal-label']} htmlFor="year-level">YEAR LEVEL </label>
+               <label className={`${styles['personal-label']} ${styles.required}`} htmlFor="year-level">YEAR LEVEL</label>
               <div 
                 ref={yearLevelRef}
                 className={styles['year-dropdown']}
@@ -1082,7 +1082,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
             </div>
             
             <div className={styles['personal-field']}>
-              <label className={styles['personal-label']} htmlFor="program">PROGRAM </label>
+                <label className={`${styles['personal-label']} ${styles.required}`} htmlFor="program">PROGRAM</label>
               <div 
                 ref={programRef}
                 className={styles['program-dropdown']}
@@ -1171,9 +1171,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
             <div className={styles.divider}></div>
 
             <div className={styles['profile-field']}>
-              <label className={styles['profile-label']} htmlFor="availability-days">
-                DAYS OF AVAILABILITY
-              </label>
+               <label className={`${styles['profile-label']} ${styles.required}`} htmlFor="availability-days">DAYS OF AVAILABILITY</label>
               <div 
                 ref={availabilityRef}
                 className={styles['availability-dropdown']}
@@ -1320,9 +1318,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
             </div>
 
             <div className={styles['profile-field']}>
-              <label className={styles['profile-label']} htmlFor="modality">
-                LEARNING MODALITY
-              </label>
+               <label className={`${styles['profile-label']} ${styles.required}`} htmlFor="modality">LEARNING MODALITY</label>
               <div 
                 ref={modalityRef}
                 className={styles['subjmodality-dropdown']}
@@ -1378,10 +1374,8 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
             </div>
 
             <div className={styles['profile-field']}>
-              <label className={styles['profile-label']} htmlFor="session-duration">
-                PREFERRED SESSION DURATION
-              </label>
-              <div 
+             <label className={`${styles['profile-label']} ${styles.required}`} htmlFor="session-duration">PREFERRED SESSION DURATION</label>
+            <div 
                 ref={sessionDurationRef}
                 className={styles['session-duration-dropdown']}
                 tabIndex={0}
@@ -1455,10 +1449,8 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
             </div>
 
             <div className={styles['profile-field']}>
-              <label className={styles['profile-label']} htmlFor="learning-style">
-                LEARNING STYLE
-              </label>
-              <div 
+             <label className={`${styles['profile-label']} ${styles.required}`} htmlFor="learning-style">LEARNING STYLE</label>
+            <div 
                 ref={learningStyleRef}
                 className={styles['learning-style-dropdown']}
                 tabIndex={0}
@@ -1505,8 +1497,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
             </div>
 
             <div className={styles['profile-field']}>
-              <label className={styles['profile-label required']} htmlFor="bio">SHORT BIO</label>
-              <textarea
+               <label className={`${styles['profile-label']} ${styles.required}`} htmlFor="bio">SHORT BIO</label>              <textarea
                 ref={bioRef}
                 id="bio"
                 value={bio}
@@ -1529,9 +1520,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
             </div>
 
             <div className={styles['profile-field']}>
-              <label className={styles['profile-label required']} htmlFor="goals">
-                LEARNING GOALS
-              </label>
+             <label className={`${styles['profile-label']} ${styles.required}`} htmlFor="goals">LEARNING GOALS</label>
               <textarea
                 ref={goalsRef}
                 id="goals"

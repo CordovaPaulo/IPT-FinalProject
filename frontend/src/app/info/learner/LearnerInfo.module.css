@@ -1,19 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css");
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: "Montserrat", sans-serif;
-}
-
-html,
-body {
-  height: 100%;
+.root {
+  min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
   color: white;
+  font-family: "Montserrat", sans-serif;
+}
+.root * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
 }
 
 .learnerinfo-container {
@@ -100,19 +96,12 @@ body {
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  /* Hide scrollbar for Chrome, Safari and Opera */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
 .form-container::-webkit-scrollbar {
   display: none;
-}
-
-/* Hide scrollbar for Firefox */
-.form-container {
-  scrollbar-width: none;
 }
 
 .form-content {
@@ -215,7 +204,6 @@ body {
   max-height: 200px;
   overflow-y: auto;
   font-size: 0.8rem;
-  /* Hide scrollbar for dropdowns */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -288,7 +276,6 @@ body {
   z-index: 100;
   max-height: 300px;
   overflow-y: auto;
-  /* Hide scrollbar for dropdown menus */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -347,10 +334,6 @@ body {
   padding: 15px;
 }
 
-.dropdown-menu {
-  z-index: 1000;
-}
-
 .count-badge {
   background: #02475e;
   color: white;
@@ -366,6 +349,8 @@ body {
   margin-bottom: 2rem;
   padding-left: 4rem;
   padding-right: 5rem;
+  color: #02475e;
+  gap: 0.5rem
 }
 
 .profile-label {
@@ -374,28 +359,6 @@ body {
   font-size: 0.85rem;
   margin-bottom: 0.3rem;
   margin-left: 0.5rem;
-}
-
-.profile-input {
-  padding: 0.7rem;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(215, 217, 230, 0.293);
-  color: rgba(26, 41, 80, 0.683);
-  font-size: 0.85rem;
-  width: 100%;
-  transition: all 0.2s ease;
-  text-align: left;
-}
-
-.profile-input::placeholder {
-  color: rgba(26, 41, 80, 0.683);
-}
-
-.profile-input:focus {
-  outline: none;
-  border-color: rgba(2, 71, 94, 0.8);
-  box-shadow: 0 0 0 2px rgba(2, 71, 94, 0.2);
 }
 
 .profile-textarea {
@@ -409,17 +372,6 @@ body {
   color: rgba(24, 37, 69, 0.842);
   font-size: 0.85rem;
   width: 100%;
-}
-
-.profile-textarea::placeholder {
-  color: rgba(26, 41, 80, 0.683);
-  font-weight: 500;
-}
-
-.profile-textarea:focus {
-  outline: none;
-  border-color: rgba(2, 71, 94, 0.8);
-  box-shadow: 0 0 0 2px rgba(2, 71, 94, 0.2);
 }
 
 .upload-container {
@@ -529,9 +481,6 @@ body {
   transform: translateX(-100px);
 }
 
-/* REMOVED: Old step-indicator-container styles */
-
-/* UPDATED: Next button container with side-by-side buttons */
 .next-button-container {
   position: fixed;
   bottom: 30px;
@@ -567,21 +516,14 @@ body {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-.next-button:active,
-.next-button.active {
+/* next-button.active and .next-button.loading are referenced from JS */
+.active {
   transform: translateY(-1px);
   background-color: #022f3c;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.next-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.next-button.loading {
+.loading {
   pointer-events: none;
 }
 
@@ -617,16 +559,6 @@ body {
   overflow-y: auto;
 }
 
-.subject-item input[type="checkbox"] {
-  margin-right: 10px;
-}
-
-.subject-item label {
-  color: #02475e;
-  cursor: pointer;
-  flex: 1;
-}
-
 .validation-error {
   color: #ff6b6b;
   font-size: 0.75rem;
@@ -648,18 +580,6 @@ body {
   color: #02475e;
 }
 
-.availability-option input[type="checkbox"],
-.learning-style-option input[type="checkbox"] {
-  margin-right: 0.5rem;
-}
-
-.availability-option label,
-.learning-style-option label {
-  cursor: pointer;
-  color: #02475e;
-  font-size: 0.85rem;
-}
-
 .required::after {
   content: "*";
   color: #ff6b6b;
@@ -674,9 +594,7 @@ body {
   display: block;
 }
 
-.personal-input.error,
-.profile-input.error,
-.profile-textarea.error {
+.error {
   border-color: #ff6b6b;
   background-color: rgba(255, 107, 107, 0.05);
 }
@@ -708,17 +626,6 @@ body {
   white-space: nowrap;
 }
 
-.prev-step-button:hover:not(:disabled) {
-  background-color: #5a6268;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.prev-step-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 @media (max-width: 768px) {
   .learnerinfo-container {
     padding-top: 15px;
@@ -726,15 +633,12 @@ body {
     min-height: 100vh;
     position: relative;
   }
-  
-  .page-header h1 { 
-    font-size: 1.5rem; 
+  .page-header h1 {
+    font-size: 1.5rem;
   }
-  
-  .page-header p { 
-    font-size: 0.8rem; 
+  .page-header p {
+    font-size: 0.8rem;
   }
-  
   .form-container {
     max-width: 85%;
     min-height: auto;
@@ -742,27 +646,23 @@ body {
     border-radius: 20px;
     margin-bottom: 20px;
   }
-  
   .title {
     padding: 1rem 1.5rem;
     font-size: 1.3rem;
     margin: 0 -1rem 1rem;
   }
-  
   .personal-field,
   .profile-field {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
     margin-bottom: 1.5rem;
   }
-  
   .personal-input,
   .profile-input,
   .profile-textarea {
     padding: 0.6rem;
     font-size: 0.8rem;
   }
-  
   .dropdown-menu.subjects {
     position: absolute;
     width: 100%;
@@ -774,21 +674,17 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transform: none !important;
   }
-  
-  .upload-container { 
-    padding: 0.5rem; 
+  .upload-container {
+    padding: 0.5rem;
   }
-  
-  .profile-preview-container { 
-    width: 80px; 
-    height: 80px; 
+  .profile-preview-container {
+    width: 80px;
+    height: 80px;
   }
-  
-  .choose-file-container { 
-    padding: 0.6rem 1rem; 
-    font-size: 0.8rem; 
+  .choose-file-container {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
   }
-  
   .next-button-container {
     position: fixed;
     bottom: 15px;
@@ -800,7 +696,6 @@ body {
     gap: 10px;
     padding: 0 10px;
   }
-  
   .next-button,
   .prev-step-button {
     padding: 10px 20px;
@@ -809,47 +704,10 @@ body {
     flex: 1;
     max-width: 140px;
   }
-  
   .divider {
     margin-left: 5rem;
     width: 80%;
     transform: translateX(-50px);
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  .form-container { 
-    max-width: 90%; 
-  }
-  
-  .personal-field,
-  .profile-field { 
-    padding-left: 3rem; 
-    padding-right: 3rem; 
-  }
-  
-  .dropdown-menu.subjects { 
-    left: 30%; 
-    width: 300px; 
-  }
-  
-  .next-button-container {
-    bottom: 25px;
-    right: 25px;
-    gap: 12px;
-  }
-  
-  .next-button,
-  .prev-step-button {
-    padding: 11px 22px;
-    font-size: 0.88rem;
-    min-width: 115px;
-  }
-  
-  .divider {
-    margin-left: 8rem;
-    width: 85%;
-    transform: translateX(-80px);
   }
 }
 
@@ -859,26 +717,21 @@ body {
     width: calc(100% - 20px);
     max-width: calc(100% - 20px);
   }
-  
   .personal-field,
-  .profile-field { 
-    padding-left: 1rem; 
-    padding-right: 1rem; 
+  .profile-field {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
-  
-  .title { 
-    font-size: 15px; 
+  .title {
+    font-size: 15px;
   }
-  
-  .profile-preview-container { 
-    width: 70px; 
-    height: 70px; 
+  .profile-preview-container {
+    width: 70px;
+    height: 70px;
   }
-  
-  .default-icon { 
-    font-size: 2.5rem; 
+  .default-icon {
+    font-size: 2.5rem;
   }
-  
   .dropdown-menu.subjects {
     position: absolute;
     width: 100%;
@@ -890,7 +743,6 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transform: none !important;
   }
-  
   .next-button-container {
     bottom: 10px;
     right: 10px;
@@ -898,7 +750,6 @@ body {
     gap: 8px;
     padding: 0 5px;
   }
-  
   .next-button,
   .prev-step-button {
     padding: 8px 16px;
@@ -906,7 +757,6 @@ body {
     min-width: 100px;
     max-width: 130px;
   }
-  
   .divider {
     height: 1px;
     background: #929495;
@@ -920,35 +770,26 @@ body {
   }
 }
 
-.text-center {
-  text-align: center;
-}
-
+/* utility classes */
+.text-center { text-align: center; }
 .mt-1 { margin-top: 0.5rem; }
 .mt-2 { margin-top: 1rem; }
 .mb-1 { margin-bottom: 0.5rem; }
 .mb-2 { margin-bottom: 1rem; }
-
 .p-1 { padding: 0.5rem; }
 .p-2 { padding: 1rem; }
-
 .w-full { width: 100%; }
 .h-full { height: 100%; }
-
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .items-center { align-items: center; }
 .justify-center { justify-content: center; }
 .justify-between { justify-content: space-between; }
-
 .cursor-pointer { cursor: pointer; }
 .cursor-not-allowed { cursor: not-allowed; }
-
 .opacity-50 { opacity: 0.5; }
 .opacity-100 { opacity: 1; }
-
 .transition { transition: all 0.3s ease; }
-
 .personal-input:focus-visible,
 .profile-input:focus-visible,
 .profile-textarea:focus-visible {
@@ -956,30 +797,23 @@ body {
   outline-offset: 2px;
 }
 
+/* accessibility media rules retained */
 @media (prefers-contrast: high) {
   .personal-input,
   .profile-input,
   .profile-textarea {
     border-width: 2px;
   }
-  
   .dropdown-options {
     border: 2px solid #02475e;
   }
 }
-
 @media (prefers-reduced-motion: reduce) {
-  * {
+  .root * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
-  
-  .next-button:hover {
-    transform: none;
-  }
-  
-  .back-btn:hover {
-    transform: none;
-  }
+  .next-button:hover { transform: none; }
+  .back-btn:hover { transform: none; }
 }

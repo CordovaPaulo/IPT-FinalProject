@@ -46,9 +46,9 @@ export default function SignupPage() {
     localStorage.setItem('selectedRole', selectedRole);
 
     if (selectedRole === 'learner') {
-      router.push('/learner-info');
+      router.push('/info/learner');
     } else {
-      router.push('/mentor-info');
+      router.push('/info/mentor');
     }
   };
 
