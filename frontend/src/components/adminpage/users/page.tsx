@@ -18,6 +18,9 @@ interface User {
   yearLevel?: any;
   secondRole?: any;
   studentId?: any;
+  phoneNumber?: any;
+  sex?: any;
+  address?: any;
 }
 
 interface DetailedUser extends User {
@@ -92,16 +95,16 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
   };
 
   const exportUsersToCSV = () => {
-    const data = displayedUsers.map((user) => ({
-      ID: user.roleId,
+    const data = displayedUsers.map((user, ) => ({
+      ID: user.studentId,
       Name: user.name,
       Email: user.email,
       YearLevel: user.yearLevel || 'N/A',
       Program: user.program || 'N/A',
       Role: user.role,
       Phone: user.phoneNumber || 'N/A',
-      // Department: user.department || 'N/A',
-      Gender: user.sex || 'N/A',
+      Department: 'College of Computer Studies',
+      Sex: user.sex,
       Address: user.address || 'N/A',
     }));
 

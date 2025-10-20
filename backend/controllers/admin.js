@@ -96,6 +96,9 @@ exports.getAllLearners = async (req, res) => {
             const yearLevel = ln.yearLevel || '';
             const role = userRecord.role || '';
             const secondRole = userRecord?.secondaryRole || '';
+            const phoneNumber = ln.phoneNumber || '';
+            const sex = ln.sex || '';
+            const address = ln.address || '';
 
             // extract leading digits before '@' as studentId, if present
             const match = String(email).match(/^(\d+)(?=@)/);
@@ -112,6 +115,9 @@ exports.getAllLearners = async (req, res) => {
                 yearLevel,
                 role,
                 secondRole,
+                phoneNumber,
+                sex,
+                address,
             };
         });
 
@@ -162,6 +168,9 @@ exports.getAllMentors = async (req, res) => {
             const yearLevel = mn.yearLevel || '';
             const role = userRecord.role || '';
             const secondRole = userRecord?.secondaryRole || '';
+            const phoneNumber = mn.phoneNumber || '';
+            const sex = mn.sex || '';
+            const address = mn.address || '';
 
             // extract leading digits before '@' as studentId, if present
             const match = String(email).match(/^(\d+)(?=@)/);
@@ -179,6 +188,9 @@ exports.getAllMentors = async (req, res) => {
                 yearLevel,
                 role,
                 secondRole,
+                phoneNumber,
+                sex,
+                address,
             };
         });
 

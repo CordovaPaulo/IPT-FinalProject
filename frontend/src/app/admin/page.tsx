@@ -132,6 +132,9 @@ const AdminProfile: React.FC = () => {
         yearLevel: user.yearLevel,
         program: user.program,
         studentId: user.studentId,
+        phoneNumber: user.phoneNumber,
+        sex: user.sex,
+        address: user.address,
       }));
 
       console.log('Fetched Users:', usersData);
