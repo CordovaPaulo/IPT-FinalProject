@@ -44,9 +44,9 @@ ChartJS.register(
 );
 
 interface Stats {
-  learners: number;
-  mentors: number;
-  applicants: number;
+  activeLearners: number;
+  approvedMentors: number;
+  pendingMentors: number;
 }
 
 interface ChartData {
@@ -117,9 +117,9 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, chartData }) => {
 
   // Effective stats
   const effectiveStats = {
-    learners: stats.learners || 156,
-    mentors: stats.mentors || 28,
-    applicants: stats.applicants || 14
+    learners: stats.activeLearners,
+    mentors: stats.approvedMentors,
+    applicants: stats.pendingMentors
   };
 
   // Chart creation functions
@@ -144,7 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, chartData }) => {
         labels: ["Active Learners", "Approved Mentors", "Pending Applications"],
         datasets: [
           {
-            data: [counts.learners, counts.approved_mentors, counts.pending_mentors],
+            data: [counts.activeLearners, counts.approvedMentors, counts.pendingMentors],
             backgroundColor: [pastelColors.blue, pastelColors.purple, pastelColors.pink],
             borderColor: ['#ffffff', '#ffffff', '#ffffff'],
             borderWidth: 2,
@@ -194,19 +194,23 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, chartData }) => {
       try { courseChartInstance.current.destroy(); } catch (e) { /* ignore */ }
     }
 
-    // fallback to sample data if not provided
-    const breakdown = effectiveChartData.courseBreakdown?.data || {};
+    // Normalize breakdown shape: support { data: {...} } or plain {...}
+    const breakdown = (courseData && (courseData.data || courseData)) || {};
     const labels = Object.keys(breakdown);
     const values = Object.values(breakdown);
+
+    // fallback to sample if nothing available
+    const finalLabels = labels.length ? labels : Object.keys(effectiveChartData.courseBreakdown?.data || {});
+    const finalValues = values.length ? values : Object.values(effectiveChartData.courseBreakdown?.data || {});
 
     courseChartInstance.current = new ChartJS(ctx, {
       type: 'bar',
       data: {
-        labels: labels,
+        labels: finalLabels,
         datasets: [
           {
             label: 'Users',
-            data: values,
+            data: finalValues,
             backgroundColor: 'rgba(67,97,238,0.8)',
           },
         ],
@@ -220,7 +224,20 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, chartData }) => {
   };
 
   const createYearChart = () => {
-    if (!yearChartRef.current || !effectiveChartData.yearBreakdown) return;
+    if (!yearChartRef.current) return;
+
+    // Determine year data safely (support both shapes)
+    const rawYear = effectiveChartData.yearBreakdown;
+    const yearData = rawYear ? (rawYear.data || rawYear) : null;
+
+    if (!yearData || typeof yearData !== 'object' || Object.keys(yearData).length === 0) {
+      // nothing to render — destroy existing and return
+      if (yearChartInstance.current) {
+        try { yearChartInstance.current.destroy(); } catch (e) { /* ignore */ }
+        yearChartInstance.current = null;
+      }
+      return;
+    }
 
     // Destroy existing chart if it exists
     if (yearChartInstance.current) {
@@ -229,8 +246,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, chartData }) => {
 
     const ctx = yearChartRef.current.getContext('2d');
     if (!ctx) return;
-
-    const yearData = effectiveChartData.yearBreakdown.data;
 
     const labels = Object.keys(yearData);
     const data = Object.values(yearData);

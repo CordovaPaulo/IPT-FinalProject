@@ -922,6 +922,10 @@ export default function MentorInfoPage() {
     if (e.key === 'End') { e.preventDefault(); options[options.length - 1]?.focus(); return; }
   };
 
+  // Stable, SSR-safe IDs
+  const topicComboboxId = useId();
+  const topicListboxId = useId(); // if you use aria-controls/role=listbox
+
   return (
     <div className="mentorinfo-container">
       <Head>
@@ -1800,12 +1804,7 @@ export default function MentorInfoPage() {
               tabIndex={0}
               aria-haspopup="listbox"
               aria-expanded={dropdownOpen.topics}
-              aria-controls={topicListboxId}
-              onKeyDown={handleComboboxKey(
-                () => toggleDropdown('topics'),
-                dropdownOpen.topics,
-                topicListboxId
-              )}
+              aria-controls={topicListboxId} // optional
             >
               <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('topics'); }}>
                 <input role="textbox" readOnly aria-autocomplete="none" aria-controls={topicListboxId} />

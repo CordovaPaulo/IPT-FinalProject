@@ -5,20 +5,52 @@ const Schedule = require('../models/Schedule');
 const Feedback = require('../models/feedback');
 const { authenticateToken, getValuesFromToken } = require('../service/jwt');
 const mailingController = require('./mailing');
+const { listFilesInFolderByPath } = require('../service/drive');
 
+
+exports.getProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found', code: 404 });
+        }
+        return res.status(200).json(user);
+    } catch (error) {
+        console.error('Error fetching admin profile:', error);
+        return res.status(500).json({ message: 'Server error fetching admin profile', error });
+    }
+} 
 
 exports.getStats = async (req, res) => {
     try {
         const learnerCount = await Learner.countDocuments();
-        const mentorCount = await Mentor.countDocuments();
+        const approvedMentorCount = await Mentor.countDocuments({ accountStatus: 'accepted' });
+        const pendingMentorCount = await Mentor.countDocuments({ accountStatus: 'pending' });
         const scheduleCount = await Schedule.countDocuments();
         const feedbackCount = await Feedback.countDocuments();
+        const userCount = await User.countDocuments({role: 'mentor'}) + await User.countDocuments({role: 'learner'});
+        const courseCount = {
+            'BSIT': await Learner.countDocuments({ program: 'BSIT' }) + await Mentor.countDocuments({ program: 'BSIT' }),
+            'BSCS': await Learner.countDocuments({ program: 'BSCS' }) + await Mentor.countDocuments({ program: 'BSCS' }),
+            'BSEMC': await Learner.countDocuments({ program: 'BSEMC' }) + await Mentor.countDocuments({ program: 'BSEMC' }),
+        };
+        const yearLevelCount = {
+            '1st year': await Learner.countDocuments({ yearLevel: '1st year' }) + await Mentor.countDocuments({ yearLevel: '1st year' }),
+            '2nd year': await Learner.countDocuments({ yearLevel: '2nd year' }) + await Mentor.countDocuments({ yearLevel: '2nd year' }),
+            '3rd year': await Learner.countDocuments({ yearLevel: '3rd year' }) + await Mentor.countDocuments({ yearLevel: '3rd year' }),
+            '4th year': await Learner.countDocuments({ yearLevel: '4th year' }) + await Mentor.countDocuments({ yearLevel: '4th year' }),
+        };
 
         return res.status(200).json({
             learnerCount,
-            mentorCount,
+            approvedMentorCount,
+            pendingMentorCount,
             scheduleCount,
-            feedbackCount
+            feedbackCount,
+            userCount,
+            courseCount,
+            yearLevelCount
         });
     } catch (error) {
         console.error('Error fetching stats:', error);
@@ -47,7 +79,7 @@ exports.getAllLearners = async (req, res) => {
         let users = [];
         if (userIds.length) {
             users = await User.find({ _id: { $in: userIds } })
-                .select('name email')
+                .select('name email status role secondaryRole')
                 .lean();
         }
 
@@ -55,24 +87,31 @@ exports.getAllLearners = async (req, res) => {
 
         const result = learners.map((ln) => {
             const userRecord = ln.userId ? userMap.get(String(ln.userId)) : null;
-
             // prefer user record when available, otherwise fall back to learner fields
             const email = (userRecord && userRecord.email) || ln.email || '';
-            const name = (userRecord && userRecord.name) || ln.name || '';
+            const name = (userRecord && userRecord.username) || ln.name || '';
             const userId = (userRecord && userRecord._id) || ln.userId || null;
-            const status = ln.status || 'pending';
+            const status = userRecord.status;
+            const program = ln.program || '';
+            const yearLevel = ln.yearLevel || '';
+            const role = userRecord.role || '';
+            const secondRole = userRecord?.secondaryRole || '';
 
             // extract leading digits before '@' as studentId, if present
             const match = String(email).match(/^(\d+)(?=@)/);
             const studentId = match ? match[1] : null;
 
             return {
-                learnerId: ln._id,
+                roleId: ln._id,
                 userId,
                 name,
                 email,
                 studentId,
                 status,
+                program,
+                yearLevel,
+                role,
+                secondRole,
             };
         });
 
@@ -104,7 +143,7 @@ exports.getAllMentors = async (req, res) => {
         let users = [];
         if (userIds.length) {
             users = await User.find({ _id: { $in: userIds } })
-                .select('name email')
+                .select('name email status role secondaryRole')
                 .lean();
         }
 
@@ -115,21 +154,31 @@ exports.getAllMentors = async (req, res) => {
 
             // prefer user record when available, otherwise fall back to mentor fields
             const email = (userRecord && userRecord.email) || mn.email || '';
-            const name = (userRecord && userRecord.name) || mn.name || '';
+            const name = (userRecord && userRecord.username) || mn.name || '';
             const userId = (userRecord && userRecord._id) || mn.userId || null;
-            const status = mn.status || 'pending';
+            const status = userRecord.status || '';
+            const mentorStatus = mn.accountStatus || '';
+            const program = mn.program || '';
+            const yearLevel = mn.yearLevel || '';
+            const role = userRecord.role || '';
+            const secondRole = userRecord?.secondaryRole || '';
 
             // extract leading digits before '@' as studentId, if present
             const match = String(email).match(/^(\d+)(?=@)/);
             const studentId = match ? match[1] : null;
 
             return {
-                mentorId: mn._id,
+                roleId: mn._id,
                 userId,
                 name,
                 email,
                 studentId,
                 status,
+                mentorStatus,
+                program,
+                yearLevel,
+                role,
+                secondRole,
             };
         });
 
@@ -248,3 +297,28 @@ exports.banAccount = async (req, res) => {
         return res.status(500).json({ message: 'Server error banning user account', error });
     }
 }
+
+exports.getMentorCredentials = async (req, res) => {
+  const { mentorId } = req.params;
+  try {
+    const mentor = await Mentor.findById(mentorId).select('userId').lean();
+    if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    const user = await User.findById(mentor.userId).select('username').lean();
+    if (!user) return res.status(404).json({ message: 'User not found', code: 404 });
+
+    const folderPath = `mentor_credentials/${user.username}`;
+    const { files } = await listFilesInFolderByPath(folderPath);
+
+    const credentials = (files || []).map(f => ({
+      id: f.id,
+      name: f.name,
+      previewLink: f.webViewLink,
+      downloadLink: f.webContentLink,
+    }));
+
+    return res.status(200).json({ credentials });
+  } catch (error) {
+    console.error('Error fetching mentor credentials:', error);
+    return res.status(500).json({ message: 'Server error fetching mentor credentials', error });
+  }
+};

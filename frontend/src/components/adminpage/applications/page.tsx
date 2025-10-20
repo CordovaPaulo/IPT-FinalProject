@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '@/lib/axios';
 import styles from "./page.module.css";
 
 
 interface Applicant {
-  user_id: number;
-  name: string;
-  course: string;
-  applied_on: string;
-  status: string;
+  user_id: any;
+  name: any;
+  program: any;
+  // applied_on?: any;
+  status: any;
 }
 
 interface Credential {
@@ -29,7 +29,7 @@ interface ApplicantDetails {
     approval_status?: string;
     gender?: string;
     year?: string;
-    course?: string;
+    program?: string;
     address?: string;
     proficiency?: string;
     learn_modality?: string;
@@ -47,7 +47,7 @@ interface CredentialsResponse {
 }
 
 interface ApplicationsProps {
-  applicants: any;
+  applicants: any; // accept the applicants data structure (change to a stricter type if you have one)
   onUpdateApplicants: () => void;
 }
 
@@ -57,60 +57,60 @@ const sampleApplicants = {
       {
         user_id: 1,
         name: "John Smith",
-        course: "BS Information Technology (BSIT)",
+        program: "BS Information Technology (BSIT)",
         applied_on: "2025-09-28",
         status: "pending"
       },
       {
         user_id: 2,
         name: "Maria Garcia",
-        course: "BS Computer Science (BSCS)",
+        program: "BS Computer Science (BSCS)",
         applied_on: "2025-09-27",
         status: "pending"
       },
       {
         user_id: 7,
         name: "Alex Turner",
-        course: "BS Information Systems (BSIS)",
+        program: "BS Information Systems (BSIS)",
         applied_on: "2025-09-26",
         status: "pending"
       }
     ],
-    approved: [
+    accepted: [
       {
         user_id: 3,
         name: "David Wilson",
-        course: "BS Information Systems (BSIS)",
+        program: "BS Information Systems (BSIS)",
         applied_on: "2025-09-25",
-        status: "approved"
+        status: "accepted"
       },
       {
         user_id: 4,
         name: "Sarah Johnson",
-        course: "BS Computer Engineering (BSCpE)",
+        program: "BS Computer Engineering (BSCpE)",
         applied_on: "2025-09-24",
-        status: "approved"
+        status: "accepted"
       },
       {
         user_id: 8,
         name: "Emily Chen",
-        course: "BS Information Technology (BSIT)",
+        program: "BS Information Technology (BSIT)",
         applied_on: "2025-09-23",
-        status: "approved"
+        status: "accepted"
       }
     ],
     rejected: [
       {
         user_id: 5,
         name: "Michael Brown",
-        course: "BS Information Technology (BSIT)",
+        program: "BS Information Technology (BSIT)",
         applied_on: "2025-09-23",
         status: "rejected"
       },
       {
         user_id: 6,
         name: "Emma Davis",
-        course: "BS Computer Science (BSCS)",
+        program: "BS Computer Science (BSCS)",
         applied_on: "2025-09-22",
         status: "rejected"
       }
@@ -126,42 +126,33 @@ const Applications: React.FC<ApplicationsProps> = ({
   const [activeFilter, setActiveFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
-  const [currentAppId, setCurrentAppId] = useState<number | null>(null);
+  const [currentAppId, setCurrentAppId] = useState<string | null>(null);
   const [currentApp, setCurrentApp] = useState<any>({});
   const [actionToConfirm, setActionToConfirm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // const [filteredApplicants, setFilteredApplicants] = useState<any[]>([]);
 
   // Add new state to manage applicants data locally
   const [localApplicants, setLocalApplicants] = useState(applicants);
 
-  const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
-    withCredentials: true,
-  });
+  // useEffect(() => {
+  //   setFilteredApplicants(localApplicants);
+  // }, [localApplicants]);
 
-  const getCookie = (name: string): string | undefined => {
-    if (typeof document === 'undefined') return undefined;
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift();
-    return undefined;
-  };
+  // const getCookie = (name: string): string | undefined => {
+  //   if (typeof document === 'undefined') return undefined;
+  //   const value = `; ${document.cookie}`;
+  //   const parts = value.split(`; ${name}=`);
+  //   if (parts.length === 2) return parts.pop()?.split(';').shift();
+  //   return undefined;
+  // };
 
-  const approve = async (id: number) => {
+  const approve = async (mentorId: number) => {
     try {
-      const response = await api.patch(
-        `/api/admin/mentor/approve/${id}`,
-        {},
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-        }
-      );
+      const response = await api.patch(`/api/admin/mentor/status/approve/${mentorId}`);
 
       if (response.status === 200) {
-        console.log('Application approved successfully!');
+        console.log('Application accepted successfully!');
         return response.data;
       }
       throw new Error(`Failed to approve application: ${response.status}`);
@@ -171,18 +162,9 @@ const Applications: React.FC<ApplicationsProps> = ({
     }
   };
 
-  const reject = async (id: number) => {
+  const reject = async (mentorId: number) => {
     try {
-      const response = await api.patch(
-        `/api/admin/mentor/reject/${id}`,
-        {},
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-        }
-      );
+      const response = await api.patch(`/api/admin/mentor/status/reject/${mentorId}`);
 
       if (response.status === 200) {
         console.log('Application rejected successfully.');
@@ -197,17 +179,14 @@ const Applications: React.FC<ApplicationsProps> = ({
 
   const getApplicantDetails = async (applicantId: number): Promise<ApplicantDetails> => {
     try {
-      const csrfToken = getCookie('csrftoken');
-      const headers: any = {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      };
-      
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken;
-      }
+      // const csrfToken = getCookie('csrftoken');
+      // const headers: any = {
+      //   'Content-Type': 'application/json',
+      //   Accept: 'application/json',
+      // };
 
-      const response = await api.get(`/api/admin/${applicantId}`, { headers });
+
+      const response = await api.get(`/api/admin/${applicantId}`);
 
       if (response.status === 200) {
         return response.data;
@@ -215,30 +194,6 @@ const Applications: React.FC<ApplicationsProps> = ({
       throw new Error(`Failed to fetch user details: ${response.status}`);
     } catch (error) {
       console.error('Error fetching applicant details:', error);
-      throw error;
-    }
-  };
-
-  const getApplicantCreds = async (applicationId: number): Promise<CredentialsResponse> => {
-    try {
-      const csrfToken = getCookie('csrftoken');
-      const headers: any = {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      };
-      
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken;
-      }
-
-      const response = await api.get(`/api/admin/cred/${applicationId}`, { headers });
-
-      if (response.status === 200) {
-        return response.data;
-      }
-      throw new Error(`Failed to fetch applicant credentials: ${response.status}`);
-    } catch (error) {
-      console.error('Error fetching credentials:', error);
       throw error;
     }
   };
@@ -274,45 +229,82 @@ const Applications: React.FC<ApplicationsProps> = ({
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
 
+  // const [localApplicants, setLocalApplicants] = useState<any[]>([]);
+
+  // Normalize incoming applicants (supports flat array from API or the sample nested object)
+  const normalizeApplicants = (input: any): any[] => {
+    if (!input) return [];
+    if (Array.isArray(input)) return input;
+    // support legacy sampleApplicants shape: { mentors: { pending: [], accepted: [], rejected: [] } }
+    if (input.mentors) {
+      const { pending = [], accepted = [], rejected = [] } = input.mentors;
+      // ensure consistent field names (mentorId, mentorStatus)
+      const mapLegacy = (arr: any[], statusLabel: string) =>
+        (arr || []).map((a: any) => ({
+          mentorId: a.user_id ?? a.mentorId ?? a.id,
+          userId: a.user_id ?? a.userId,
+          name: a.name,
+          email: a.email,
+          studentId: a.studentId ?? a.student_id,
+          program: a.program,
+          mentorStatus: statusLabel,
+          applied_on: a.applied_on,
+        }));
+      return [
+        ...mapLegacy(pending, 'pending'),
+        ...mapLegacy(accepted, 'accepted'),
+        ...mapLegacy(rejected, 'rejected'),
+      ];
+    }
+    return [];
+  };
+
+  useEffect(() => {
+    setLocalApplicants(normalizeApplicants(applicants));
+  }, [applicants]);
+
   // Update the filteredApplicants useMemo to use localApplicants
   const filteredApplicants = useMemo(() => {
-    if (!localApplicants?.mentors) {
-      return [];
-    }
+    let list = Array.isArray(localApplicants) ? [...localApplicants] : [];
 
-    let allApplicants = [
-      ...(localApplicants.mentors.pending || []),
-      ...(localApplicants.mentors.approved || []),
-      ...(localApplicants.mentors.rejected || []),
-    ];
-
+    // Map UI filter -> data values ('accepted' in data is 'accepted', approved mapping handled below)
     if (activeFilter !== 'all') {
-      allApplicants = localApplicants.mentors[activeFilter] || [];
+      list = list.filter((a: any) => {
+        const status = (a.mentorStatus || '').toString().toLowerCase();
+        return status === activeFilter.toLowerCase();
+      });
     }
 
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      allApplicants = allApplicants.filter(
-        (app: any) =>
-          (app.name?.toLowerCase() || '').includes(query) ||
-          (app.course?.toLowerCase() || '').includes(query)
+      const q = searchQuery.toLowerCase();
+      list = list.filter((a: any) =>
+        (a.name || '').toString().toLowerCase().includes(q) ||
+        (a.program || '').toString().toLowerCase().includes(q) ||
+        (a.studentId || '').toString().toLowerCase().includes(q)
       );
     }
 
-    return allApplicants;
+    // ensure rendering fields exist and map status label for UI where necessary
+    return list.map((a: any) => ({
+      ...a,
+      mentorId: a.mentorId ?? a.userId ?? a.id,
+      studentId: a.studentId ?? a.student_id ?? '',
+      mentorStatus: a.mentorStatus ?? a.status ?? '',
+    }));
   }, [localApplicants, activeFilter, searchQuery]);
+ 
+   const showConfirmation = (id: string, action: string) => {
+     // -    setCurrentAppId(id);
+     setCurrentAppId(id);
+     setActionToConfirm(action);
+     setShowModal(true);
+   };
 
-  const showConfirmation = (id: number, action: string) => {
-    setCurrentAppId(id);
-    setActionToConfirm(action);
-    setShowModal(true);
-  };
-
-  const hideConfirmation = () => {
-    setShowModal(false);
-    setCurrentAppId(null);
-    setActionToConfirm('');
-  };
+   const hideConfirmation = () => {
+     setShowModal(false);
+     setCurrentAppId(null);
+     setActionToConfirm('');
+   };
 
   // Update the confirmAction function
   const confirmAction = async () => {
@@ -320,56 +312,32 @@ const Applications: React.FC<ApplicationsProps> = ({
 
     try {
       setIsLoading(true);
-      if (actionToConfirm === 'Approved') {
-        await approve(currentAppId);
-        // Update local state
-        setLocalApplicants((prev: any) => {
-          const updatedApplicants = { ...prev };
-          // Find the applicant in pending
-          const applicant = updatedApplicants.mentors.pending.find(
-            (app: any) => app.user_id === currentAppId
-          );
-          if (applicant) {
-            // Remove from pending
-            updatedApplicants.mentors.pending = updatedApplicants.mentors.pending.filter(
-              (app: any) => app.user_id !== currentAppId
-            );
-            // Add to approved with updated status
-            updatedApplicants.mentors.approved = [
-              ...updatedApplicants.mentors.approved,
-              { ...applicant, status: 'approved' }
-            ];
-          }
-          return updatedApplicants;
-        });
+      if (actionToConfirm === 'Accepted') {
+        await approve(currentAppId as any);
+        // Update state for a flat array structure
+        setLocalApplicants((prev: any) =>
+          prev.map((app: any) =>
+            app.mentorId === currentAppId
+              ? { ...app, mentorStatus: 'accepted' }
+              : app
+          )
+        );
       } else if (actionToConfirm === 'Rejected') {
-        await reject(currentAppId);
-        // Update local state
-        setLocalApplicants((prev: any) => {
-          const updatedApplicants = { ...prev };
-          // Find the applicant in pending
-          const applicant = updatedApplicants.mentors.pending.find(
-            (app: any) => app.user_id === currentAppId
-          );
-          if (applicant) {
-            // Remove from pending
-            updatedApplicants.mentors.pending = updatedApplicants.mentors.pending.filter(
-              (app: any) => app.user_id !== currentAppId
-            );
-            // Add to rejected with updated status
-            updatedApplicants.mentors.rejected = [
-              ...updatedApplicants.mentors.rejected,
-              { ...applicant, status: 'rejected' }
-            ];
-          }
-          return updatedApplicants;
-        });
+        await reject(currentAppId as any);
+        // Update state for a flat array structure
+        setLocalApplicants((prev: any) =>
+          prev.map((app: any) =>
+            app.mentorId === currentAppId
+              ? { ...app, mentorStatus: 'rejected' }
+              : app
+          )
+        );
       }
 
       onUpdateApplicants();
       hideConfirmation();
     } catch (error) {
-      console.error(`Error ${actionToConfirm.toLowerCase()} application:`, error);
+      console.error(`Error ${actionToConfirm.toLowerCase()} application`, error);
     } finally {
       setIsLoading(false);
     }
@@ -378,30 +346,32 @@ const Applications: React.FC<ApplicationsProps> = ({
   const showCredentials = async (app: any) => {
     try {
       setIsLoading(true);
-      // For demo purposes, we'll use mock data
-      // In production, uncomment the API calls
       /*
       const data = await getApplicantDetails(app.user_id);
       const credentialsResponse = await getApplicantCreds(app.user_id);
       */
-
+      const mentorCreds = await api.get(`/api/admin/mentors/credentials/${app.mentorId}`);
+      const credsData = mentorCreds.data as CredentialsResponse;
+      
+      const response = await api.get(`/api/admin/mentors/${app.mentorId}`);
+      const data = response.data;
       // Mock data for demonstration
       const mockData = {
-        user: { name: app.name },
+        user: data.name,
         info: {
-          image: null,
-          approval_status: app.status,
-          gender: 'MALE',
-          year: '3rd Year',
-          course: app.course,
-          address: 'Olongapo City',
-          proficiency: 'Advanced',
-          learn_modality: 'Hybrid',
-          teach_sty: JSON.stringify(['Interactive', 'Hands-on']),
-          availability: JSON.stringify(['Monday', 'Wednesday', 'Friday']),
-          subjects: JSON.stringify(['Programming', 'Web Development']),
-          bio: 'Passionate about teaching and helping others learn.',
-          exp: '2 years of tutoring experience',
+          image: data.image,
+          approval_status: data.accountStatus,
+          gender: data.sex,
+          year: data.yearLevel,
+          program: data.program,
+          address: data.address,
+          proficiency: data.proficiency,
+          learn_modality: data.modality,
+          teach_sty: JSON.stringify(data.style),
+          availability: JSON.stringify(data.availability),
+          subjects: JSON.stringify(data.subjects),
+          bio: data.bio,
+          exp: data.exp,
         }
       };
 
@@ -422,15 +392,13 @@ const Applications: React.FC<ApplicationsProps> = ({
         ]
       };
 
-      const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-      
       const applicantData = {
-        applicant: mockData.user.name,
-        image: mockData.info.image ? `${baseURL}/api/image/${mockData.info.image}` : '/default-avatar.png',
+        applicant: data.name,
+        image: data.image,
         status: mockData.info.approval_status,
         gender: mockData.info.gender,
         year: mockData.info.year,
-        program: mockData.info.course,
+        program: mockData.info.program,
         college: 'College of Computer Studies',
         city: mockData.info.address,
         proficiency: mockData.info.proficiency,
@@ -440,7 +408,7 @@ const Applications: React.FC<ApplicationsProps> = ({
         subjects: JSON.parse(mockData.info.subjects),
         bio: mockData.info.bio,
         experience: mockData.info.exp,
-        files: mockCredentials.credentials
+        files: credsData.credentials,
       };
 
       setCurrentApp(applicantData);
@@ -457,10 +425,14 @@ const Applications: React.FC<ApplicationsProps> = ({
     setCurrentApp({});
   };
 
-  const getProgramName = (course: string): string => {
-    const match = course.match(/\(([^)]+)\)/);
-    return match?.[1] || course;
+  const getProgramName = (program: string): string => {
+    const match = program.match(/\(([^)]+)\)/);
+    return match?.[1] || program;
   };
+
+  useEffect(() => {
+    console.log('Local applicants updated:', localApplicants);
+  }, [localApplicants]);
 
   return (
     <>
@@ -479,10 +451,10 @@ const Applications: React.FC<ApplicationsProps> = ({
               All
             </button>
             <button
-              className={`${styles['filter-btn']} ${activeFilter === 'approved' ? styles.active : ''}`}
-              onClick={() => setActiveFilter('approved')}
+              className={`${styles['filter-btn']} ${activeFilter === 'accepted' ? styles.active : ''}`}
+              onClick={() => setActiveFilter('accepted')}
             >
-              Approved
+              Accepted
             </button>
             <button
               className={`${styles['filter-btn']} ${activeFilter === 'rejected' ? styles.active : ''}`}
@@ -519,22 +491,22 @@ const Applications: React.FC<ApplicationsProps> = ({
                 <th>ID</th>
                 <th>Applicant</th>
                 <th>Program</th>
-                <th>Date</th>
+                {/* <th>Date</th> */}
                 <th>Credentials</th>
                 {activeFilter === 'all' ? <th>Actions</th> : <th>Status</th>}
               </tr>
             </thead>
             <tbody>
               {filteredApplicants.map((app: any) => (
-                <tr key={app.user_id}>
+                <tr key={app.mentorId}>
                   <td>
-                    <span className={styles['id-badge']}>{app.user_id}</span>
+                    <span className={styles['id-badge']}>{app.studentId }</span>
                   </td>
                   <td>{app.name}</td>
-                  <td>{getProgramName(app.course)}</td>
-                  <td>
+                  <td>{getProgramName(app.program)}</td>
+                  {/* <td>
                     <span className={styles['date-badge']}>{formatDate(app.applied_on)}</span>
-                  </td>
+                  </td> */}
                   <td>
                     <button
                       className={styles['credentials-btn']}
@@ -546,26 +518,26 @@ const Applications: React.FC<ApplicationsProps> = ({
                   {activeFilter === 'all' ? (
                     <td className={styles['action-buttons']}>
                       <button
-                        className={`${styles['action-btn']} ${styles.accept} ${app.status === 'approved' ? styles.active : ''}`}
-                        onClick={() => showConfirmation(app.user_id, 'Approved')}
-                        disabled={app.status === 'approved' || app.status === 'rejected' || isLoading}
+                        className={`${styles['action-btn']} ${styles.accept} ${app.mentorStatus === 'accepted' ? styles.active : ''}`}
+                        onClick={() => showConfirmation(app.mentorId, 'Accepted')}
+                        disabled={app.mentorStatus === 'accepted' || app.mentorStatus === 'rejected' || isLoading}
                       >
                         <i className="fas fa-check"></i>
-                        <span>{app.status === 'approved' ? 'Approved' : 'Approve'}</span>
+                        <span>{app.mentorStatus === 'accepted' ? 'Accepted' : 'Approve'}</span>
                       </button>
                       <button
-                        className={`${styles['action-btn']} ${styles.reject} ${app.status === 'rejected' ? styles.active : ''}`}
-                        onClick={() => showConfirmation(app.user_id, 'Rejected')}
-                        disabled={app.status === 'approved' || app.status === 'rejected' || isLoading}
+                        className={`${styles['action-btn']} ${styles.reject} ${app.mentorStatus === 'rejected' ? styles.active : ''}`}
+                        onClick={() => showConfirmation(app.mentorId, 'Rejected')}
+                        disabled={app.mentorStatus === 'accepted' || app.mentorStatus === 'rejected' || isLoading}
                       >
                         <i className="fas fa-times"></i>
-                        <span>{app.status === 'rejected' ? 'Rejected' : 'Reject'}</span>
+                        <span>{app.mentorStatus === 'rejected' ? 'Rejected' : 'Reject'}</span>
                       </button>
                     </td>
                   ) : (
                     <td>
-                      <span className={`${styles['status-text']} ${styles[app.status?.toLowerCase() || '']}`}>
-                        {capitalizeFirstLetter(app.status)}
+                      <span className={`${styles['status-text']} ${styles[app.mentorStatus?.toLowerCase() || '']}`}>
+                        {capitalizeFirstLetter(app.mentorStatus)}
                       </span>
                     </td>
                   )}
@@ -620,13 +592,13 @@ const Applications: React.FC<ApplicationsProps> = ({
                 <div className={styles['applicant-profile']}>
                   <div className={styles['profile-image-container']}>
                     <img
-                      src={currentApp.image_url || '/default-avatar.png'}
+                      src={currentApp.image || '/default-avatar.png'}
                       alt={`Portrait of ${currentApp.applicant}`}
                       className={styles['profile-image']}
                     />
-                    {currentApp.status && (
-                      <div className={`${styles['status-badge']} ${styles[currentApp.status?.toLowerCase() || '']}`}>
-                        {currentApp.status}
+                    {currentApp.mentorStatus && (
+                      <div className={`${styles['status-badge']} ${styles[currentApp.mentorStatus?.toLowerCase() || '']}`}>
+                        {currentApp.mentorStatus}
                       </div>
                     )}
                   </div>
@@ -790,12 +762,13 @@ const Applications: React.FC<ApplicationsProps> = ({
   );
 };
 
-// Default export with sample data
-export default function ApplicationsPage() {
+// Export the typed component as default so parent pages can pass props
+export default Applications;
+
+// Optional: keep a sample wrapper for local testing
+export function ApplicationsPageSample() {
   const handleUpdateApplicants = () => {
-    // Placeholder function for updating applicants
     console.log('Updating applicants...');
   };
-
   return <Applications applicants={sampleApplicants} onUpdateApplicants={handleUpdateApplicants} />;
 }

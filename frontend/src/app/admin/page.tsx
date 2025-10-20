@@ -2,34 +2,41 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/axios';
 import Dashboard from '@/components/adminpage/dashboard/page';
 import Applications from '@/components/adminpage/applications/page';
 import Users from '@/components/adminpage/users/page'; 
 import styles from './admin.module.css';
+import { splineCurve } from 'chart.js/helpers';
 
 
 interface User {
-  id: number;
-  name: string;
-  email: string;
-  gender?: string;
-  course?: string;
-  program?: string;
-  role: string;
-  secondary_role?: string;
+  roleId: any;
+  name: any;
+  email: any;
+  gender?: any;
+  course?: any;
+  program?: any;
+  role: any;
+  secondaryRole?: any;
+  yearLevel?: any;
+  secondRole?: any;
+  studentId?: any;
 }
 
 interface Applicant {
-  id: number;
-  name: string;
-  email: string;
+  id: any;
+  name: any;
+  email: any;
+  program: any;
+  // applied_on?: any;
+  status: any;
 }
 
 interface Stats {
-  learners: number;
-  mentors: number;
-  applicants: number;
+  activeLearners: number;
+  approvedMentors: number;
+  pendingMentors: number;
 }
 
 interface ChartData {
@@ -47,9 +54,9 @@ const AdminProfile: React.FC = () => {
   const [adminNameValue, setAdminNameValue] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
   const [stats, setStats] = useState<Stats>({
-    learners: 0,
-    mentors: 0,
-    applicants: 0,
+    activeLearners: 0,
+    approvedMentors: 0,
+    pendingMentors: 0,
   });
   const [chartData, setChartData] = useState<ChartData>({
     userCounts: null,
@@ -57,16 +64,9 @@ const AdminProfile: React.FC = () => {
     yearBreakdown: null,
   });
   const [usersFetch, setUsersFetch] = useState<User[]>([]);
-  const [applicantsList, setApplicantsList] = useState<Applicant[]>([]);
+  const [applicantsList, setApplicantsList] = useState<any[]>([]);
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
 
-  // API configuration
-  const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
-    withCredentials: true,
-  });
-
-  // Loading Overlay Component
   const LoadingOverlay: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
     if (!isLoading) return null;
     return (
@@ -90,15 +90,23 @@ const AdminProfile: React.FC = () => {
     setIsSidebarVisible(!isSidebarVisible);
   };
 
-  // Fetch admin profile
+  // // Fetch admin profile
   const fetchAdminName = async (): Promise<void> => {
+  //   try {
+  //     const response = await api.get('/api/admin/profile', {
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         Accept: 'application/json',
+  //       },
+  //     });
+  //     if (response.status === 200) {
+  //       setAdminNameValue(response.data.name || 'Admin');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching admin name:', error);
+  //   }
     try {
-      const response = await api.get('/api/admin/profile', {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      });
+      const response = await api.get('/api/admin/profile');
       if (response.status === 200) {
         setAdminNameValue(response.data.name || 'Admin');
       }
@@ -110,38 +118,41 @@ const AdminProfile: React.FC = () => {
   // Fetch all data
   const fetchAll = async (): Promise<void> => {
     try {
-      const response = await api.get('/api/admin', {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      });
+      const statsResponse = await api.get('/api/admin/stats');
+      const learnerResponse = await api.get('/api/admin/learners');
+      const mentorResponse = await api.get('/api/admin/mentors');
 
-      console.log('Response data:', response.data);
-
-      // Map users data
-      const usersData: User[] = response.data.users.map((user: any) => ({
-        ...user,
-        gender: user.gender || 'N/A',
-        program: user.course || 'N/A',
-        role: user.role.toLowerCase(),
-        secondary_role: user.secondary_role?.toLowerCase() || 'N/A',
+      const userData = [...learnerResponse.data, ...mentorResponse.data];
+      const usersData: User[] = userData.map((user: any) => ({
+        roleId: user.roleId,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        secondRole: user.secondRole,
+        yearLevel: user.yearLevel,
+        program: user.program,
+        studentId: user.studentId,
       }));
 
+      console.log('Fetched Users:', usersData);
       setUsersFetch(usersData);
 
       // Update stats
       setStats({
-        learners: response.data.counts.learners || 0,
-        mentors: response.data.counts.approved_mentors || 0,
-        applicants: response.data.counts.pending_mentors || 0,
+        activeLearners: statsResponse.data.learnerCount || 0,
+        approvedMentors: statsResponse.data.approvedMentorCount || 0,
+        pendingMentors: statsResponse.data.pendingMentorCount || 0,
       });
 
       // Update chart data
       setChartData({
-        userCounts: response.data.counts || null,
-        courseBreakdown: response.data.course_breakdown || null,
-        yearBreakdown: response.data.year_breakdown || null,
+        userCounts: { 
+          activeLearners: statsResponse.data.learnerCount,
+          approvedMentors: statsResponse.data.approvedMentorCount,
+          pendingMentors: statsResponse.data.pendingMentorCount
+        },
+        courseBreakdown: statsResponse.data.courseCount || null,
+        yearBreakdown: statsResponse.data.yearLevelCount || null,
       });
 
     } catch (error) {
@@ -157,12 +168,7 @@ const AdminProfile: React.FC = () => {
   // Fetch applicants
   const fetchApplicants = async (): Promise<void> => {
     try {
-      const response = await api.get<Applicant[]>('/api/admin/applicants', {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      });
+      const response = await api.get('/api/admin/mentors');
       setApplicantsList(response.data);
     } catch (error) {
       console.error('Error fetching applicants:', error);
@@ -171,24 +177,24 @@ const AdminProfile: React.FC = () => {
 
   // Logout handler
   const handleLogout = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const response = await api.post('/api/logout', {}, {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      });
+    // try {
+    //   setIsLoading(true);
+    //   const response = await api.post('/api/logout', {}, {
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       Accept: 'application/json',
+    //     },
+    //   });
 
-      if (response.status === 200) {
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      setIsLoading(false);
-      setShowLogoutModal(false);
-    }
+    //   if (response.status === 200) {
+    //     router.push('/login');
+    //   }
+    // } catch (error) {
+    //   console.error('Logout failed:', error);
+    // } finally {
+    //   setIsLoading(false);
+    //   setShowLogoutModal(false);
+    // }
   };
 
   // Initialize on component mount
