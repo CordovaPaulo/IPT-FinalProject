@@ -583,7 +583,6 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
         {/* ...existing table/content to export... */}
       </div>
 
-      <button type="button" onClick={handleExportPdf}>Export PDF</button>
     </>
   );
 };

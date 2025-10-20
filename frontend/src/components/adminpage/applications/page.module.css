@@ -1,4 +1,3 @@
-/* copied and converted from module.css */
 .applications-container {
   background:#ffffff;
   border-radius:20px;
@@ -7,7 +6,7 @@
   width:95%;
   margin:0 auto;
   text-align:center;
-  height:calc(89vh - 120px);
+  height:calc(95vh - 170px);
   margin-top:1.5rem;
   display:flex;
   flex-direction:column;
@@ -15,10 +14,10 @@
 }
 .applications-header {
   display:flex;
-  align-items:center;
-  padding:1.5rem;
+  flex-direction:column;
+  align-items:flex-start;
   gap:1rem;
-  flex-wrap:wrap;
+  padding:1.5rem;
   color:#0b2548;
   position:sticky;
   top:0;
@@ -31,16 +30,17 @@
   display:flex;
   align-items:center;
   gap:0.75rem;
+  order:-3;
 }
 .header-icon {
-  /* keep small spacing if needed */
 }
 .filter-buttons {
+  order:-1;
   display:flex;
-  gap:1rem;
+  gap:0.7rem;
   justify-content:center;
-  flex-grow:1;
   flex-wrap:wrap;
+  width:100%;
 }
 .filter-btn {
   padding:0.35rem 0.8rem;
@@ -74,9 +74,9 @@
   background:rgba(255,225,156,0.5);
 }
 .search-container {
-  margin-left:auto;
+  order:-2;
+  width:100%;
   position:relative;
-  min-width:250px;
 }
 .search-wrapper {
   position:relative;
@@ -661,68 +661,133 @@
 }
 }
 
-@media (max-width:768px) {
+@media (max-width:640px) {
   .applications-header {
-  flex-direction:column;
-  align-items:flex-start;
-  gap:1rem;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:0.8rem;
+    padding:1rem;
+  }
+  .applications-title {
+    font-size:1.1rem;
+  }
+  .search-input {
+    font-size:0.75rem;
+    padding:0.6rem 0.8rem 0.6rem 2rem;
+  }
+  .filter-btn {
+    font-size:0.7rem;
+    padding:0.3rem 0.7rem;
+  }
+  .applications-table th,
+  .applications-table td {
+    font-size:0.75rem;
+    padding:0.4rem;
+  }
+  .action-btn {
+    font-size:0.65rem;
+    padding:0.3rem 0.6rem;
+  }
+  .credentials-btn {
+    font-size:0.7rem;
+    padding:3px 6px;
+  }
 }
-.search-container {
-  margin-left:0;
-  width:100%;
+
+@media (min-width:641px) and (max-width:1024px) {
+  .applications-header {
+    flex-direction:row;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .applications-title {
+    order:1;
+    flex:0 0 auto;
+  }
+  .search-container {
+    order:2;
+    flex:0 0 300px;
+    width:auto;
+  }
+  .filter-buttons {
+    order:3;
+    justify-content:center;
+    width:100%;
+  }
 }
-.search-input {
-  width:100%;
+
+@media (min-width:1025px) {
+  .applications-header {
+    flex-direction:row;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .applications-title {
+    order:1;
+    flex:0 0 auto;
+  }
+  .filter-buttons {
+    order:2;
+    justify-content:center;
+    flex:1;
+    gap:0.6rem;
+  }
+  .search-container {
+    order:3;
+    flex:0 0 300px;
+  }
 }
-.action-buttons {
-  flex-direction:column;
-  gap:0.5rem;
+
+@media (max-width:768px) {
+  .applicant-profile {
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+  }
+  .applications-container {
+    height: calc(100vh - 10px); 
+  }
+  .info-grid {
+    grid-template-columns:1fr;
+  }
+  .details-section {
+    grid-template-columns:1fr;
+  }
+  .credentials-modal {
+    width:95%;
+    margin:0.5rem;
+    max-height:95vh;
+  }
+  .modal-body {
+    padding:1rem;
+  }
+  .detail-item {
+    flex-direction:column;
+    gap:0.5rem;
+  }
+  .detail-value {
+    text-align:left;
+    padding-left:0;
+    width:100%;
+  }
+  .detail-value2 {
+    padding-left:0;
+    width:100%;
+  }
+  .info-value {
+    margin-left:0;
+    width:100%;
+  }
+  .credentials-grid {
+    grid-template-columns:1fr;
+  }
+  .credential-card {
+    flex-direction:column;
+    align-items:flex-start;
+    gap:0.75rem;
+  }
+  .applications-container {
+    height: calc(100vh - 120px);
+  }
 }
-.action-btn {
-  width:100%;
-  justify-content:center;
-}
-.applicant-profile {
-  flex-direction:column;
-  align-items:center;
-  text-align:center;
-}
-.info-grid {
-  grid-template-columns:1fr;
-}
-.details-section {
-  grid-template-columns:1fr;
-}
-.credentials-modal {
-  width:95%;
-  margin:0.5rem;
-  max-height:95vh;
-}
-.modal-body {
-  padding:1rem;
-}
-.detail-item {
-  flex-direction:column;
-  gap:0.5rem;
-}
-.detail-value {
-  text-align:left;
-  padding-left:0;
-  width:100%;
-}
-.detail-value2 {
-  padding-left:0;
-  width:100%;
-}
-.info-value {
-  margin-left:0;
-  width:100%;
-}
-.credentials-grid {
-  grid-template-columns:1fr;
-}
-.credential-card {
-  flex-direction:column;
-  align-items:flex-start;
-  gap:0.75rem;
-}}

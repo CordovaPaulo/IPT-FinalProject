@@ -959,10 +959,6 @@ export default function MentorInfoPage() {
     }
   };
 
-  // Stable, SSR-safe IDs
-  const topicComboboxId = useId();
-  const topicListboxId = useId(); // if you use aria-controls/role=listbox
-
   return (
     <div className={styles.root}>
       <Head>
