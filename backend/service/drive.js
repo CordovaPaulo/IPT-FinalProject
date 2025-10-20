@@ -70,7 +70,6 @@ async function uploadFile({ buffer, originalname, mimetype, folder }) {
   const bufferStream = new stream.PassThrough();
   bufferStream.end(buffer);
 
-  // Upload the file to the subfolder
   const fileMetadata = {
     name: originalname,
     ...(parentId && { parents: [parentId] }),
@@ -92,6 +91,8 @@ async function uploadFile({ buffer, originalname, mimetype, folder }) {
     fileName: response.data.name,
     webViewLink: response.data.webViewLink,
     webContentLink: response.data.webContentLink,
+    parentFolderId: parentId || null,
+    folderWebViewLink: parentId ? `https://drive.google.com/drive/folders/${parentId}` : null,
   };
 }
 
@@ -125,11 +126,11 @@ async function listFilesInFolderByPath(path) {
   const res = await drive.files.list({
     q: `'${folderId}' in parents and trashed=false`,
     fields:
-      'files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink,webContentLink,parents)',
+      'files(id,name,mimeType,size,md5Checksum,createdTime,modifiedTime,webViewLink,webContentLink,parents)',
     spaces: 'drive',
     pageSize: 1000,
   });
-  return { folderId, files: res.data.files || [] };
+  return { folderId, folderWebViewLink: `https://drive.google.com/drive/folders/${folderId}`, files: res.data.files || [] };
 }
 
 module.exports = { uploadFile, getFileMetadata, deleteFile, listFilesInFolderByPath };

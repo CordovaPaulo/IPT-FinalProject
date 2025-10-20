@@ -8,6 +8,8 @@ router.get('/mentors', authenticateToken('admin'), adminController.getAllMentors
 router.get('/learners/:learnerId', authenticateToken('admin'), adminController.getOneLearner);
 router.get('/mentors/:mentorId', authenticateToken('admin'), adminController.getOneMentor);
 router.get('/stats', authenticateToken('admin'), adminController.getStats);
+router.get('/profile', authenticateToken('admin'), adminController.getProfile);
+router.get('/mentors/credentials/:mentorId', authenticateToken('admin'), adminController.getMentorCredentials);
 
 router.patch('/mentor/status/approve/:mentorId', authenticateToken('admin'), adminController.approveMentor);
 router.patch('/mentor/status/reject/:mentorId', authenticateToken('admin'), adminController.rejectMentor);

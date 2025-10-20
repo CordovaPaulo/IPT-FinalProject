@@ -959,6 +959,10 @@ export default function MentorInfoPage() {
     }
   };
 
+  // Stable, SSR-safe IDs
+  const topicComboboxId = useId();
+  const topicListboxId = useId(); // if you use aria-controls/role=listbox
+
   return (
     <div className={styles.root}>
       <Head>
@@ -1840,6 +1844,34 @@ export default function MentorInfoPage() {
                 <span className={styles.validationMessage}>
                   {validationErrors.experience}
                 </span>
+              )}
+            </div>
+
+            {/* Example: expertise/topics multi-select */}
+            <div
+              role="combobox"
+              id={topicComboboxId}
+              tabIndex={0}
+              aria-haspopup="listbox"
+              aria-expanded={dropdownOpen.topics}
+              aria-controls={topicListboxId} // optional
+            >
+              <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('topics'); }}>
+                <input role="textbox" readOnly aria-autocomplete="none" aria-controls={topicListboxId} />
+              </div>
+              {dropdownOpen.topics && (
+                <div id={topicListboxId} role="listbox" aria-multiselectable="true" className="dropdown-options topics-options">
+                  {topicOptions.map((topic) => {
+                    const optionId = `topic-${topic}`;
+                    const isSelected = selectedTopics.includes(topic); // wire to your state
+                    return (
+                      <div key={topic} role="option" aria-selected={isSelected} tabIndex={-1} className="dropdown-option topic-option" onKeyDown={handleOptionKeyDown}>
+                        <input type="checkbox" id={optionId} checked={isSelected} />
+                        <label htmlFor={optionId}>{topic}</label>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

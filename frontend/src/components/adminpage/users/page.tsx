@@ -1,34 +1,43 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 // import html2pdf from 'html2pdf.js'; // removed: causes "self is not defined"
 import styles from "./page.module.css";
+import api from '@/lib/axios';
+import { toast } from 'react-toastify';
 
 interface User {
-  id: number;
-  name: string;
-  email: string;
-  gender?: string;
-  course?: string;
-  program?: string;
-  role: string;
-  secondary_role?: string;
-  year?: string;
-  phoneNum?: string;
-  department?: string;
-  address?: string;
-  learn_modality?: string;
-  availability?: string;
-  proficiency?: string;
-  teach_sty?: string;
-  prefSessDur?: string;
-  subjects?: string;
-  bio?: string;
-  exp?: string;
-  learn_sty?: string;
-  goals?: string;
-  image_url?: string;
+  roleId: any;
+  name: any;
+  email: any;
+  course?: any;
+  program?: any;
+  role: any;
+  secondaryRole?: any;
+  yearLevel?: any;
+  secondRole?: any;
+  studentId?: any;
+  phoneNumber?: any;
+  sex?: any;
+  address?: any;
+}
+
+interface DetailedUser extends User {
+  phoneNumber?: any;
+  sex?: any;
+  image?: any;
+  address?: any;
+  modality?: any;
+  availability?: any;
+  proficiency?: any;
+  style?: any;
+  sessionDur?: any;
+  subjects?: any;
+  status?: any;
+  bio?: any;
+  exp?: any;
+  goals?: any;
 }
 
 interface UsersProps {
@@ -40,7 +49,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [showUserModal, setShowUserModal] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<User>({} as User);
+  const [currentUser, setCurrentUser] = useState<DetailedUser>({} as DetailedUser);
 
   // Filter and search users
   const displayedUsers = useMemo(() => {
@@ -51,13 +60,13 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
       filteredUsers = filteredUsers.filter(
         (user) =>
           user.role?.toLowerCase() === 'mentor' ||
-          user.secondary_role?.toLowerCase() === 'mentor'
+          user.secondaryRole?.toLowerCase() === 'mentor'
       );
     } else if (activeFilter === 'learners') {
       filteredUsers = filteredUsers.filter(
         (user) =>
           user.role?.toLowerCase() === 'learner' ||
-          user.secondary_role?.toLowerCase() === 'learner'
+          user.secondaryRole?.toLowerCase() === 'learner'
       );
     }
 
@@ -68,13 +77,17 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
         user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.program?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.year?.toLowerCase().includes(searchQuery.toLowerCase())
+        user.yearLevel?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [users, activeFilter, searchQuery]);
 
-  const showUserDetails = (user: User) => {
-    setCurrentUser(user);
-    setShowUserModal(true);
+  const showUserDetails = async (studentId: any, role: any) => {
+    const detailedData = await fetchUserData(studentId, role);
+    if (detailedData) {
+      // Combine the basic user info with the detailed data fetched from the API
+      setCurrentUser({ ...detailedData });
+      setShowUserModal(true);
+    }
   };
 
   const hideUserDetails = () => {
@@ -82,16 +95,16 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
   };
 
   const exportUsersToCSV = () => {
-    const data = displayedUsers.map((user) => ({
-      ID: user.id,
+    const data = displayedUsers.map((user, ) => ({
+      ID: user.studentId,
       Name: user.name,
       Email: user.email,
-      Year: user.year || 'N/A',
+      YearLevel: user.yearLevel || 'N/A',
       Program: user.program || 'N/A',
       Role: user.role,
-      Phone: user.phoneNum || 'N/A',
-      Department: user.department || 'N/A',
-      Gender: user.gender || 'N/A',
+      Phone: user.phoneNumber || 'N/A',
+      Department: 'College of Computer Studies',
+      Sex: user.sex,
       Address: user.address || 'N/A',
     }));
 
@@ -149,6 +162,31 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
       html2pdf().set(opt).from(element).save();
     }, []);
     return exportPdf;
+  }
+
+  const fetchUserData = async (userId: any, role: any)  => {
+    try {
+      console.log('Fetching data for userId:', userId, 'with role:', role);
+      if (!role) {
+        toast.error('User role is not defined. Cannot fetch data.');
+        return null;
+      }
+      
+      switch (role.toLowerCase()) {
+        case 'mentor':
+          const mentorData = await api.get(`/api/admin/mentors/${userId}`);
+          return mentorData.data;
+        case 'learner':
+          const learnerData = await api.get(`/api/admin/learners/${userId}`);
+          return learnerData.data;
+        default:
+          toast.error('Unknown user role. Cannot fetch data.');
+          return null;
+      }
+    } catch (error) {
+      toast.error('Failed to fetch user data. Please try again later.');
+      console.error('Error fetching user data:', error);
+    }
   }
 
   const printRef = useRef<HTMLDivElement>(null);
@@ -254,14 +292,14 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
             </thead>
             <tbody>
               {displayedUsers.map((user) => (
-                <tr key={user.id}>
+                <tr key={user.studentId}>
                   <td>
-                    <span className={styles['id-badge']}>{user.id}</span>
+                    <span className={styles['id-badge']}>{user.studentId}</span>
                   </td>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
-                  <td>{user.year || 'N/A'}</td>
-                  <td>{getProgramFromCourse(user.course)}</td>
+                  <td>{user.yearLevel || 'N/A'}</td>
+                  <td>{getProgramFromCourse(user.program)}</td>
                   <td>
                     <span className={roleBadgeClass(user.role)}>
                       {user.role}
@@ -270,16 +308,16 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                   <td>
                     <span
                       className={secondaryRoleBadgeClass(
-                        user.secondary_role?.toLowerCase() === 'n/a'
+                        user.secondaryRole?.toLowerCase() === 'n/a'
                           ? 'na'
-                          : user.secondary_role?.toLowerCase()
+                          : user.secondaryRole?.toLowerCase()
                       )}
                     >
-                      {user.secondary_role || 'N/A'}
+                      {user.secondaryRole || 'N/A'}
                     </span>
                   </td>
                   <td>
-                    <button className={styles['credentials-btn']} onClick={() => showUserDetails(user)}>
+                    <button className={styles['credentials-btn']} onClick={() => showUserDetails(user.roleId, user.role)}>
                       <i className="fas fa-eye"></i> <span>View</span>
                     </button>
                   </td>
@@ -314,7 +352,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                 <div className={styles['applicant-profile']}>
                   <div className={styles['profile-image-container']}>
                     <img
-                      src={currentUser.image_url || "https://gordoncollegeccs.edu.ph/ccs/students/lamp/assets/profile.jpg"}
+                      src={currentUser.image || "https://gordoncollegeccs.edu.ph/ccs/students/lamp/assets/profile.jpg"}
                       alt={`Portrait of ${currentUser.name}`}
                       className={styles['profile-image']}
                     />
@@ -340,14 +378,14 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                           <i className="fas fa-phone"></i> Contact Number
                         </span>
                         <span className={styles['info-value']}>
-                          {currentUser.phoneNum || 'Not provided'}
+                          {currentUser.phoneNumber || 'Not provided'}
                         </span>
                       </div>
                       <div className={styles['info-item']}>
                         <span className={styles['info-label']}>
                           <i className="fas fa-calendar-alt"></i> Year Level
                         </span>
-                        <span className={styles['info-value']}>{currentUser.year || 'N/A'}</span>
+                        <span className={styles['info-value']}>{currentUser.yearLevel || 'N/A'}</span>
                       </div>
                       <div className={styles['info-item']}>
                         <span className={styles['info-label']}>
@@ -360,7 +398,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                           <i className="fas fa-university"></i> Department
                         </span>
                         <span className={styles['info-value']}>
-                          {currentUser.department || 'College of Computer Studies'}
+                          {'College of Computer Studies'}
                         </span>
                       </div>
                       <div className={styles['info-item']}>
@@ -368,7 +406,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                           <i className="fas fa-venus-mars"></i> Sex at Birth
                         </span>
                         <span className={styles['info-value']}>
-                          {capitalizeFirstLetter(currentUser.gender)}
+                          {capitalizeFirstLetter(currentUser.sex)}
                         </span>
                       </div>
                       <div className={styles['info-item']}>
@@ -386,7 +424,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                 {/* Role-Specific Details Section */}
                 <div className={styles['details-section']}>
                   {/* Mentor Specific Information */}
-                  {currentUser.role?.toLowerCase() === 'mentor' && (
+                  {(currentUser.role === 'mentor' || currentUser.role === 'Mentor') && (
                     <>
                       <div className={styles['details-card']}>
                         <h4 className={styles['section-title']}>
@@ -397,7 +435,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                           <div className={styles['detail-item']}>
                             <span className={styles['detail-label']}>Teaching Modality:</span>
                             <span className={styles['detail-value']}>
-                              {currentUser.learn_modality || 'Not specified'}
+                              {currentUser.modality || 'Not specified'}
                             </span>
                           </div>
                           <div className={styles['detail-item']}>
@@ -415,13 +453,13 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                           <div className={styles['detail-item']}>
                             <span className={styles['detail-label']}>Teaching Style:</span>
                             <span className={styles['detail-value']}>
-                              {parseArrayString(currentUser.teach_sty)}
+                              {parseArrayString(currentUser.style)}
                             </span>
                           </div>
                           <div className={styles['detail-item']}>
                             <span className={styles['detail-label']}>Preferred Session Duration:</span>
                             <span className={styles['detail-value']}>
-                              {currentUser.prefSessDur || 'Not specified'}
+                              {currentUser.sessionDur|| 'Not specified'}
                             </span>
                           </div>
                           <div className={styles['detail-item']}>
@@ -457,7 +495,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                   )}
 
                   {/* Learner Specific Information */}
-                  {currentUser.role?.toLowerCase() === 'learner' && (
+                  {(currentUser.role === 'learner' || currentUser.role === 'Learner') && (
                     <>
                       <div className={styles['details-card']}>
                         <h4 className={styles['section-title']}>
@@ -468,7 +506,7 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                           <div className={styles['detail-item']}>
                             <span className={styles['detail-label']}>Learning Modality:</span>
                             <span className={styles['detail-value']}>
-                              {currentUser.learn_modality || 'Not specified'}
+                              {currentUser.modality || 'Not specified'}
                             </span>
                           </div>
                           <div className={styles['detail-item']}>
@@ -480,13 +518,13 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
                           <div className={styles['detail-item']}>
                             <span className={styles['detail-label']}>Learning Style:</span>
                             <span className={styles['detail-value']}>
-                              {parseArrayString(currentUser.learn_sty)}
+                              {parseArrayString(currentUser.style)}
                             </span>
                           </div>
                           <div className={styles['detail-item']}>
                             <span className={styles['detail-label']}>Preferred Session Duration:</span>
                             <span className={styles['detail-value']}>
-                              {currentUser.prefSessDur || 'Not specified'}
+                              {currentUser.sessionDur || 'Not specified'}
                             </span>
                           </div>
                           <div className={styles['detail-item']}>
@@ -550,91 +588,54 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
   );
 };
 
+// Sample data
 const sampleUsers: User[] = [
   {
-    id: 1,
+    roleId: 1,
     name: "John Smith",
     email: "john.smith@gordon.edu.ph",
-    gender: "Male",
     course: "BS Information Technology (BSIT)",
     program: "BSIT",
     role: "Mentor",
-    secondary_role: "N/A",
-    year: "3rd Year",
-    phoneNum: "09123456789",
-    department: "College of Computer Studies",
-    address: "Olongapo City",
-    learn_modality: "Hybrid",
-    availability: JSON.stringify(["Monday", "Wednesday", "Friday"]),
-    proficiency: "Advanced",
-    teach_sty: JSON.stringify(["Interactive", "Hands-on"]),
-    subjects: JSON.stringify(["Programming", "Web Development", "Database"]),
-    bio: "I'm passionate about teaching and helping others learn programming concepts.",
-    exp: "2 years of tutoring experience in programming subjects."
+    secondaryRole: "N/A",
+    yearLevel: "3rd Year",
   },
   {
-    id: 2,
+    roleId: 2,
     name: "Maria Garcia",
     email: "maria.garcia@gordon.edu.ph",
-    gender: "Female",
     course: "BS Computer Science (BSCS)",
     program: "BSCS",
     role: "Learner",
-    secondary_role: "N/A",
-    year: "2nd Year",
-    phoneNum: "09187654321",
-    department: "College of Computer Studies",
-    address: "Subic Bay",
-    learn_modality: "Online",
-    availability: JSON.stringify(["Tuesday", "Thursday", "Saturday"]),
-    learn_sty: JSON.stringify(["Visual", "Practical"]),
-    subjects: JSON.stringify(["Data Structures", "Algorithms"]),
-    bio: "Looking to improve my programming skills and understanding of computer science concepts.",
-    goals: "Master data structures and algorithms for better problem-solving skills."
+    secondaryRole: "N/A",
+    yearLevel: "2nd Year",
   },
   {
-    id: 3,
+    roleId: 3,
     name: "David Wilson",
     email: "david.wilson@gordon.edu.ph",
-    gender: "Male",
     course: "BS Information Systems (BSIS)",
     program: "BSIS",
     role: "Mentor",
-    secondary_role: "Learner",
-    year: "4th Year",
-    phoneNum: "09198765432",
-    department: "College of Computer Studies",
-    address: "Zambales",
-    learn_modality: "Face-to-face",
-    availability: JSON.stringify(["Monday", "Tuesday", "Thursday"]),
-    proficiency: "Expert",
-    teach_sty: JSON.stringify(["Project-based", "Collaborative"]),
-    subjects: JSON.stringify(["Systems Analysis", "Project Management"]),
-    bio: "Experienced in both teaching and learning various IT subjects.",
-    exp: "3 years of academic tutoring experience."
+    secondaryRole: "Learner",
+    yearLevel: "4th Year",
   },
   {
-    id: 4,
+    roleId: 4,
     name: "Emily Chen",
     email: "emily.chen@gordon.edu.ph",
-    gender: "Female",
     course: "BS Information Technology (BSIT)",
     program: "BSIT",
     role: "Learner",
-    secondary_role: "Mentor",
-    year: "3rd Year",
-    phoneNum: "09165432198",
-    department: "College of Computer Studies",
-    address: "Olongapo City",
-    learn_modality: "Hybrid",
-    availability: JSON.stringify(["Wednesday", "Friday", "Saturday"]),
-    learn_sty: JSON.stringify(["Auditory", "Interactive"]),
-    subjects: JSON.stringify(["Networking", "Cybersecurity"]),
-    bio: "Passionate about networking and cybersecurity.",
-    goals: "Improve understanding of network security protocols."
+    secondaryRole: "Mentor",
+    yearLevel: "3rd Year",
   }
 ];
 
-export default function UsersPage() {
+// Export the typed Users component so parents can pass props
+export default Users;
+
+// Optional sample page for local previews
+export function UsersPageSample() {
   return <Users users={sampleUsers} onUpdateUsers={() => console.log('Updating users...')} />;
 }
