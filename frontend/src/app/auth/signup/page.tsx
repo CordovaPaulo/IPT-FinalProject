@@ -1,24 +1,26 @@
-// src/app/auth/signup/page.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-// switched to CSS Module
 import styles from './Signup.module.css';
 
 export default function SignupPage() {
   const router = useRouter();
+
+  // State declarations
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(0);
 
+  // Refs
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const learnerCardRef = useRef<HTMLDivElement>(null);
   const mentorCardRef = useRef<HTMLDivElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Constants
   const focusableElements = [
     { ref: backButtonRef, type: 'button' },
     { ref: learnerCardRef, type: 'card' },
@@ -30,6 +32,42 @@ export default function SignupPage() {
     { ref: confirmButtonRef, type: 'button' }
   ];
 
+  // Effects
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [focusedIndex, showConfirmationModal]);
+
+  useEffect(() => {
+    if (showConfirmationModal) {
+      // When modal opens, focus cancel button
+      setTimeout(() => {
+        cancelButtonRef.current?.focus();
+      }, 100);
+      document.addEventListener('keydown', handleModalKeyDown);
+    } else {
+      document.removeEventListener('keydown', handleModalKeyDown);
+      // When modal closes, return focus to the element that opened it
+      if (selectedRole === 'learner') {
+        learnerCardRef.current?.focus();
+      } else if (selectedRole === 'mentor') {
+        mentorCardRef.current?.focus();
+      }
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleModalKeyDown);
+    };
+  }, [showConfirmationModal]);
+
+  // Auto-focus back button on component mount
+  useEffect(() => {
+    backButtonRef.current?.focus();
+  }, []);
+
+  // Navigation functions
   const scrollToGetStarted = () => {
     router.push('/#get-started');
   };
@@ -57,7 +95,7 @@ export default function SignupPage() {
     setSelectedRole('');
   };
 
-  // Keyboard navigation for main page
+  // Keyboard navigation functions
   const handleKeyDown = (e: KeyboardEvent) => {
     if (showConfirmationModal) return;
 
@@ -111,7 +149,6 @@ export default function SignupPage() {
     }
   };
 
-  // Keyboard navigation for modal
   const handleModalKeyDown = (e: KeyboardEvent) => {
     if (!showConfirmationModal) return;
 
@@ -161,42 +198,7 @@ export default function SignupPage() {
     }
   };
 
-  // Focus management when modal opens/closes
-  useEffect(() => {
-    if (showConfirmationModal) {
-      // When modal opens, focus cancel button
-      setTimeout(() => {
-        cancelButtonRef.current?.focus();
-      }, 100);
-      document.addEventListener('keydown', handleModalKeyDown);
-    } else {
-      document.removeEventListener('keydown', handleModalKeyDown);
-      // When modal closes, return focus to the element that opened it
-      if (selectedRole === 'learner') {
-        learnerCardRef.current?.focus();
-      } else if (selectedRole === 'mentor') {
-        mentorCardRef.current?.focus();
-      }
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleModalKeyDown);
-    };
-  }, [showConfirmationModal]);
-
-  // Main keyboard event listener
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [focusedIndex, showConfirmationModal]);
-
-  // Auto-focus back button on component mount
-  useEffect(() => {
-    backButtonRef.current?.focus();
-  }, []);
-
+  // JSX Return
   return (
     <div className={styles.signupContainer}>
       <button 

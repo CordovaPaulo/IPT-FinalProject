@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { splineCurve } from 'chart.js/helpers';
 import api from '@/lib/axios';
 import Dashboard from '@/components/adminpage/dashboard/page';
 import Applications from '@/components/adminpage/applications/page';
 import Users from '@/components/adminpage/users/page'; 
 import styles from './admin.module.css';
-import { splineCurve } from 'chart.js/helpers';
 
-
+// Interfaces
 interface User {
   roleId: any;
   name: any;
@@ -47,6 +47,8 @@ interface ChartData {
 
 const AdminProfile: React.FC = () => {
   const router = useRouter();
+
+  // State declarations
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(false);
@@ -67,16 +69,41 @@ const AdminProfile: React.FC = () => {
   const [applicantsList, setApplicantsList] = useState<any[]>([]);
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
 
-  const LoadingOverlay: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
-    if (!isLoading) return null;
-    return (
-      <div className={styles.loadingOverlay}>
-        <div className={styles.loadingSpinner}></div>
-      </div>
-    );
-  };
+  // Effects
+  useEffect(() => {
+    const initializeData = async (): Promise<void> => {
+      setIsLoading(true);
+      
+      // Check screen size
+      checkMobileView();
+      window.addEventListener('resize', checkMobileView);
 
-  // Check mobile view
+      // Set current date
+      setCurrentDate(new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }));
+
+      // Fetch all data
+      try {
+        await Promise.all([fetchAll(), fetchApplicants(), fetchAdminName()]);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeData();
+
+    return () => {
+      window.removeEventListener('resize', checkMobileView);
+    };
+  }, []);
+
+  // Helper functions
   const checkMobileView = () => {
     const mobile = window.innerWidth <= 768;
     setIsMobileView(mobile);
@@ -85,11 +112,11 @@ const AdminProfile: React.FC = () => {
     }
   };
 
-  // Toggle sidebar
   const toggleSidebar = () => {
     setIsSidebarVisible(!isSidebarVisible);
   };
 
+  // API functions
   // // Fetch admin profile
   const fetchAdminName = async (): Promise<void> => {
   //   try {
@@ -200,40 +227,17 @@ const AdminProfile: React.FC = () => {
     // }
   };
 
-  // Initialize on component mount
-  useEffect(() => {
-    const initializeData = async (): Promise<void> => {
-      setIsLoading(true);
-      
-      // Check screen size
-      checkMobileView();
-      window.addEventListener('resize', checkMobileView);
+  // Components
+  const LoadingOverlay: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
+    if (!isLoading) return null;
+    return (
+      <div className={styles.loadingOverlay}>
+        <div className={styles.loadingSpinner}></div>
+      </div>
+    );
+  };
 
-      // Set current date
-      setCurrentDate(new Date().toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }));
-
-      // Fetch all data
-      try {
-        await Promise.all([fetchAll(), fetchApplicants(), fetchAdminName()]);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeData();
-
-    return () => {
-      window.removeEventListener('resize', checkMobileView);
-    };
-  }, []);
-
+  // JSX Return
   return (
     <>
       <div className={styles.profilePage}>
@@ -242,14 +246,19 @@ const AdminProfile: React.FC = () => {
 
         {/* Mobile Sidebar Toggle Button */}
         {isMobileView && (
-          <button className={styles.sidebarToggle} onClick={toggleSidebar}>
-            <svg className={styles.toggleIcon} viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"
-              />
-            </svg>
-          </button>
+          <button
+            className={styles.sidebarToggle}
+            onClick={toggleSidebar}
+            aria-label="Toggle sidebar"
+           >
+          <svg className={styles.toggleIcon} viewBox="0 0 24 24">
+        <path
+      fill="currentColor"
+      d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"
+    />
+  </svg>
+</button>
+
         )}
 
         {/* Overlay to close sidebar on mobile */}

@@ -11,6 +11,7 @@ export default function ResetPasswordPage() {
   const params = useParams<{ token?: string }>();
   const searchParams = useSearchParams();
 
+  // State declarations
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -19,7 +20,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Get token from route segment or query and verify it
+  // Effects
   useEffect(() => {
     const routeToken = (params?.token as string) || '';
     const queryToken = searchParams.get('token') || '';
@@ -47,6 +48,7 @@ export default function ResetPasswordPage() {
     })();
   }, [params?.token, searchParams]);
 
+  // Handler functions
   const resetUserPass = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -88,6 +90,7 @@ export default function ResetPasswordPage() {
     }
   };
 
+  // JSX Return
   return (
     <div className={`reset-password-global ${styles.resetPasswordContainer}`}>
       <header className={styles.brandHeader}>

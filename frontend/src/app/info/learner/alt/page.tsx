@@ -3,9 +3,10 @@
 import React, { useId, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
-import styles from './LearnerInfo.module.css';
+import styles from '../LearnerInfo.module.css';
 import api from "@/lib/axios";
 
+// Interfaces
 interface DropdownOpenState {
   gender: boolean;
   yearLevel: boolean;
@@ -37,14 +38,57 @@ interface AvailableSubjects {
   peNstpSubjects: string[];
 }
 
+// Constants
+const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const sessionStyles = [
+  'Lecture-Based',
+  'Interactive Discussion (hands-on)',
+  'Q&A Session',
+  'Demonstration',
+  'Project-based',
+  'Step-by-step process'
+];
+const modalityOptions = ['Online', 'In-person', 'Hybrid'];
+const programs = [
+  'Bachelor of Science in Information Technology (BSIT)',
+  'Bachelor of Science in Computer Science (BSCS)',
+  'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)'
+];
+const categories: Category[] = [
+  { type: 'core', name: 'Core Subjects' },
+  { type: 'gec', name: 'General Education Course' },
+  { type: 'peNstp', name: 'Physical Education & NSTP' }
+];
+
+const validationRules = {
+  address: {
+    minLength: 10,
+    message: 'Address should be at least 10 characters long'
+  },
+  contactNumber: {
+    pattern: /^09\d{9}$/,
+    message: 'Contact number should start with 09 and have 11 digits'
+  },
+  bio: {
+    minLength: 50,
+    maxLength: 500,
+    message: 'Bio should be between 50-500 characters'
+  },
+  goals: {
+    minLength: 50,
+    maxLength: 500,
+    message: 'Goals should be between 50-500 characters'
+  }
+};
+
 const LearnerInfo = () => {
   const router = useRouter();
   
-  // State variables
+  // State declarations
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 2;
   
-  // Form data
+  // Form data state
   const [gender, setGender] = useState('');
   const [yearLevel, setYearLevel] = useState('');
   const [program, setProgram] = useState('');
@@ -70,45 +114,9 @@ const LearnerInfo = () => {
     learningStyle: false,
     sessionDuration: false
   });
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isButtonActive, setIsButtonActive] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-  
-  // Dropdown options
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const sessionStyles = [
-    'Lecture-Based',
-    'Interactive Discussion (hands-on)',
-    'Q&A Session',
-    'Demonstration',
-    'Project-based',
-    'Step-by-step process'
-  ];
-
-  // Added missing IDs/options/state to prevent runtime ReferenceError
-  const availabilityListboxId = 'availability-listbox';
-  const modalityListboxId = 'modality-listbox';
-  const modalityOptions = ['Online', 'In-person', 'Hybrid'];
-  
-  const programs = [
-    'Bachelor of Science in Information Technology (BSIT)',
-    'Bachelor of Science in Computer Science (BSCS)',
-    'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)'
-  ];
-  
-  const categories: Category[] = [
-    { type: 'core', name: 'Core Subjects' },
-    { type: 'gec', name: 'General Education Course' },
-    { type: 'peNstp', name: 'Physical Education & NSTP' }
-  ];
-  
-  const [availableSubjects, setAvailableSubjects] = useState<AvailableSubjects>({
-    coreSubjects: [],
-    gecSubjects: [],
-    peNstpSubjects: []
-  });
-  
   const [showCategories, setShowCategories] = useState(false);
   const [showSubjectsDropdown, setShowSubjectsDropdown] = useState(false);
   const [currentSubjects, setCurrentSubjects] = useState<string[]>([]);
@@ -118,7 +126,12 @@ const LearnerInfo = () => {
     gec: 0,
     peNstp: 0
   });
-  
+  const [availableSubjects, setAvailableSubjects] = useState<AvailableSubjects>({
+    coreSubjects: [],
+    gecSubjects: [],
+    peNstpSubjects: []
+  });
+
   // Refs
   const profileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRefs = {
@@ -131,8 +144,6 @@ const LearnerInfo = () => {
     sessionDuration: useRef<HTMLDivElement>(null),
     subjects: useRef<HTMLDivElement>(null)
   };
-
-  // Refs for keyboard navigation
   const addressRef = useRef<HTMLInputElement>(null);
   const contactNumberRef = useRef<HTMLInputElement>(null);
   const genderRef = useRef<HTMLDivElement>(null);
@@ -149,208 +160,53 @@ const LearnerInfo = () => {
   const nextButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const prevStepButtonRef = useRef<HTMLButtonElement>(null);
-  
+
   // Computed values
   const availabilityDaysDisplay = selectedDays.join(', ') || 'Select available days';
   const learningStyleDisplay = selectedSessionStyles.join(', ') || 'Select learning style(s)';
+  const availabilityListboxId = 'availability-listbox';
+  const modalityListboxId = 'modality-listbox';
+
+  // Effects
+  useEffect(() => {
+    updateAvailableSubjects();
+  }, [program]);
   
-  // Validation rules
-  const validationRules = {
-    address: {
-      minLength: 10,
-      message: 'Address should be at least 10 characters long'
-    },
-    contactNumber: {
-      pattern: /^09\d{9}$/,
-      message: 'Contact number should start with 09 and have 11 digits'
-    },
-    bio: {
-      minLength: 50,
-      maxLength: 500,
-      message: 'Bio should be between 50-500 characters'
-    },
-    goals: {
-      minLength: 50,
-      maxLength: 500,
-      message: 'Goals should be between 50-500 characters'
-    }
-  };
-  
-  // Previous step function
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  useEffect(() => {
+    updateSelectedCounts();
+  }, [selectedSubjects]);
 
-  // Keyboard navigation function
-  const handleKeyNavigation = (e: KeyboardEvent) => {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
-      return;
-    }
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const isOutsideAll = Object.values(dropdownRefs).every(ref => {
+        return ref.current && !ref.current.contains(event.target as Node);
+      });
 
-    const currentActiveElement = document.activeElement;
-    const allFocusableElements = getFocusableElements();
-    
-    if (allFocusableElements.length === 0) return;
-
-    const currentIndex = allFocusableElements.indexOf(currentActiveElement as HTMLElement);
-    let nextIndex = -1;
-
-    if (e.key === 'ArrowDown') {
-      nextIndex = currentIndex < allFocusableElements.length - 1 ? currentIndex + 1 : 0;
-    } else if (e.key === 'ArrowUp') {
-      nextIndex = currentIndex > 0 ? currentIndex - 1 : allFocusableElements.length - 1;
-    } else if (e.key === 'ArrowLeft') {
-      // Handle left arrow navigation specifically for step 1
-      if (currentStep === 1) {
-        if (currentActiveElement === nextButtonRef.current) {
-          e.preventDefault();
-          backButtonRef.current?.focus();
-          return;
-        }
-      } else if (currentStep === 2) {
-        if (currentActiveElement === nextButtonRef.current) {
-          e.preventDefault();
-          prevStepButtonRef.current?.focus();
-          return;
-        } else if (currentActiveElement === prevStepButtonRef.current) {
-          e.preventDefault();
-          // In step 2, focus should go to the last form element when pressing left from prev button
-          const formElements = getFocusableElements().filter(el => 
-            el !== backButtonRef.current && 
-            el !== prevStepButtonRef.current && 
-            el !== nextButtonRef.current
-          );
-          if (formElements.length > 0) {
-            formElements[formElements.length - 1]?.focus();
-          }
-          return;
-        }
+      if (isOutsideAll) {
+        setDropdownOpen({
+          gender: false,
+          yearLevel: false,
+          program: false,
+          modality: false,
+          availability: false,
+          learningStyle: false,
+          sessionDuration: false,
+        });
+        setShowCategories(false);
+        setShowSubjectsDropdown(false);
       }
-    } else if (e.key === 'ArrowRight') {
-      // Handle right arrow navigation specifically for step 1
-      if (currentStep === 1) {
-        if (currentActiveElement === backButtonRef.current) {
-          e.preventDefault();
-          nextButtonRef.current?.focus();
-          return;
-        }
-      } else if (currentStep === 2) {
-        if (currentActiveElement === prevStepButtonRef.current) {
-          e.preventDefault();
-          nextButtonRef.current?.focus();
-          return;
-        } else if (currentActiveElement === backButtonRef.current) {
-          e.preventDefault();
-          // In step 2, focus should go to the first form element when pressing right from back button
-          const formElements = getFocusableElements().filter(el => 
-            el !== backButtonRef.current && 
-            el !== prevStepButtonRef.current && 
-            el !== nextButtonRef.current
-          );
-          if (formElements.length > 0) {
-            formElements[0]?.focus();
-          }
-          return;
-        }
-      }
-    }
+    };
 
-    if (nextIndex !== -1) {
-      e.preventDefault();
-      allFocusableElements[nextIndex]?.focus();
-    }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  // Get all focusable elements in current step
-  const getFocusableElements = (): HTMLElement[] => {
-    const focusableSelectors = [
-      'input:not([disabled])',
-      'textarea:not([disabled])',
-      'button:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])',
-      '.dropdown-container',
-      '.dropdown-trigger',
-      '.upload-controls'
-    ].join(',');
-
-    const currentStepElement = document.querySelector('.form-container');
-    if (!currentStepElement) return [];
-
-    const elements = Array.from(currentStepElement.querySelectorAll(focusableSelectors)) as HTMLElement[];
-    
-    if (nextButtonRef.current) {
-      elements.push(nextButtonRef.current);
-    }
-    if (backButtonRef.current) {
-      elements.push(backButtonRef.current);
-    }
-    if (prevStepButtonRef.current && currentStep === 2) {
-      elements.push(prevStepButtonRef.current);
-    }
-
-    return elements.filter(el => {
-      const style = window.getComputedStyle(el);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-    });
-  };
-
-  // Focus management for dropdowns
-  const focusFirstDropdownOption = (dropdownElement: HTMLElement) => {
-    const firstOption = dropdownElement.querySelector('.dropdown-option') as HTMLElement;
-    firstOption?.focus();
-  };
-
-  // Handle dropdown keyboard navigation
-  const handleDropdownKeyNavigation = (e: React.KeyboardEvent, dropdownType: keyof DropdownOpenState) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      if (!dropdownOpen[dropdownType]) {
-        toggleDropdown(dropdownType);
-        setTimeout(() => {
-          const dropdownElement = dropdownRefs[dropdownType]?.current;
-          if (dropdownElement) {
-            focusFirstDropdownOption(dropdownElement);
-          }
-        }, 0);
-      }
-    } else if (e.key === 'Escape' && dropdownOpen[dropdownType]) {
-      e.preventDefault();
-      setDropdownOpen(prev => ({ ...prev, [dropdownType]: false }));
-    }
-  };
-
-  // Handle subjects dropdown keyboard navigation
-  const handleSubjectsKeyNavigation = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      if (!showCategories) {
-        toggleSubjectDropdown();
-      }
-    } else if (e.key === 'Escape' && (showCategories || showSubjectsDropdown)) {
-      e.preventDefault();
-      setShowCategories(false);
-      setShowSubjectsDropdown(false);
-    }
-  };
-
-  // Handle checkbox keyboard navigation
-  const handleCheckboxKeyNavigation = (e: React.KeyboardEvent, 
-    type: 'day' | 'style' | 'subject', 
-    value: string, 
-    currentState: string[], 
-    setState: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      if (currentState.includes(value)) {
-        setState(currentState.filter(item => item !== value));
-      } else {
-        setState([...currentState, value]);
-      }
-    }
-  };
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyNavigation);
+    return () => {
+      document.removeEventListener('keydown', handleKeyNavigation);
+    };
+  }, [currentStep]);
 
   // Helper functions
   const toggleDropdown = (type: keyof DropdownOpenState) => {
@@ -431,53 +287,6 @@ const LearnerInfo = () => {
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  };
-  
-  const nextStep = () => {
-    if (isSubmitting) return;
-    
-    if (!validateForm()) {
-      alert('Please complete all required fields before proceeding');
-      return;
-    }
-    
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      submitLearnerInfo();
-    }
-  };
-  
-  const goToStep = (step: number) => {
-    if (step <= currentStep) {
-      setCurrentStep(step);
-    }
-  };
-  
-  const uploadProfilePicture = () => {
-    profileInputRef.current?.click();
-  };
-  
-  const handleProfileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.type.match('image.*')) {
-        alert('Please select an image file');
-        return;
-      }
-      
-      if (file.size > 2000000) {
-        alert('File size should be less than 2MB');
-        return;
-      }
-      
-      setProfilePictureName(file.name);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
   };
   
   const updateAvailableSubjects = () => {
@@ -696,7 +505,223 @@ const LearnerInfo = () => {
       peNstp: selectedSubjects.filter(sub => availableSubjects.peNstpSubjects.includes(sub)).length
     });
   };
+
+  // Navigation functions
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const nextStep = () => {
+    if (isSubmitting) return;
+    
+    if (!validateForm()) {
+      alert('Please complete all required fields before proceeding');
+      return;
+    }
+    
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      submitLearnerInfo();
+    }
+  };
   
+  const goToStep = (step: number) => {
+    if (step <= currentStep) {
+      setCurrentStep(step);
+    }
+  };
+
+  // Keyboard navigation functions
+  const handleKeyNavigation = (e: KeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+      return;
+    }
+
+    const currentActiveElement = document.activeElement;
+    const allFocusableElements = getFocusableElements();
+    
+    if (allFocusableElements.length === 0) return;
+
+    const currentIndex = allFocusableElements.indexOf(currentActiveElement as HTMLElement);
+    let nextIndex = -1;
+
+    if (e.key === 'ArrowDown') {
+      nextIndex = currentIndex < allFocusableElements.length - 1 ? currentIndex + 1 : 0;
+    } else if (e.key === 'ArrowUp') {
+      nextIndex = currentIndex > 0 ? currentIndex - 1 : allFocusableElements.length - 1;
+    } else if (e.key === 'ArrowLeft') {
+      if (currentStep === 1) {
+        if (currentActiveElement === nextButtonRef.current) {
+          e.preventDefault();
+          backButtonRef.current?.focus();
+          return;
+        }
+      } else if (currentStep === 2) {
+        if (currentActiveElement === nextButtonRef.current) {
+          e.preventDefault();
+          prevStepButtonRef.current?.focus();
+          return;
+        } else if (currentActiveElement === prevStepButtonRef.current) {
+          e.preventDefault();
+          const formElements = getFocusableElements().filter(el => 
+            el !== backButtonRef.current && 
+            el !== prevStepButtonRef.current && 
+            el !== nextButtonRef.current
+          );
+          if (formElements.length > 0) {
+            formElements[formElements.length - 1]?.focus();
+          }
+          return;
+        }
+      }
+    } else if (e.key === 'ArrowRight') {
+      if (currentStep === 1) {
+        if (currentActiveElement === backButtonRef.current) {
+          e.preventDefault();
+          nextButtonRef.current?.focus();
+          return;
+        }
+      } else if (currentStep === 2) {
+        if (currentActiveElement === prevStepButtonRef.current) {
+          e.preventDefault();
+          nextButtonRef.current?.focus();
+          return;
+        } else if (currentActiveElement === backButtonRef.current) {
+          e.preventDefault();
+          const formElements = getFocusableElements().filter(el => 
+            el !== backButtonRef.current && 
+            el !== prevStepButtonRef.current && 
+            el !== nextButtonRef.current
+          );
+          if (formElements.length > 0) {
+            formElements[0]?.focus();
+          }
+          return;
+        }
+      }
+    }
+
+    if (nextIndex !== -1) {
+      e.preventDefault();
+      allFocusableElements[nextIndex]?.focus();
+    }
+  };
+
+  const getFocusableElements = (): HTMLElement[] => {
+    const focusableSelectors = [
+      'input:not([disabled])',
+      'textarea:not([disabled])',
+      'button:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+      '.dropdown-container',
+      '.dropdown-trigger',
+      '.upload-controls'
+    ].join(',');
+
+    const currentStepElement = document.querySelector('.form-container');
+    if (!currentStepElement) return [];
+
+    const elements = Array.from(currentStepElement.querySelectorAll(focusableSelectors)) as HTMLElement[];
+    
+    if (nextButtonRef.current) {
+      elements.push(nextButtonRef.current);
+    }
+    if (backButtonRef.current) {
+      elements.push(backButtonRef.current);
+    }
+    if (prevStepButtonRef.current && currentStep === 2) {
+      elements.push(prevStepButtonRef.current);
+    }
+
+    return elements.filter(el => {
+      const style = window.getComputedStyle(el);
+      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    });
+  };
+
+  const focusFirstDropdownOption = (dropdownElement: HTMLElement) => {
+    const firstOption = dropdownElement.querySelector('.dropdown-option') as HTMLElement;
+    firstOption?.focus();
+  };
+
+  const handleDropdownKeyNavigation = (e: React.KeyboardEvent, dropdownType: keyof DropdownOpenState) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!dropdownOpen[dropdownType]) {
+        toggleDropdown(dropdownType);
+        setTimeout(() => {
+          const dropdownElement = dropdownRefs[dropdownType]?.current;
+          if (dropdownElement) {
+            focusFirstDropdownOption(dropdownElement);
+          }
+        }, 0);
+      }
+    } else if (e.key === 'Escape' && dropdownOpen[dropdownType]) {
+      e.preventDefault();
+      setDropdownOpen(prev => ({ ...prev, [dropdownType]: false }));
+    }
+  };
+
+  const handleSubjectsKeyNavigation = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!showCategories) {
+        toggleSubjectDropdown();
+      }
+    } else if (e.key === 'Escape' && (showCategories || showSubjectsDropdown)) {
+      e.preventDefault();
+      setShowCategories(false);
+      setShowSubjectsDropdown(false);
+    }
+  };
+
+  const handleCheckboxKeyNavigation = (e: React.KeyboardEvent, 
+    type: 'day' | 'style' | 'subject', 
+    value: string, 
+    currentState: string[], 
+    setState: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (currentState.includes(value)) {
+        setState(currentState.filter(item => item !== value));
+      } else {
+        setState([...currentState, value]);
+      }
+    }
+  };
+
+  // File handling functions
+  const uploadProfilePicture = () => {
+    profileInputRef.current?.click();
+  };
+  
+  const handleProfileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.match('image.*')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      if (file.size > 2000000) {
+        alert('File size should be less than 2MB');
+        return;
+      }
+      
+      setProfilePictureName(file.name);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // API functions
   function getCookie(name: string) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -806,101 +831,60 @@ const LearnerInfo = () => {
       setIsButtonActive(false);
     }
   };
-  
-  // Effects
-  useEffect(() => {
-    updateAvailableSubjects();
-  }, [program]);
-  
-  useEffect(() => {
-    updateSelectedCounts();
-  }, [selectedSubjects]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const isOutsideAll = Object.values(dropdownRefs).every(ref => {
-        return ref.current && !ref.current.contains(event.target as Node);
-      });
+  // Keyboard navigation helpers
+  function focusFirstOption(listboxId: string) {
+    const first = document.querySelector<HTMLElement>(`#${listboxId} [role="option"]`);
+    first?.focus();
+  }
 
-      if (isOutsideAll) {
-        setDropdownOpen({
-          gender: false,
-          yearLevel: false,
-          program: false,
-          modality: false,
-          availability: false,
-          learningStyle: false,
-          sessionDuration: false,
-        });
-        setShowCategories(false);
-        setShowSubjectsDropdown(false);
+  const handleComboboxKey =
+    (toggleOpen: () => void, isOpen: boolean, listboxId: string) =>
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleOpen();
+      } else if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        toggleOpen();
+      } else if ((e.key === 'ArrowDown' || e.key === 'Down') && isOpen) {
+        e.preventDefault();
+        focusFirstOption(listboxId);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
+    const current = e.currentTarget;
+    const options = Array.from(current.parentElement?.querySelectorAll<HTMLElement>('[role="option"]') || []);
+    const idx = options.indexOf(current);
 
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyNavigation);
-    return () => {
-      document.removeEventListener('keydown', handleKeyNavigation);
-    };
-  }, [currentStep]);
-
-  // Add these helpers inside the component file (top-level or within the component scope)
-// They provide consistent keyboard behavior for your dropdowns.
-function focusFirstOption(listboxId: string) {
-  const first = document.querySelector<HTMLElement>(`#${listboxId} [role="option"]`);
-  first?.focus();
-}
-const handleComboboxKey =
-  (toggleOpen: () => void, isOpen: boolean, listboxId: string) =>
-  (e: React.KeyboardEvent<HTMLElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      toggleOpen();
-    } else if (e.key === 'Escape' && isOpen) {
+      const input = current.querySelector<HTMLInputElement>('input[type="checkbox"], input[type="radio"]');
+      input?.click();
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'Down') {
       e.preventDefault();
-      toggleOpen(); // assumes toggleOpen closes when open
-    } else if ((e.key === 'ArrowDown' || e.key === 'Down') && isOpen) {
+      options[Math.min(idx + 1, options.length - 1)]?.focus();
+      return;
+    }
+    if (e.key === 'ArrowUp' || e.key === 'Up') {
       e.preventDefault();
-      focusFirstOption(listboxId);
+      options[Math.max(idx - 1, 0)]?.focus();
+      return;
+    }
+    if (e.key === 'Home') {
+      e.preventDefault();
+      options[0]?.focus();
+      return;
+    }
+    if (e.key === 'End') {
+      e.preventDefault();
+      options[options.length - 1]?.focus();
+      return;
     }
   };
-
-const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
-  const current = e.currentTarget;
-  const options = Array.from(current.parentElement?.querySelectorAll<HTMLElement>('[role="option"]') || []);
-  const idx = options.indexOf(current);
-
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    const input = current.querySelector<HTMLInputElement>('input[type="checkbox"], input[type="radio"]');
-    input?.click();
-    return;
-  }
-  if (e.key === 'ArrowDown' || e.key === 'Down') {
-    e.preventDefault();
-    options[Math.min(idx + 1, options.length - 1)]?.focus();
-    return;
-  }
-  if (e.key === 'ArrowUp' || e.key === 'Up') {
-    e.preventDefault();
-    options[Math.max(idx - 1, 0)]?.focus();
-    return;
-  }
-  if (e.key === 'Home') {
-    e.preventDefault();
-    options[0]?.focus();
-    return;
-  }
-  if (e.key === 'End') {
-    e.preventDefault();
-    options[options.length - 1]?.focus();
-    return;
-  }
-};
 
   return (
     <div className={`${styles.root} ${styles['learnerinfo-container']}`}>
@@ -1200,7 +1184,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                   >
                     {daysOfWeek.map((day) => {
                       const optionId = `day-${day}`;
-                      const isSelected = selectedDays.includes(day); // wire to your state
+                      const isSelected = selectedDays.includes(day);
                       return (
                         <div
                           key={day}
@@ -1338,36 +1322,55 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                   <i className={`fas fa-chevron-down ${styles['dropdown-icon']}`}></i>
                 </div>
                 {dropdownOpen.modality && (
-                  <div
-                    id={modalityListboxId}
-                    className={styles['dropdown-options']}
-                    role="listbox"
-                    aria-multiselectable="false"
-                  >
-                    {modalityOptions.map((mod) => {
-                      const optionId = `modality-${mod}`;
-                      const isSelected = modality === mod; // wire to your state
-                      return (
-                        <div
-                          key={mod}
-                          role="option"
-                          aria-selected={`${isSelected}`}
-                          tabIndex={-1}
-                          className={styles['dropdown-option']}
-                          onKeyDown={handleOptionKeyDown}
-                        >
-                          <input
-                            type="radio"
-                            name="modality"
-                            id={optionId}
-                            disabled={isSubmitting}
-                            checked={isSelected}
-                            onChange={() => setModality(mod)}
-                          />
-                          <label htmlFor={optionId}>{mod}</label>
-                        </div>
-                      );
-                    })}
+                  <div className={styles['dropdown-options']}>
+                    <div 
+                      className={styles['dropdown-option']} 
+                      onClick={() => {
+                        setModality('Online');
+                        setDropdownOpen({ ...dropdownOpen, modality: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setModality('Online');
+                          setDropdownOpen({ ...dropdownOpen, modality: false });
+                        }
+                      }}
+                    >
+                      Online
+                    </div>
+                    <div 
+                      className={styles['dropdown-option']} 
+                      onClick={() => {
+                        setModality('In-person');
+                        setDropdownOpen({ ...dropdownOpen, modality: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setModality('In-person');
+                          setDropdownOpen({ ...dropdownOpen, modality: false });
+                        }
+                      }}
+                    >
+                      In-person
+                    </div>
+                    <div 
+                      className={styles['dropdown-option']} 
+                      onClick={() => {
+                        setModality('Hybrid');
+                        setDropdownOpen({ ...dropdownOpen, modality: false });
+                      }}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setModality('Hybrid');
+                          setDropdownOpen({ ...dropdownOpen, modality: false });
+                        }
+                      }}
+                    >
+                      Hybrid
+                    </div>
                   </div>
                 )}
               </div>

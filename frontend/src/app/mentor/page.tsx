@@ -12,15 +12,7 @@ import LogoutComponent from '@/components/mentorpage/logout/page';
 import api from "@/lib/axios";
 import './mentor.css';
 
-// Helper to get cookie value (works only for non-httpOnly cookies)
-function getCookie(name: string) {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
-
+// Interfaces
 interface User {
   id: number | null;
   name: string;
@@ -73,7 +65,6 @@ interface UserData {
   image_url?: string;
 }
 
-// Update the Schedule interface to match the API response
 interface Schedule {
   id: string;
   date: string;
@@ -96,7 +87,6 @@ interface Schedule {
   };
 }
 
-// Update the Learner interface to match the API response
 interface LearnerFromAPI {
   _id: string;
   name: string;
@@ -116,10 +106,40 @@ interface Feedback {
   updatedAt: string;
 }
 
+// Constants
+const TOPBAR_ITEMS = [
+  { key: 'main', label: 'Learners', icon: '/main.svg' },
+  { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
+  { key: 'reviews', label: 'Reviews', icon: '/records.svg' },
+  { key: 'files', label: 'Files', icon: '/uploadCloud.svg' },
+  { key: 'fileManage', label: 'File Manager', icon: '/files.svg' }
+];
+
+// Helper Functions
+function getCookie(name: string) {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
+const StarRating = ({ rating }: { rating: number }) => {
+  return (
+    <div className="stars">
+      {[...Array(5)].map((_, i) => (
+        <span key={i} className={i < Math.round(rating) ? 'filledStar' : 'emptyStar'}>
+          {i < Math.round(rating) ? '★' : '☆'}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 export default function MentorPage() {
   const router = useRouter();
   
-  // State variables
+  // State Declarations
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingLearners, setIsLoadingLearners] = useState(false);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
@@ -164,90 +184,28 @@ export default function MentorPage() {
   const [isMobileView, setIsMobileView] = useState(false);
   const [showEditInformation, setShowEditInformation] = useState(false);
   const [showAccessibilityNav, setShowAccessibilityNav] = useState(false);
-
-  // NEW: Keyboard navigation state
   const [focusedTopbarIndex, setFocusedTopbarIndex] = useState(0);
   const [isTopbarFocused, setIsTopbarFocused] = useState(false);
+
+  // Refs
   const topbarRef = useRef<HTMLDivElement>(null);
 
-  // Define topbar items in order
-  const topbarItems = [
-    { key: 'main', label: 'Learners', icon: '/main.svg' },
-    { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
-    { key: 'reviews', label: 'Reviews', icon: '/records.svg' },
-    { key: 'files', label: 'Files', icon: '/uploadCloud.svg' },
-    { key: 'fileManage', label: 'File Manager', icon: '/files.svg' }
-  ];
-
-  // FIXED: Computed properties with safe access
+  // Computed Properties
   const subjects = userData?.subjects || [];
   const displayedCourses = subjects.slice(0, 5);
   const remainingCoursesCount = Math.max(subjects.length - 5, 0);
+  const courseAbbreviation = userData.program?.match(/\(([^)]+)\)/)?.[1] || userData.program;
+  const filteredUsers = users.filter((user) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      searchQuery === "" ||
+      user.name.toLowerCase().includes(searchLower) ||
+      user.yearLevel.toLowerCase().includes(searchLower) ||
+      user.program.toLowerCase().includes(searchLower)
+    );
+  });
 
-  // Debug useEffect for courses
-  useEffect(() => {
-    console.log('Courses Debug:', {
-      subjects,
-      displayedCourses,
-      remainingCoursesCount,
-      showAllCourses
-    });
-  }, [subjects, displayedCourses, remainingCoursesCount, showAllCourses]);
-
-  // NEW: Keyboard navigation functions for topbar
-  const handleTopbarKeyDown = (e: React.KeyboardEvent) => {
-    if (!isTopbarFocused) return;
-
-    switch (e.key) {
-      case 'ArrowRight':
-        e.preventDefault();
-        navigateTopbar('right');
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        navigateTopbar('left');
-        break;
-      case 'Enter':
-      case ' ':
-        e.preventDefault();
-        activateTopbarItem();
-        break;
-      case 'Home':
-        e.preventDefault();
-        setFocusedTopbarIndex(0);
-        break;
-      case 'End':
-        e.preventDefault();
-        setFocusedTopbarIndex(topbarItems.length - 1);
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setIsTopbarFocused(false);
-        break;
-    }
-  };
-
-  const navigateTopbar = (direction: 'left' | 'right') => {
-    if (direction === 'right') {
-      setFocusedTopbarIndex((prev) => (prev + 1) % topbarItems.length);
-    } else {
-      setFocusedTopbarIndex((prev) => (prev - 1 + topbarItems.length) % topbarItems.length);
-    }
-  };
-
-  const activateTopbarItem = () => {
-    const focusedItem = topbarItems[focusedTopbarIndex];
-    switchComponent(focusedItem.key);
-  };
-
-  const focusTopbar = () => {
-    setIsTopbarFocused(true);
-    // Set focus to current active component
-    const currentIndex = topbarItems.findIndex(item => item.key === activeComponent);
-    setFocusedTopbarIndex(currentIndex >= 0 ? currentIndex : 0);
-  };
-
-  // API functions with improved error handling
+  // API Functions
   const fetchUserData = async () => {
     setIsLoading(true);
     setApiError(null);
@@ -256,10 +214,9 @@ export default function MentorPage() {
       const token = getCookie('MindMateToken');
       console.log("Token:", token ? "Found" : "Not found");
       
-      // Test if API is reachable first
       try {
         const res = await api.get('/api/mentor/profile', {
-          timeout: 10000, // 10 second timeout
+          timeout: 10000,
           withCredentials: true,
           headers: {
             'Content-Type': 'application/json',
@@ -285,20 +242,18 @@ export default function MentorPage() {
         
         if (apiError.code === 'NETWORK_ERROR' || apiError.code === 'ECONNREFUSED') {
           setApiError('Cannot connect to server. Please check if the backend is running.');
-          // Fallback to mock data
           useMockData();
         } else if (apiError.response?.status === 401) {
           setApiError('Authentication failed. Redirecting to login...');
           setTimeout(() => router.push('/login'), 2000);
         } else {
-          throw apiError; // Re-throw to be caught by outer catch
+          throw apiError;
         }
       }
       
     } catch (error) {
       console.error('Error fetching mentor data:', error);
       setApiError('Failed to load mentor data. Using demo data.');
-      // Fallback to mock data
       useMockData();
     } finally {
       setIsLoading(false);
@@ -432,7 +387,7 @@ export default function MentorPage() {
   };
 
   const fetchLearners = async () => {
-    if (users.length > 0) return; // Skip if we already have mock data
+    if (users.length > 0) return;
     
     setIsLoadingLearners(true);
     try {
@@ -452,14 +407,13 @@ export default function MentorPage() {
       
     } catch (error) {
       console.error('Error fetching learners:', error);
-      // Mock data already set in useMockData
     } finally {
       setIsLoadingLearners(false);
     }
   };
 
   const fetchSchedules = async () => {
-    if (todaySchedule.length > 0) return; // Skip if we already have mock data
+    if (todaySchedule.length > 0) return;
     
     setIsLoadingSchedules(true);
     try {
@@ -480,14 +434,13 @@ export default function MentorPage() {
       
     } catch (error) {
       console.error('Error fetching schedules:', error);
-      // Mock data already set in useMockData
     } finally {
       setIsLoadingSchedules(false);
     }
   };
 
   const fetchFeedbacks = async () => {
-    if (feedbacks.length > 0) return; // Skip if we already have mock data
+    if (feedbacks.length > 0) return;
     
     setIsLoadingFeedbacks(true);
     try {
@@ -507,7 +460,6 @@ export default function MentorPage() {
       
     } catch (error) {
       console.error('Error fetching feedbacks:', error);
-      // Mock data already set in useMockData
     } finally {
       setIsLoadingFeedbacks(false);
     }
@@ -516,7 +468,6 @@ export default function MentorPage() {
   const getFiles = async () => {
     try {
       console.log("Fetching files...");
-      // Mock files for now - you can implement file API later
       const mockFiles = [
         { id: 1, name: "Mathematics_Notes.pdf", size: "2.4 MB", date: "2024-01-10" },
         { id: 2, name: "Programming_Exercises.zip", size: "5.1 MB", date: "2024-01-08" },
@@ -527,6 +478,28 @@ export default function MentorPage() {
     }
   };
 
+  // Component Functions
+  const switchComponent = (component: string) => {
+    console.log('Switching to component:', component);
+    if (activeComponent !== component) {
+      setActiveComponent(component);
+    }
+    if (isMobileView) {
+      setIsSidebarVisible(false);
+    }
+    const newIndex = TOPBAR_ITEMS.findIndex(item => item.key === component);
+    if (newIndex >= 0) {
+      setFocusedTopbarIndex(newIndex);
+    }
+  };
+
+  const toggleShowAllCourses = () => {
+    console.log('Toggle clicked, current state:', showAllCourses);
+    setShowAllCourses(!showAllCourses);
+    console.log('New state should be:', !showAllCourses);
+  };
+
+  // Account Functions
   const registerLearnerRole = async () => {
     router.push('/learner-info/alt');
   };
@@ -544,7 +517,6 @@ export default function MentorPage() {
     try {
       console.log("Logging out...");
       localStorage.removeItem('auth_token');
-      // Clear the cookie
       document.cookie = 'MindMateToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       router.push('/login');
     } catch (error) {
@@ -552,30 +524,7 @@ export default function MentorPage() {
     }
   };
 
-  // Component functions
-  const switchComponent = (component: string) => {
-    console.log('Switching to component:', component);
-    if (activeComponent !== component) {
-      setActiveComponent(component);
-    }
-    if (isMobileView) {
-      setIsSidebarVisible(false);
-    }
-    // Update focused index when component changes via click
-    const newIndex = topbarItems.findIndex(item => item.key === component);
-    if (newIndex >= 0) {
-      setFocusedTopbarIndex(newIndex);
-    }
-  };
-
-  // FIXED: Enhanced toggle function with debugging
-  const toggleShowAllCourses = () => {
-    console.log('Toggle clicked, current state:', showAllCourses);
-    setShowAllCourses(!showAllCourses);
-    console.log('New state should be:', !showAllCourses);
-  };
-
-  // Edit Information functions
+  // Edit Information Functions
   const openEditInformation = () => {
     setShowEditInformation(true);
   };
@@ -589,7 +538,6 @@ export default function MentorPage() {
     setShowEditInformation(false);
   };
 
-  // Function to handle updating user data from the edit form
   const handleUpdateUserData = (updatedData: Partial<UserData>) => {
     setUserData(prev => ({
       ...prev,
@@ -601,6 +549,7 @@ export default function MentorPage() {
     setShowOffer(false);
   };
 
+  // UI Functions
   const toggleSidebar = () => {
     setIsSidebarVisible(!isSidebarVisible);
   };
@@ -617,35 +566,63 @@ export default function MentorPage() {
     }
   };
 
-  // Filtered users for search
-  const filteredUsers = users.filter((user) => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      searchQuery === "" ||
-      user.name.toLowerCase().includes(searchLower) ||
-      user.yearLevel.toLowerCase().includes(searchLower) ||
-      user.program.toLowerCase().includes(searchLower)
-    );
-  });
-
-  // Star rating component
-  const StarRating = ({ rating }: { rating: number }) => {
-    return (
-      <div className="stars">
-        {[...Array(5)].map((_, i) => (
-          <span key={i} className={i < Math.round(rating) ? 'filledStar' : 'emptyStar'}>
-            {i < Math.round(rating) ? '★' : '☆'}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
-  // Loading functions
+  // Loading Functions
   const startLoading = () => setIsLoading(true);
   const stopLoading = () => setIsLoading(false);
 
-  // Add this Error Display component
+  // Keyboard Navigation Functions
+  const handleTopbarKeyDown = (e: React.KeyboardEvent) => {
+    if (!isTopbarFocused) return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+        e.preventDefault();
+        navigateTopbar('right');
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        navigateTopbar('left');
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        activateTopbarItem();
+        break;
+      case 'Home':
+        e.preventDefault();
+        setFocusedTopbarIndex(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        setFocusedTopbarIndex(TOPBAR_ITEMS.length - 1);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsTopbarFocused(false);
+        break;
+    }
+  };
+
+  const navigateTopbar = (direction: 'left' | 'right') => {
+    if (direction === 'right') {
+      setFocusedTopbarIndex((prev) => (prev + 1) % TOPBAR_ITEMS.length);
+    } else {
+      setFocusedTopbarIndex((prev) => (prev - 1 + TOPBAR_ITEMS.length) % TOPBAR_ITEMS.length);
+    }
+  };
+
+  const activateTopbarItem = () => {
+    const focusedItem = TOPBAR_ITEMS[focusedTopbarIndex];
+    switchComponent(focusedItem.key);
+  };
+
+  const focusTopbar = () => {
+    setIsTopbarFocused(true);
+    const currentIndex = TOPBAR_ITEMS.findIndex(item => item.key === activeComponent);
+    setFocusedTopbarIndex(currentIndex >= 0 ? currentIndex : 0);
+  };
+
+  // Components
   const ErrorDisplay = () => {
     if (!apiError) return null;
     
@@ -665,12 +642,10 @@ export default function MentorPage() {
     );
   };
 
-  // UPDATED Accessibility Navigation Pad Component with Enhanced Keyboard Navigation
   const AccessibilityNavPad = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [focusedNavIndex, setFocusedNavIndex] = useState(0);
 
-    // Define navbar items in order
     const navItems = [
       { key: 'main', label: 'Learners', icon: '/main.svg' },
       { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
@@ -679,19 +654,15 @@ export default function MentorPage() {
       { key: 'fileManage', label: 'File Manager', icon: '/files.svg' }
     ];
 
-    // Keyboard shortcuts handler
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
-        // Toggle nav pad with Ctrl + Alt + N
         if (e.ctrlKey && e.altKey && e.key === 'n') {
           e.preventDefault();
           setIsVisible(prev => !prev);
-          // Reset focus to current active component when opening
           const currentIndex = navItems.findIndex(item => item.key === activeComponent);
           setFocusedNavIndex(currentIndex >= 0 ? currentIndex : 0);
         }
 
-        // Navigation shortcuts when nav pad is visible
         if (isVisible) {
           switch (e.key) {
             case 'ArrowLeft':
@@ -738,7 +709,6 @@ export default function MentorPage() {
     const activateFocusedNavItem = () => {
       const focusedItem = navItems[focusedNavIndex];
       setActiveComponent(focusedItem.key);
-      // Don't close the nav pad on activation, keep it open for continued navigation
     };
 
     const quickNavigate = (component: string) => {
@@ -751,7 +721,6 @@ export default function MentorPage() {
 
     const handleNavPadClose = () => {
       setIsVisible(false);
-      // Reset focus to currently active component
       const currentIndex = navItems.findIndex(item => item.key === activeComponent);
       setFocusedNavIndex(currentIndex >= 0 ? currentIndex : 0);
     };
@@ -774,7 +743,6 @@ export default function MentorPage() {
           </div>
           
           <div className="nav-pad-controls">
-            {/* Visual Navigation Indicator */}
             <div className="nav-visual-indicator">
               <div className="nav-track">
                 {navItems.map((item, index) => (
@@ -876,7 +844,6 @@ export default function MentorPage() {
     );
   };
 
-  // UPDATED renderComponent function - logout as overlay
   const renderComponent = () => {
     const mainContent = (() => {
       switch (activeComponent) {
@@ -944,7 +911,6 @@ export default function MentorPage() {
       <>
         {mainContent}
         
-        {/* Render LogoutComponent as overlay when active */}
         {activeComponent === 'logout' && (
           <LogoutComponent 
             onCancel={() => switchComponent('main')} 
@@ -955,6 +921,7 @@ export default function MentorPage() {
     );
   };
 
+  // Effects
   useEffect(() => {
     const initializeData = async () => {
       startLoading();
@@ -988,19 +955,23 @@ export default function MentorPage() {
     };
   }, []);
 
-  // Add debugging useEffect
+  useEffect(() => {
+    console.log('Courses Debug:', {
+      subjects,
+      displayedCourses,
+      remainingCoursesCount,
+      showAllCourses
+    });
+  }, [subjects, displayedCourses, remainingCoursesCount, showAllCourses]);
+
   useEffect(() => {
     console.log("Current mentor userData state:", userData);
   }, [userData]);
 
-  const courseAbbreviation = userData.program?.match(/\(([^)]+)\)/)?.[1] || userData.program;
-
   return (
     <div className="mentor-page">
-      {/* Error Display Banner */}
       <ErrorDisplay />
       
-      {/* Loading Overlay */}
       {isLoading && (
         <div className="loading-overlay">
           <div className="loading-backdrop"></div>
@@ -1008,7 +979,6 @@ export default function MentorPage() {
         </div>
       )}
 
-      {/* Edit Information Popup Overlay */}
       {showEditInformation && (
         <EditInformationComponent 
           userData={userData}
@@ -1018,10 +988,8 @@ export default function MentorPage() {
         />
       )}
 
-      {/* Accessibility Navigation Pad */}
       <AccessibilityNavPad />
 
-      {/* Accessibility Toggle Button */}
       <button 
         className="accessibility-toggle-btn"
         onClick={() => setShowAccessibilityNav(prev => !prev)}
@@ -1031,19 +999,16 @@ export default function MentorPage() {
         <i className="fas fa-universal-access"></i>
       </button>
 
-      {/* Mobile Sidebar Toggle Button */}
       {isMobileView && (
         <button className="sidebar-toggle" onClick={toggleSidebar}>
           ☰
         </button>
       )}
 
-      {/* Overlay to close sidebar on mobile */}
       {isMobileView && isSidebarVisible && (
         <div className="sidebar-overlay" onClick={toggleSidebar}></div>
       )}
 
-      {/* Sidebar */}
       <div 
         className={`sidebar ${
           isMobileView ? 'sidebar-mobile' : ''
@@ -1111,11 +1076,9 @@ export default function MentorPage() {
             </div>
           </div>
 
-          {/* FIXED: Course Offered Section with Enhanced Click Handling */}
           <div className="course-offered">
             <h1>Course Offered</h1>
             
-            {/* Temporary debug button - remove after testing */}
             <button 
               onClick={() => {
                 console.log('Debug button clicked');
@@ -1148,7 +1111,7 @@ export default function MentorPage() {
                 <div 
                   className="course-card remaining-courses" 
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevent event bubbling
+                    e.stopPropagation();
                     console.log('See More clicked - courses:', subjects.length);
                     toggleShowAllCourses();
                   }}
@@ -1210,7 +1173,6 @@ export default function MentorPage() {
             )}
           </div>
 
-          {/* Account Actions Dropdown */}
           <div className="account-actions">
             <div className="account-dropdown">
               <button className="account-dropbtn">
@@ -1236,7 +1198,6 @@ export default function MentorPage() {
         </div>
       </div>
 
-      {/* UPDATED Topbar with keyboard navigation */}
       <div 
         ref={topbarRef}
         className={`topbar ${
@@ -1249,7 +1210,7 @@ export default function MentorPage() {
         onClick={focusTopbar}
       >
         <div className="topbar-left">
-          {topbarItems.map((item, index) => (
+          {TOPBAR_ITEMS.map((item, index) => (
             <div 
               key={item.key}
               onClick={() => switchComponent(item.key)}
@@ -1272,7 +1233,6 @@ export default function MentorPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div 
         className={`main-content ${
           isMobileView && !isSidebarVisible ? 'content-expanded' : ''

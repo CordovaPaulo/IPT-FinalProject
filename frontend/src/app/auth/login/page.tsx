@@ -3,13 +3,15 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { toast } from "react-toastify";
 import Navbar from "@/components/Navbar";
 import api, { setAuthToken } from "@/lib/axios";
 import styles from "./login.module.css";
-import { toast } from "react-toastify";
 
 export default function Login() {
   const router = useRouter();
+
+  // State declarations
   const [iniCred, setIniCred] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -17,11 +19,13 @@ export default function Login() {
   const [isButtonActive, setIsButtonActive] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(0);
 
+  // Refs
   const iniCredRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const loginButtonRef = useRef<HTMLButtonElement>(null);
   const forgotPasswordRef = useRef<HTMLAnchorElement>(null);
 
+  // Constants
   const focusableElements = [
     { ref: iniCredRef, type: 'input' },
     { ref: passwordRef, type: 'input' },
@@ -29,6 +33,12 @@ export default function Login() {
     { ref: forgotPasswordRef, type: 'link' }
   ];
 
+  // Effects
+  useEffect(() => {
+    iniCredRef.current?.focus();
+  }, []);
+
+  // Helper functions
   const setButtonActive = (active: boolean) => {
     if (!isLoading) {
       setIsButtonActive(active);
@@ -39,6 +49,7 @@ export default function Login() {
     setPasswordVisible(!passwordVisible);
   };
 
+  // Navigation functions
   const focusNextElement = () => {
     const nextIndex = (focusedIndex + 1) % focusableElements.length;
     setFocusedIndex(nextIndex);
@@ -51,6 +62,11 @@ export default function Login() {
     focusableElements[prevIndex].ref.current?.focus();
   };
 
+  const handleElementFocus = (index: number) => {
+    setFocusedIndex(index);
+  };
+
+  // Event handlers
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     switch (e.key) {
       case 'Tab':
@@ -100,10 +116,6 @@ export default function Login() {
         iniCredRef.current?.focus();
         break;
     }
-  };
-
-  const handleElementFocus = (index: number) => {
-    setFocusedIndex(index);
   };
 
   const login = async (e: React.FormEvent) => {
@@ -158,10 +170,7 @@ export default function Login() {
     }
   };
 
-  useEffect(() => {
-    iniCredRef.current?.focus();
-  }, []);
-
+  // JSX Return
   return (
     <div className={styles.container}>
       <Navbar />

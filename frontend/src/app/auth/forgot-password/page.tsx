@@ -9,14 +9,15 @@ import styles from "./ForgotPassword.module.css";
 export default function ForgotPasswordPage() {
   const router = useRouter();
 
+  // State declarations
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
+  
   // Step 1 data
   const [identifier, setIdentifier] = useState("");
-
+  
   // Step 2 data
   const [verificationData, setVerificationData] = useState({
     pre_cred: "",
@@ -27,8 +28,10 @@ export default function ForgotPasswordPage() {
     // secondary_role: "",
   });
 
+  // Constants
   const roles = ["learner", "mentor"];
 
+  // Handler functions
   const handleStep1 = async () => {
     if (!identifier) {
       setError("Please enter your email, ID number, or account name");
@@ -75,6 +78,7 @@ export default function ForgotPasswordPage() {
     }
   };
 
+  // JSX Return
   return (
     <div className={styles.forgotPasswordContainer}>
       <header className={styles.brandHeader}>
