@@ -3,7 +3,7 @@
 import React, { useId, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
-import styles from '../LearnerInfo.module.css';
+import styles from './LearnerInfo.module.css';
 import api from "@/lib/axios";
 
 interface DropdownOpenState {
@@ -390,17 +390,17 @@ const LearnerInfo = () => {
     let isValid = true;
     let errorMessage = '';
     
-    if (rules.pattern && !rules.pattern.test(value)) {
+    if ('pattern' in rules && rules.pattern && !rules.pattern.test(value)) {
       isValid = false;
       errorMessage = rules.message;
     }
     
-    if (rules.minLength && value.length < rules.minLength) {
+    if ('minLength' in rules && rules.minLength && value.length < rules.minLength) {
       isValid = false;
       errorMessage = rules.message;
     }
     
-    if (rules.maxLength && value.length > rules.maxLength) {
+    if ('maxLength' in rules && rules.maxLength && value.length > rules.maxLength) {
       isValid = false;
       errorMessage = rules.message;
     }
@@ -1159,8 +1159,8 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                       <i className="fas fa-upload"></i>
                       <span>Choose File</span>
                     </div>
-                    <input type="file" ref={profileInputRef} accept="image/*" disabled={isSubmitting} style={{ display: 'none' }} onChange={handleProfileUpload} />
-                    <span className={styles['file-name']} style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <input type="file" ref={profileInputRef} accept="image/*" disabled={isSubmitting} className={styles['hidden-input']} onChange={handleProfileUpload} aria-label="Upload profile picture" />
+                    <span className={styles['file-name']}>
                       {profilePictureName || 'No file chosen'}
                     </span>
                   </div>
@@ -1205,7 +1205,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                         <div
                           key={day}
                           role="option"
-                          aria-selected={isSelected}
+                          aria-selected={`${isSelected}`}
                           tabIndex={-1}
                           className={`${styles['dropdown-option']} ${styles['availability-option']}`}
                           onKeyDown={handleOptionKeyDown}
@@ -1351,7 +1351,7 @@ const handleOptionKeyDown: React.KeyboardEventHandler<HTMLElement> = (e) => {
                         <div
                           key={mod}
                           role="option"
-                          aria-selected={isSelected}
+                          aria-selected={`${isSelected}`}
                           tabIndex={-1}
                           className={styles['dropdown-option']}
                           onKeyDown={handleOptionKeyDown}

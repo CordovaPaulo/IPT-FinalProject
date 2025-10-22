@@ -121,6 +121,29 @@ html[data-a11y-motion="reduced"] * {
 :where(:focus-visible) { outline: 2px solid #2563eb; outline-offset: 2px; }
 html[data-a11y-focus="always"] :where(:focus) { outline: 3px solid #ffbf47 !important; outline-offset: 3px; }
 
+/* Remove default browser focus outlines and replace with custom ones */
+*:focus {
+  outline: none !important;
+}
+
+/* Custom focus styles for form elements */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(2, 71, 94, 0.3) !important;
+}
+
+/* Focus styles for accessibility */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid #02475e !important;
+  outline-offset: 2px !important;
+}
+
 /* Dyslexia-friendly font (fallbacks if not installed) */
 html[data-a11y-font="dyslexic"] body {
   font-family: "OpenDyslexic", "Atkinson Hyperlegible", "Arial", "Verdana", sans-serif !important;

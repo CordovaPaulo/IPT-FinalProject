@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Image from 'next/image';
-import './learnmore.css'; 
+import './learnmore.css';
 
 interface FAQ {
   question: string;
@@ -16,75 +16,25 @@ export default function LearnMore() {
   const router = useRouter();
   const [activeIcon, setActiveIcon] = useState(0);
   const [faqs, setFaqs] = useState<FAQ[]>([
-    {
-      question: "Who can use MindMates?",
-      answer:
-        "MindMates is exclusively available to College of Computer Studies students of Gordon College. It is designed to help students connect with peers for tutoring and educational support.",
-      open: false,
-    },
-    {
-      question: "How do I become a mentor or learner?",
-      answer:
-        "To become a mentor or learner, you need to create two separate accounts using the same email and password — one for each role. This allows you to switch between mentoring and learning as needed.",
-      open: false,
-    },
-    {
-      question: "Is there a fee to use MindMates?",
-      answer: "No, MindMates is completely free to use.",
-      open: false,
-    },
-    {
-      question: "How do I book a session?",
-      answer:
-        "Once you find a mentor, you can schedule a session as long as they are available on your preferred day and time. Simply choose a suitable slot and you're good to go.",
-      open: false,
-    },
-    {
-      question: "Can I cancel or reschedule a session?",
-      answer:
-        "Yes, you can cancel or reschedule a session through the session details page. However, we encourage timely communication to avoid inconveniencing mentors or learners.",
-      open: false,
-    },
-    {
-      question: "How does the rating system work?",
-      answer:
-        "After each session, learners can leave a rating and feedback based on their experience. Ratings help maintain quality and allow mentors to improve their tutoring approach.",
-      open: false,
-    },
-    {
-      question: "Is there a messaging feature?",
-      answer:
-        "Yes, MindMates allows users to send messages within the platform. However, instead of a chat system, messages are delivered via email to the recipient, ensuring important details are not missed.",
-      open: false,
-    },
-    {
-      question: "What types of subjects can I find on MindMates?",
-      answer:
-        "MindMates covers the subjects offered by the different programs in the Department of College of Computer Studies - Gordon College.",
-      open: false,
-    },
-    {
-      question: "How secure is MindMates?",
-      answer:
-        "MindMates uses secure protocols to protect user data. We continuously implement measures to keep your information secure.",
-      open: false,
-    },
-    {
-      question: "What if I encounter an issue or need help?",
-      answer:
-        "If you face any issues or need assistance, you can reach out through our support feature. We're here to ensure you have a smooth experience.",
-      open: false,
-    },
+    { question: "Who can use MindMates?", answer: "MindMates is exclusively available to College of Computer Studies students of Gordon College. It is designed to help students connect with peers for tutoring and educational support.", open: false },
+    { question: "How do I become a mentor or learner?", answer: "To become a mentor or learner, you need to create two separate accounts using the same email and password — one for each role. This allows you to switch between mentoring and learning as needed.", open: false },
+    { question: "Is there a fee to use MindMates?", answer: "No, MindMates is completely free to use.", open: false },
+    { question: "How do I book a session?", answer: "Once you find a mentor, you can schedule a session as long as they are available on your preferred day and time. Simply choose a suitable slot and you're good to go.", open: false },
+    { question: "Can I cancel or reschedule a session?", answer: "Yes, you can cancel or reschedule a session through the session details page. However, we encourage timely communication to avoid inconveniencing mentors or learners.", open: false },
+    { question: "How does the rating system work?", answer: "After each session, learners can leave a rating and feedback based on their experience. Ratings help maintain quality and allow mentors to improve their tutoring approach.", open: false },
+    { question: "Is there a messaging feature?", answer: "Yes, MindMates allows users to send messages within the platform. However, instead of a chat system, messages are delivered via email to the recipient, ensuring important details are not missed.", open: false },
+    { question: "What types of subjects can I find on MindMates?", answer: "MindMates covers the subjects offered by the different programs in the Department of College of Computer Studies - Gordon College.", open: false },
+    { question: "How secure is MindMates?", answer: "MindMates uses secure protocols to protect user data. We continuously implement measures to keep your information secure.", open: false },
+    { question: "What if I encounter an issue or need help?", answer: "If you face any issues or need assistance, you can reach out through our support feature. We're here to ensure you have a smooth experience.", open: false },
   ]);
 
   // Keyboard navigation state
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [currentSection, setCurrentSection] = useState<string>('main');
-  const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const faqRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const iconRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const backButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Focusable elements
   const focusableElements = [
     { type: 'backButton', index: -1 },
     ...faqs.map((_, index) => ({ type: 'faq', index })),
@@ -103,6 +53,23 @@ export default function LearnMore() {
 
   // Handle keyboard navigation
   useEffect(() => {
+    const scrollToElement = (index: number) => {
+      const element = focusableElements[index];
+      let targetElement: HTMLElement | null = null;
+
+      if (element.type === 'backButton' && backButtonRef.current) {
+        targetElement = backButtonRef.current;
+      } else if (element.type === 'faq' && faqRefs.current[element.index]) {
+        targetElement = faqRefs.current[element.index]!;
+      } else if (element.type === 'icon' && iconRefs.current[element.index]) {
+        targetElement = iconRefs.current[element.index]!;
+      }
+
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
         case 'ArrowDown':
@@ -128,17 +95,12 @@ export default function LearnMore() {
           e.preventDefault();
           if (focusedIndex >= 0) {
             const element = focusableElements[focusedIndex];
-            if (element.type === 'faq') {
-              toggleFaq(element.index);
-            } else if (element.type === 'backButton') {
-              goBack();
-            } else if (element.type === 'icon') {
+            if (element.type === 'faq') toggleFaq(element.index);
+            else if (element.type === 'backButton') goBack();
+            else if (element.type === 'icon') {
               setActiveIcon(element.index + 1);
-              // Trigger hover effect
               const iconElement = iconRefs.current[element.index];
-              if (iconElement) {
-                iconElement.focus();
-              }
+              if (iconElement) iconElement.focus();
             }
           }
           break;
@@ -155,70 +117,38 @@ export default function LearnMore() {
           break;
 
         case 'Tab':
-          // Allow default tab behavior but update focused index
           setTimeout(() => {
             const activeElement = document.activeElement;
-            const index = focusableElements.findIndex((elem, idx) => {
-              if (elem.type === 'backButton' && activeElement === backButtonRef.current) {
-                return true;
-              }
-              if (elem.type === 'faq' && activeElement === faqRefs.current[elem.index]) {
-                return true;
-              }
-              if (elem.type === 'icon' && activeElement === iconRefs.current[elem.index]) {
-                return true;
-              }
+            const index = focusableElements.findIndex(elem => {
+              if (elem.type === 'backButton' && activeElement === backButtonRef.current) return true;
+              if (elem.type === 'faq' && activeElement === faqRefs.current[elem.index]) return true;
+              if (elem.type === 'icon' && activeElement === iconRefs.current[elem.index]) return true;
               return false;
             });
-            if (index !== -1) {
-              setFocusedIndex(index);
-            }
+            if (index !== -1) setFocusedIndex(index);
           }, 0);
           break;
       }
     };
 
-    const scrollToElement = (index: number) => {
-      const element = focusableElements[index];
-      let targetElement: HTMLElement | null = null;
-
-      if (element.type === 'backButton' && backButtonRef.current) {
-        targetElement = backButtonRef.current;
-      } else if (element.type === 'faq' && faqRefs.current[element.index]) {
-        targetElement = faqRefs.current[element.index]!;
-      } else if (element.type === 'icon' && iconRefs.current[element.index]) {
-        targetElement = iconRefs.current[element.index]!;
-      }
-
-      if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }
-    };
-
     window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [focusedIndex, focusableElements, currentSection, faqs]);
 
   // Reset focus when component mounts
-  useEffect(() => {
-    setFocusedIndex(0);
-  }, []);
+  useEffect(() => setFocusedIndex(0), []);
 
   return (
     <div className="learnmore-container">
       <Navbar />
 
       <div className="system-explanation">
-        <button 
+        <button
           ref={backButtonRef}
           className={`back-button ${focusedIndex === 0 ? 'focused' : ''}`}
           onClick={goBack}
           onFocus={() => setFocusedIndex(0)}
+          aria-label="Go back"
         >
           <i className="fas fa-arrow-left back-icon"></i>
         </button>
@@ -227,19 +157,9 @@ export default function LearnMore() {
         <div className="divider animated-divider"></div>
 
         <div className="intro-container">
-          <Image
-            src="/logo_gccoed.png"
-            alt="MindMates Logo"
-            width={280}
-            height={100}
-            className="logo animated-logo"
-          />
+          <Image src="/logo_gccoed.png" alt="MindMates Logo" width={280} height={100} className="logo animated-logo" />
           <p className="intro animated-description">
-            MindMates is a web-based platform proposed to make the process of finding
-            and scheduling peer-to-peer tutoring sessions efficient within our
-            school community. With easy access for all students, it allows anyone
-            to offer and receive tutoring in various subjects, book sessions at
-            their convenience, and stay organized in their learning journey.
+            MindMates is a web-based platform proposed to make the process of finding and scheduling peer-to-peer tutoring sessions efficient within our school community...
           </p>
         </div>
 
@@ -247,71 +167,21 @@ export default function LearnMore() {
 
         {/* Features */}
         <div className="content-wrapper">
-          <div className="feature-row">
-            <div className="icon-container">
-              <Image
-                src="/icon1.png"
-                alt="Icon1"
-                width={130}
-                height={100}
-                className="feature-icon animated-icon"
-              />
+          {[
+            { src: '/icon1.png', title: 'Find the Right Mentor or Learner', desc: 'Students looking for guidance can search for mentors based on subjects, expertise, and availability...' },
+            { src: '/icon3.png', title: 'Connect and Learn', desc: 'Once a student finds a potential mentor, they can view their profile to learn more about their experience...' },
+            { src: '/icon4.png', title: 'Schedule and Begin Sessions', desc: 'After finalizing the details, students and mentors can arrange tutoring sessions at convenient times...' }
+          ].map((feature, idx) => (
+            <div key={idx} className="feature-row">
+              <div className="icon-container">
+                <Image src={feature.src} alt={feature.title} width={130} height={100} className="feature-icon animated-icon" />
+              </div>
+              <div className="feature-section">
+                <h3 className="feature-title animated-text">{feature.title}</h3>
+                <p className="feature-description animated-text">{feature.desc}</p>
+              </div>
             </div>
-            <div className="feature-section">
-              <h3 className="feature-title animated-text">
-                Find the Right Mentor or Learner
-              </h3>
-              <p className="feature-description animated-text">
-                Students looking for guidance can search for mentors based on
-                subjects, expertise, and availability. Filtering options allow
-                users to narrow down their choices and find the most suitable
-                match.
-              </p>
-            </div>
-          </div>
-
-          <div className="feature-row">
-            <div className="icon-container">
-              <Image
-                src="/icon3.png"
-                alt="Icon3"
-                width={130}
-                height={100}
-                className="feature-icon animated-icon"
-              />
-            </div>
-            <div className="feature-section">
-              <h3 className="feature-title animated-text">Connect and Learn</h3>
-              <p className="feature-description animated-text">
-                Once a student finds a potential mentor, they can view their
-                profile to learn more about their experience and qualifications.
-                Communication is done via email, where both parties can discuss
-                learning goals, session details, and scheduling.
-              </p>
-            </div>
-          </div>
-
-          <div className="feature-row">
-            <div className="icon-container">
-              <Image
-                src="/icon4.png"
-                alt="Icon4"
-                width={130}
-                height={100}
-                className="feature-icon animated-icon"
-              />
-            </div>
-            <div className="feature-section">
-              <h3 className="feature-title animated-text">
-                Schedule and Begin Sessions
-              </h3>
-              <p className="feature-description animated-text">
-                After finalizing the details, students and mentors can arrange
-                tutoring sessions at convenient times. Sessions can be adjusted
-                or rescheduled as needed to ensure a smooth learning experience.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
 
         <div className="divider animated-divider"></div>
@@ -320,34 +190,24 @@ export default function LearnMore() {
         <div className="unique-features">
           <h2 className="section-title">What Makes MindMates Different?</h2>
           <p className="section-description">
-            MindMates is more than just a tutoring platform—it's a student-driven
-            learning space designed specifically for our school community. Unlike
-            other tutoring services, MindMates is built on peer-assisted learning,
-            allowing students to be both learners and mentors, fostering a
-            collaborative academic environment.
+            MindMates is more than just a tutoring platform—it's a student-driven learning space designed specifically for our school community...
           </p>
 
           <div className="numbered-icons">
-            {[ 
-              "Peer-to-Peer Learning", 
-              "School-Specific Platform", 
-              "Flexible Learning", 
-              "Comfortable Learning"
-            ].map((text, i) => (
+            {["Peer-to-Peer Learning", "School-Specific Platform", "Flexible Learning", "Comfortable Learning"].map((text, i) => (
               <div
                 key={i}
-                ref={el => iconRefs.current[i] = el}
+                ref={el => (iconRefs.current[i] = el!)}
                 className={`icon-wrapper ${focusedIndex === i + faqs.length + 1 ? 'focused' : ''}`}
                 onMouseEnter={() => setActiveIcon(i + 1)}
                 onMouseLeave={() => setActiveIcon(0)}
                 onClick={() => setActiveIcon(i + 1)}
                 onFocus={() => setFocusedIndex(i + faqs.length + 1)}
                 tabIndex={0}
+                aria-label={text}
               >
                 <div className="icon-circle">{i + 1}</div>
-                <div className={`icon-text ${activeIcon === i + 1 ? 'active' : ''}`}>
-                  {text}
-                </div>
+                <div className={`icon-text ${activeIcon === i + 1 ? 'active' : ''}`}>{text}</div>
               </div>
             ))}
           </div>
@@ -362,7 +222,7 @@ export default function LearnMore() {
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                ref={el => faqRefs.current[index] = el}
+                ref={el => (faqRefs.current[index] = el!)}
                 className={`faq-item ${focusedIndex === index + 1 ? 'focused' : ''}`}
                 onClick={() => toggleFaq(index)}
                 onFocus={() => setFocusedIndex(index + 1)}
@@ -370,13 +230,9 @@ export default function LearnMore() {
               >
                 <div className="faq-question">
                   {faq.question}
-                  <i
-                    className={`fas ${faq.open ? 'fa-chevron-up' : 'fa-chevron-down'}`}
-                  ></i>
+                  <i className={`fas ${faq.open ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
                 </div>
-                <div className={`faq-answer ${faq.open ? 'open' : ''}`}>
-                  {faq.answer}
-                </div>
+                <div className={`faq-answer ${faq.open ? 'open' : ''}`}>{faq.answer}</div>
               </div>
             ))}
           </div>

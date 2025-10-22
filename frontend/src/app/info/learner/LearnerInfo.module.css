@@ -468,6 +468,10 @@
   white-space: nowrap;
 }
 
+.hidden-input {
+  display: none;
+}
+
 .divider {
   height: 1px;
   background: #929495;

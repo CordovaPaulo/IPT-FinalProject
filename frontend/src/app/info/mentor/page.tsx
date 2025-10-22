@@ -67,6 +67,7 @@ export default function MentorInfoPage() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profilePictureName, setProfilePictureName] = useState('');
   const [credentials, setCredentials] = useState<CredentialFile[]>([]);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   
   // UI state
   const [dropdownOpen, setDropdownOpen] = useState<DropdownOpenState>({
@@ -402,17 +403,17 @@ export default function MentorInfoPage() {
     let isValid = true;
     let errorMessage = '';
     
-    if (rules.pattern && !rules.pattern.test(value)) {
+    if ('pattern' in rules && rules.pattern && !rules.pattern.test(value)) {
       isValid = false;
       errorMessage = rules.message;
     }
     
-    if (rules.minLength && value.length < rules.minLength) {
+    if ('minLength' in rules && rules.minLength && value.length < rules.minLength) {
       isValid = false;
       errorMessage = rules.message;
     }
     
-    if (rules.maxLength && value.length > rules.maxLength) {
+    if ('maxLength' in rules && rules.maxLength && value.length > rules.maxLength) {
       isValid = false;
       errorMessage = rules.message;
     }
@@ -1289,21 +1290,14 @@ export default function MentorInfoPage() {
                     </div>
                     <input
                       type="file"
+                      aria-label="Upload profile picture"
                       ref={profileInputRef}
                       accept="image/*"
                       disabled={isSubmitting}
                       style={{ display: 'none' }}
                       onChange={handleProfileUpload}
                     />
-                    <span
-                      className={styles.fileName}
-                      style={{
-                        maxWidth: '150px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
+                    <span className={styles.fileName}>
                       {profilePictureName || 'No file chosen'}
                     </span>
                   </div>
@@ -1325,6 +1319,7 @@ export default function MentorInfoPage() {
                   </div>
                   <input
                     type="file"
+                    aria-label="Upload credentials"
                     ref={credentialInputRef}
                     multiple
                     disabled={isSubmitting}
@@ -1849,11 +1844,11 @@ export default function MentorInfoPage() {
               id={topicComboboxId}
               tabIndex={0}
               aria-haspopup="listbox"
-              aria-expanded={dropdownOpen.topics}
+              aria-expanded={`${dropdownOpen.topics}`}
               aria-controls={topicListboxId} // optional
             >
               <div className="dropdown-container" onClick={(e) => { e.stopPropagation(); toggleDropdown('topics'); }}>
-                <input role="textbox" readOnly aria-autocomplete="none" aria-controls={topicListboxId} />
+                <input role="textbox" readOnly aria-autocomplete="none" aria-controls={topicListboxId} aria-label="Select topics" />
               </div>
               {dropdownOpen.topics && (
                 <div id={topicListboxId} role="listbox" aria-multiselectable="true" className="dropdown-options topics-options">
@@ -1862,7 +1857,18 @@ export default function MentorInfoPage() {
                     const isSelected = selectedTopics.includes(topic); // wire to your state
                     return (
                       <div key={topic} role="option" aria-selected={isSelected} tabIndex={-1} className="dropdown-option topic-option" onKeyDown={handleOptionKeyDown}>
-                        <input type="checkbox" id={optionId} checked={isSelected} />
+                        <input 
+                          type="checkbox" 
+                          id={optionId} 
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedTopics([...selectedTopics, topic]);
+                            } else {
+                              setSelectedTopics(selectedTopics.filter(t => t !== topic));
+                            }
+                          }}
+                        />
                         <label htmlFor={optionId}>{topic}</label>
                       </div>
                     );
@@ -1919,7 +1925,7 @@ export default function MentorInfoPage() {
                     <i className="fas fa-file-alt"></i>
                     {file.name}
                   </span>
-                  <button onClick={() => deleteCredential(index)}>
+                  <button onClick={() => deleteCredential(index)} aria-label="Delete file">
                     <i className="fas fa-trash-alt"></i>
                   </button>
                 </li>

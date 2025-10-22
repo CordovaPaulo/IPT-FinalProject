@@ -184,23 +184,26 @@ export default function ForgotPasswordPage() {
 
               <div className={styles.formGroup}>
                 <div className={styles.inputWithIcon}>
-                  <select
-                    value={verificationData.role}
-                    onChange={(e) =>
-                      setVerificationData((prev) => ({
-                        ...prev,
-                        role: e.target.value,
-                      }))
-                    }
-                    required
-                  >
-                    <option value="">Select Primary Role</option>
-                    {roles.map((role) => (
-                      <option key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1)}
-                      </option>
-                    ))}
-                  </select>
+                <label htmlFor="roleSelect">Primary Role</label>
+                <select
+                  id="roleSelect"
+                  name="role"
+                  value={verificationData.role}
+                  onChange={(e) =>
+                    setVerificationData((prev) => ({
+                      ...prev,
+                      role: e.target.value as typeof prev.role,
+                    }))
+                  }
+                  required
+                >
+                  <option value="">Select Primary Role</option>
+                  {roles.map((role) => (
+                    <option key={role} value={role}>
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </option>
+                  ))}
+                </select>
                 </div>
               </div>
 
