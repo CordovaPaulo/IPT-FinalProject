@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
 import styles from "./page.module.css";
 
-
+// Interfaces
 interface Applicant {
   user_id: any;
   name: any;
@@ -51,6 +51,7 @@ interface ApplicationsProps {
   onUpdateApplicants: () => void;
 }
 
+// Constants
 const sampleApplicants = {
   mentors: {
     pending: [
@@ -122,6 +123,7 @@ const Applications: React.FC<ApplicationsProps> = ({
   applicants = sampleApplicants, 
   onUpdateApplicants 
 }) => {
+  // State declarations
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -147,6 +149,7 @@ const Applications: React.FC<ApplicationsProps> = ({
   //   return undefined;
   // };
 
+  // API functions
   const approve = async (mentorId: number) => {
     try {
       const response = await api.patch(`/api/admin/mentor/status/approve/${mentorId}`);
@@ -185,7 +188,6 @@ const Applications: React.FC<ApplicationsProps> = ({
       //   Accept: 'application/json',
       // };
 
-
       const response = await api.get(`/api/admin/${applicantId}`);
 
       if (response.status === 200) {
@@ -198,6 +200,7 @@ const Applications: React.FC<ApplicationsProps> = ({
     }
   };
 
+  // Helper functions
   const previewFile = (previewLink: string) => {
     if (previewLink) {
       window.open(previewLink, '_blank');
@@ -231,6 +234,7 @@ const Applications: React.FC<ApplicationsProps> = ({
 
   // const [localApplicants, setLocalApplicants] = useState<any[]>([]);
 
+  // Data normalization
   // Normalize incoming applicants (supports flat array from API or the sample nested object)
   const normalizeApplicants = (input: any): any[] => {
     if (!input) return [];
@@ -259,88 +263,18 @@ const Applications: React.FC<ApplicationsProps> = ({
     return [];
   };
 
-  useEffect(() => {
-    setLocalApplicants(normalizeApplicants(applicants));
-  }, [applicants]);
+  // Modal handlers
+  const showConfirmation = (id: string, action: string) => {
+    // -    setCurrentAppId(id);
+    setCurrentAppId(id);
+    setActionToConfirm(action);
+    setShowModal(true);
+  };
 
-  // Update the filteredApplicants useMemo to use localApplicants
-  const filteredApplicants = useMemo(() => {
-    let list = Array.isArray(localApplicants) ? [...localApplicants] : [];
-
-    // Map UI filter -> data values ('accepted' in data is 'accepted', approved mapping handled below)
-    if (activeFilter !== 'all') {
-      list = list.filter((a: any) => {
-        const status = (a.mentorStatus || '').toString().toLowerCase();
-        return status === activeFilter.toLowerCase();
-      });
-    }
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((a: any) =>
-        (a.name || '').toString().toLowerCase().includes(q) ||
-        (a.program || '').toString().toLowerCase().includes(q) ||
-        (a.studentId || '').toString().toLowerCase().includes(q)
-      );
-    }
-
-    // ensure rendering fields exist and map status label for UI where necessary
-    return list.map((a: any) => ({
-      ...a,
-      mentorId: a.mentorId ?? a.userId ?? a.id,
-      studentId: a.studentId ?? a.student_id ?? '',
-      mentorStatus: a.mentorStatus ?? a.status ?? '',
-    }));
-  }, [localApplicants, activeFilter, searchQuery]);
- 
-   const showConfirmation = (id: string, action: string) => {
-     // -    setCurrentAppId(id);
-     setCurrentAppId(id);
-     setActionToConfirm(action);
-     setShowModal(true);
-   };
-
-   const hideConfirmation = () => {
-     setShowModal(false);
-     setCurrentAppId(null);
-     setActionToConfirm('');
-   };
-
-  // Update the confirmAction function
-  const confirmAction = async () => {
-    if (!currentAppId) return;
-
-    try {
-      setIsLoading(true);
-      if (actionToConfirm === 'Accepted') {
-        await approve(currentAppId as any);
-        // Update state for a flat array structure
-        setLocalApplicants((prev: any) =>
-          prev.map((app: any) =>
-            app.mentorId === currentAppId
-              ? { ...app, mentorStatus: 'accepted' }
-              : app
-          )
-        );
-      } else if (actionToConfirm === 'Rejected') {
-        await reject(currentAppId as any);
-        // Update state for a flat array structure
-        setLocalApplicants((prev: any) =>
-          prev.map((app: any) =>
-            app.mentorId === currentAppId
-              ? { ...app, mentorStatus: 'rejected' }
-              : app
-          )
-        );
-      }
-
-      onUpdateApplicants();
-      hideConfirmation();
-    } catch (error) {
-      console.error(`Error ${actionToConfirm.toLowerCase()} application`, error);
-    } finally {
-      setIsLoading(false);
-    }
+  const hideConfirmation = () => {
+    setShowModal(false);
+    setCurrentAppId(null);
+    setActionToConfirm('');
   };
 
   const showCredentials = async (app: any) => {
@@ -430,9 +364,82 @@ const Applications: React.FC<ApplicationsProps> = ({
     return match?.[1] || program;
   };
 
+  // Update the confirmAction function
+  const confirmAction = async () => {
+    if (!currentAppId) return;
+
+    try {
+      setIsLoading(true);
+      if (actionToConfirm === 'Accepted') {
+        await approve(currentAppId as any);
+        // Update state for a flat array structure
+        setLocalApplicants((prev: any) =>
+          prev.map((app: any) =>
+            app.mentorId === currentAppId
+              ? { ...app, mentorStatus: 'accepted' }
+              : app
+          )
+        );
+      } else if (actionToConfirm === 'Rejected') {
+        await reject(currentAppId as any);
+        // Update state for a flat array structure
+        setLocalApplicants((prev: any) =>
+          prev.map((app: any) =>
+            app.mentorId === currentAppId
+              ? { ...app, mentorStatus: 'rejected' }
+              : app
+          )
+        );
+      }
+
+      onUpdateApplicants();
+      hideConfirmation();
+    } catch (error) {
+      console.error(`Error ${actionToConfirm.toLowerCase()} application`, error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Effects
+  useEffect(() => {
+    setLocalApplicants(normalizeApplicants(applicants));
+  }, [applicants]);
+
   useEffect(() => {
     console.log('Local applicants updated:', localApplicants);
   }, [localApplicants]);
+
+  // Memoized computations
+  // Update the filteredApplicants useMemo to use localApplicants
+  const filteredApplicants = useMemo(() => {
+    let list = Array.isArray(localApplicants) ? [...localApplicants] : [];
+
+    // Map UI filter -> data values ('accepted' in data is 'accepted', approved mapping handled below)
+    if (activeFilter !== 'all') {
+      list = list.filter((a: any) => {
+        const status = (a.mentorStatus || '').toString().toLowerCase();
+        return status === activeFilter.toLowerCase();
+      });
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((a: any) =>
+        (a.name || '').toString().toLowerCase().includes(q) ||
+        (a.program || '').toString().toLowerCase().includes(q) ||
+        (a.studentId || '').toString().toLowerCase().includes(q)
+      );
+    }
+
+    // ensure rendering fields exist and map status label for UI where necessary
+    return list.map((a: any) => ({
+      ...a,
+      mentorId: a.mentorId ?? a.userId ?? a.id,
+      studentId: a.studentId ?? a.student_id ?? '',
+      mentorStatus: a.mentorStatus ?? a.status ?? '',
+    }));
+  }, [localApplicants, activeFilter, searchQuery]);
 
   return (
     <>

@@ -7,6 +7,7 @@ import styles from "./page.module.css";
 import api from '@/lib/axios';
 import { toast } from 'react-toastify';
 
+// Interfaces
 interface User {
   roleId: any;
   name: any;
@@ -45,42 +46,140 @@ interface UsersProps {
   onUpdateUsers: () => void;
 }
 
+// Sample data
+const sampleUsers: User[] = [
+  {
+    roleId: 1,
+    name: "John Smith",
+    email: "john.smith@gordon.edu.ph",
+    course: "BS Information Technology (BSIT)",
+    program: "BSIT",
+    role: "Mentor",
+    secondaryRole: "N/A",
+    yearLevel: "3rd Year",
+  },
+  {
+    roleId: 2,
+    name: "Maria Garcia",
+    email: "maria.garcia@gordon.edu.ph",
+    course: "BS Computer Science (BSCS)",
+    program: "BSCS",
+    role: "Learner",
+    secondaryRole: "N/A",
+    yearLevel: "2nd Year",
+  },
+  {
+    roleId: 3,
+    name: "David Wilson",
+    email: "david.wilson@gordon.edu.ph",
+    course: "BS Information Systems (BSIS)",
+    program: "BSIS",
+    role: "Mentor",
+    secondaryRole: "Learner",
+    yearLevel: "4th Year",
+  },
+  {
+    roleId: 4,
+    name: "Emily Chen",
+    email: "emily.chen@gordon.edu.ph",
+    course: "BS Information Technology (BSIT)",
+    program: "BSIT",
+    role: "Learner",
+    secondaryRole: "Mentor",
+    yearLevel: "3rd Year",
+  }
+];
+
 const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
+  // State declarations
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [showUserModal, setShowUserModal] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<DetailedUser>({} as DetailedUser);
 
-  // Filter and search users
-  const displayedUsers = useMemo(() => {
-    let filteredUsers = users ? [...users] : [];
+  // Refs
+  const printRef = useRef<HTMLDivElement>(null);
 
-    // Apply role filters
-    if (activeFilter === 'mentors') {
-      filteredUsers = filteredUsers.filter(
-        (user) =>
-          user.role?.toLowerCase() === 'mentor' ||
-          user.secondaryRole?.toLowerCase() === 'mentor'
-      );
-    } else if (activeFilter === 'learners') {
-      filteredUsers = filteredUsers.filter(
-        (user) =>
-          user.role?.toLowerCase() === 'learner' ||
-          user.secondaryRole?.toLowerCase() === 'learner'
-      );
+  // PDF exporter hook
+  function usePdfExporter() {
+    const exportPdf = useCallback(async (element: HTMLElement, filename = 'export.pdf') => {
+      if (!element) return;
+      const mod = await import('html2pdf.js'); // loads only in browser
+      const html2pdf: any = (mod as any).default || (mod as any);
+      const opt = {
+        margin: 0.5,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+      };
+      html2pdf().set(opt).from(element).save();
+    }, []);
+    return exportPdf;
+  }
+
+  const exportPdf = usePdfExporter();
+
+  // Helper functions
+  const capitalizeFirstLetter = (str?: string) => {
+    if (!str) return 'Not specified';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  const parseArrayString = (str?: string) => {
+    if (!str) return 'Not specified';
+    try {
+      const parsed = JSON.parse(str);
+      return Array.isArray(parsed) ? parsed.join(', ') : str;
+    } catch (e) {
+      return str;
     }
+  };
 
-    // Apply search filter
-    return filteredUsers.filter(
-      (user) =>
-        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.program?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.yearLevel?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [users, activeFilter, searchQuery]);
+  // Extract program from course string
+  const getProgramFromCourse = (course?: string) => {
+    if (!course) return 'N/A';
+    const match = course.match(/\(([^)]+)\)/);
+    return match?.[1] || course;
+  };
 
+  // utilities to combine module classes with role-specific classes
+  const roleBadgeClass = (role?: string) =>
+    `${styles['role-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
+
+  const secondaryRoleBadgeClass = (role?: string) =>
+    `${styles['secondary-role-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
+
+  const statusBadgeClass = (role?: string) =>
+    `${styles['status-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
+
+  // API functions
+  const fetchUserData = async (userId: any, role: any)  => {
+    try {
+      console.log('Fetching data for userId:', userId, 'with role:', role);
+      if (!role) {
+        toast.error('User role is not defined. Cannot fetch data.');
+        return null;
+      }
+      
+      switch (role.toLowerCase()) {
+        case 'mentor':
+          const mentorData = await api.get(`/api/admin/mentors/${userId}`);
+          return mentorData.data;
+        case 'learner':
+          const learnerData = await api.get(`/api/admin/learners/${userId}`);
+          return learnerData.data;
+        default:
+          toast.error('Unknown user role. Cannot fetch data.');
+          return null;
+      }
+    } catch (error) {
+      toast.error('Failed to fetch user data. Please try again later.');
+      console.error('Error fetching user data:', error);
+    }
+  }
+
+  // Event handlers
   const showUserDetails = async (studentId: any, role: any) => {
     const detailedData = await fetchUserData(studentId, role);
     if (detailedData) {
@@ -92,6 +191,10 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
 
   const hideUserDetails = () => {
     setShowUserModal(false);
+  };
+
+  const handleExportPdf = () => {
+    if (printRef.current) exportPdf(printRef.current, 'users.pdf');
   };
 
   const exportUsersToCSV = () => {
@@ -146,88 +249,36 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
     XLSX.writeFile(workbook, `${reportType}_report_${formattedDate}.xlsx`);
   };
 
-  // Lazy PDF exporter hook
-  function usePdfExporter() {
-    const exportPdf = useCallback(async (element: HTMLElement, filename = 'export.pdf') => {
-      if (!element) return;
-      const mod = await import('html2pdf.js'); // loads only in browser
-      const html2pdf: any = (mod as any).default || (mod as any);
-      const opt = {
-        margin: 0.5,
-        filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-      };
-      html2pdf().set(opt).from(element).save();
-    }, []);
-    return exportPdf;
-  }
+  // Memoized computations
+  // Filter and search users
+  const displayedUsers = useMemo(() => {
+    let filteredUsers = users ? [...users] : [];
 
-  const fetchUserData = async (userId: any, role: any)  => {
-    try {
-      console.log('Fetching data for userId:', userId, 'with role:', role);
-      if (!role) {
-        toast.error('User role is not defined. Cannot fetch data.');
-        return null;
-      }
-      
-      switch (role.toLowerCase()) {
-        case 'mentor':
-          const mentorData = await api.get(`/api/admin/mentors/${userId}`);
-          return mentorData.data;
-        case 'learner':
-          const learnerData = await api.get(`/api/admin/learners/${userId}`);
-          return learnerData.data;
-        default:
-          toast.error('Unknown user role. Cannot fetch data.');
-          return null;
-      }
-    } catch (error) {
-      toast.error('Failed to fetch user data. Please try again later.');
-      console.error('Error fetching user data:', error);
+    // Apply role filters
+    if (activeFilter === 'mentors') {
+      filteredUsers = filteredUsers.filter(
+        (user) =>
+          user.role?.toLowerCase() === 'mentor' ||
+          user.secondaryRole?.toLowerCase() === 'mentor'
+      );
+    } else if (activeFilter === 'learners') {
+      filteredUsers = filteredUsers.filter(
+        (user) =>
+          user.role?.toLowerCase() === 'learner' ||
+          user.secondaryRole?.toLowerCase() === 'learner'
+      );
     }
-  }
 
-  const printRef = useRef<HTMLDivElement>(null);
-  const exportPdf = usePdfExporter();
-
-  const handleExportPdf = () => {
-    if (printRef.current) exportPdf(printRef.current, 'users.pdf');
-  };
-
-  // Helper functions
-  const capitalizeFirstLetter = (str?: string) => {
-    if (!str) return 'Not specified';
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-  };
-
-  const parseArrayString = (str?: string) => {
-    if (!str) return 'Not specified';
-    try {
-      const parsed = JSON.parse(str);
-      return Array.isArray(parsed) ? parsed.join(', ') : str;
-    } catch (e) {
-      return str;
-    }
-  };
-
-  // Extract program from course string
-  const getProgramFromCourse = (course?: string) => {
-    if (!course) return 'N/A';
-    const match = course.match(/\(([^)]+)\)/);
-    return match?.[1] || course;
-  };
-
-  // utilities to combine module classes with role-specific classes
-  const roleBadgeClass = (role?: string) =>
-    `${styles['role-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
-
-  const secondaryRoleBadgeClass = (role?: string) =>
-    `${styles['secondary-role-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
-
-  const statusBadgeClass = (role?: string) =>
-    `${styles['status-badge']} ${role ? ((styles as any)[role.toLowerCase()] || '') : ''}`.trim();
+    // Apply search filter
+    return filteredUsers.filter(
+      (user) =>
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.program?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.yearLevel?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [users, activeFilter, searchQuery]);
 
   return (
     <>
@@ -582,54 +633,9 @@ const Users: React.FC<UsersProps> = ({ users, onUpdateUsers }) => {
       <div ref={printRef}>
         {/* ...existing table/content to export... */}
       </div>
-
     </>
   );
 };
-
-// Sample data
-const sampleUsers: User[] = [
-  {
-    roleId: 1,
-    name: "John Smith",
-    email: "john.smith@gordon.edu.ph",
-    course: "BS Information Technology (BSIT)",
-    program: "BSIT",
-    role: "Mentor",
-    secondaryRole: "N/A",
-    yearLevel: "3rd Year",
-  },
-  {
-    roleId: 2,
-    name: "Maria Garcia",
-    email: "maria.garcia@gordon.edu.ph",
-    course: "BS Computer Science (BSCS)",
-    program: "BSCS",
-    role: "Learner",
-    secondaryRole: "N/A",
-    yearLevel: "2nd Year",
-  },
-  {
-    roleId: 3,
-    name: "David Wilson",
-    email: "david.wilson@gordon.edu.ph",
-    course: "BS Information Systems (BSIS)",
-    program: "BSIS",
-    role: "Mentor",
-    secondaryRole: "Learner",
-    yearLevel: "4th Year",
-  },
-  {
-    roleId: 4,
-    name: "Emily Chen",
-    email: "emily.chen@gordon.edu.ph",
-    course: "BS Information Technology (BSIT)",
-    program: "BSIT",
-    role: "Learner",
-    secondaryRole: "Mentor",
-    yearLevel: "3rd Year",
-  }
-];
 
 // Export the typed Users component so parents can pass props
 export default Users;

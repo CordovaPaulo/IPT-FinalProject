@@ -15,7 +15,6 @@
   overflow-y: auto;
 }
 
-/* preserved styles from original file */
 .table-header {
   display: flex;
   align-items: center;

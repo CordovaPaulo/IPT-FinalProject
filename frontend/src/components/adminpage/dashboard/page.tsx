@@ -43,6 +43,7 @@ ChartJS.register(
   Legend
 );
 
+// Interfaces
 interface Stats {
   activeLearners: number;
   approvedMentors: number;
@@ -60,6 +61,46 @@ interface DashboardProps {
   chartData: ChartData;
 }
 
+// Constants
+// Soft pastel color palette
+const pastelColors = {
+  blue: '#93c5fd',
+  lightBlue: '#bfdbfe',
+  purple: '#d8b4fe',
+  lightPurple: '#e9d5ff',
+  pink: '#fbcfe8',
+  lightPink: '#fce7f3',
+  green: '#a7f3d0',
+  lightGreen: '#d1fae5',
+  teal: '#99f6e4',
+  lightTeal: '#ccfbf1'
+};
+
+// Sample data for demonstration - ensuring charts show properly
+const sampleChartData = {
+  userCounts: {
+    learners: 156,
+    approved_mentors: 28,
+    pending_mentors: 14
+  },
+  courseBreakdown: {
+    data: {
+      "BSIT": 67,
+      "BSCS": 45,
+      "BSEMC": 32,
+      "BSIS": 12
+    }
+  },
+  yearBreakdown: {
+    data: {
+      "1st Year": 42,
+      "2nd Year": 38,
+      "3rd Year": 48,
+      "4th Year": 26
+    }
+  }
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ stats, chartData }) => {
   // Chart refs
   const userDistributionChartRef = useRef<HTMLCanvasElement>(null);
@@ -70,45 +111,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, chartData }) => {
   const userDistributionChartInstance = useRef<ChartJS | null>(null);
   const courseChartInstance = useRef<ChartJS | null>(null);
   const yearChartInstance = useRef<ChartJS | null>(null);
-
-  // Sample data for demonstration - ensuring charts show properly
-  const sampleChartData = {
-    userCounts: {
-      learners: 156,
-      approved_mentors: 28,
-      pending_mentors: 14
-    },
-    courseBreakdown: {
-      data: {
-        "BSIT": 67,
-        "BSCS": 45,
-        "BSEMC": 32,
-        "BSIS": 12
-      }
-    },
-    yearBreakdown: {
-      data: {
-        "1st Year": 42,
-        "2nd Year": 38,
-        "3rd Year": 48,
-        "4th Year": 26
-      }
-    }
-  };
-
-  // Soft pastel color palette
-  const pastelColors = {
-    blue: '#93c5fd',
-    lightBlue: '#bfdbfe',
-    purple: '#d8b4fe',
-    lightPurple: '#e9d5ff',
-    pink: '#fbcfe8',
-    lightPink: '#fce7f3',
-    green: '#a7f3d0',
-    lightGreen: '#d1fae5',
-    teal: '#99f6e4',
-    lightTeal: '#ccfbf1'
-  };
 
   // Use sample data if no chartData is provided
   const effectiveChartData = chartData && Object.values(chartData).some(data => data !== null) 
@@ -314,6 +316,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, chartData }) => {
     });
   };
 
+  // Effects
   // Initialize charts
   useEffect(() => {
     // Small delay to ensure DOM is ready
