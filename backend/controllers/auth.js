@@ -397,7 +397,7 @@ exports.login = async (req, res) => {
       return res.status(403).json({ message: 'User account is banned' });
     }
 
-    const payload = { id: user._id, username: user.username, email: user.email, role: user.role, status: user.status };
+    const payload = { id: user._id, username: user.username, email: user.email, role: user.role, altRole: user.altRole, status: user.status };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.cookie('MindMateToken', token, {
@@ -677,4 +677,387 @@ exports.logout = async (req, res) => {
     console.error('[LOGOUT ERROR]', error);
     return res.status(500).json({ message: 'Internal server error', detail: error.message });
   }
-}
+};
+
+exports.learnerAltSignup = async (req, res) => {
+  const decoded = getValuesFromToken(req);
+  if (!decoded) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  let learnerImage = null;
+  if (req.file) {
+    try {
+      const streamUpload = (buffer) => new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'auto' },
+          (error, result) => (result ? resolve(result) : reject(error))
+        );
+        streamifier.createReadStream(buffer).pipe(stream);
+      });
+      const uploadResult = await streamUpload(req.file.buffer);
+      learnerImage = uploadResult.secure_url;
+    } catch (err) {
+      return res.status(500).json({ message: 'Image upload failed', code: 500 });
+    }
+  } else {
+    learnerImage = req.body.image === null ? "null" : req.body.image;
+  }
+
+  const { 
+    program,
+    yearLevel,
+    phoneNumber,
+    bio,
+    sex,
+    goals,
+    address,
+    modality,
+    subjects,
+    availability,
+    style,
+    sessionDur
+  } = req.body;
+
+  const parsedSubjects = typeof subjects === 'string' ? JSON.parse(subjects) : subjects;
+  const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
+  const parsedStyle = typeof style === 'string' ? JSON.parse(style) : style;
+
+  const existingLearner = await Learner.findOne({ userId: decoded.id });
+  if (existingLearner) {
+    return res.status(400).json({ message: 'Learner already exists', code: 400 });
+  }
+
+  if (!decoded.id || !decoded.username || !decoded.email || !program || !yearLevel || !phoneNumber || !bio || !sex || !goals || !address || !modality || !parsedSubjects || !parsedAvailability || !parsedStyle || !sessionDur) {
+    return res.status(400).json({ message: 'All fields are required', code: 400 });
+  }
+
+  if (phoneNumber.length !== 11) {
+    return res.status(400).json({ message: 'Phone number must be 11 digits', code: 400 });
+  }
+  if (bio.length < 10 || bio.length > 550) {
+    return res.status(400).json({ message: 'Bio must be between 10 and 550 characters', code: 400 });
+  }
+
+  const validPrograms = ['BSIT', 'BSCS', 'BSEMC'];
+  const validYearLevels = ['1st year', '2nd year', '3rd year', '4th year', 'graduate'];
+  const validModalities = ['online', 'in-person', 'hybrid'];
+  const validSessionDurations = ['1hr', '2hrs', '3hrs'];
+  const validSexValues = ['male', 'female'];
+  const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const validStyles = ['lecture-based', 'interactive-discussion', 'q-and-a-discussion', 'demonstrations', 'project-based', 'step-by-step-discussion'];
+
+  if (!validPrograms.includes(program)) {
+    return res.status(400).json({ message: 'Invalid program', code: 400, validOptions: validPrograms });
+  }
+  if (!validYearLevels.includes(yearLevel)) {
+    return res.status(400).json({ message: 'Invalid year level', code: 400, validOptions: validYearLevels });
+  }
+  if (!validModalities.includes(modality)) {
+    return res.status(400).json({ message: 'Invalid modality', code: 400, validOptions: validModalities });
+  }
+  if (!validSessionDurations.includes(sessionDur)) {
+    return res.status(400).json({ message: 'Invalid session duration', code: 400, validOptions: validSessionDurations });
+  }
+  if (!validSexValues.includes(sex)) {
+    return res.status(400).json({ message: 'Invalid sex value', code: 400, validOptions: validSexValues });
+  }
+
+  if (!Array.isArray(parsedSubjects) || parsedSubjects.length === 0) {
+    return res.status(400).json({ message: 'Subjects must be a non-empty array', code: 400 });
+  }
+  if (!Array.isArray(parsedAvailability) || parsedAvailability.length === 0) {
+    return res.status(400).json({ message: 'Availability must be a non-empty array', code: 400 });
+  }
+  if (!Array.isArray(parsedStyle) || parsedStyle.length === 0) {
+    return res.status(400).json({ message: 'Style must be a non-empty array', code: 400 });
+  }
+
+  for (const day of parsedAvailability) {
+    if (!validDays.includes(day)) {
+      return res.status(400).json({ message: `Invalid availability day: ${day}`, code: 400, validOptions: validDays });
+    }
+  }
+
+  for (const style of parsedStyle) {
+    if (!validStyles.includes(style)) {
+      return res.status(400).json({ message: `Invalid learning style: ${style}`, code: 400, validOptions: validStyles });
+    }
+  }
+
+  try {
+    const learner = new Learner({
+      userId: decoded.id,
+      name: decoded.username,
+      email: decoded.email,
+      sex,
+      program,
+      yearLevel,
+      phoneNumber,
+      bio,
+      goals,
+      address,
+      modality,
+      subjects: parsedSubjects,
+      availability: parsedAvailability,
+      style: parsedStyle,
+      sessionDur,
+      image: learnerImage
+    });
+
+    // Set alt role
+    await User.updateOne({ _id: decoded.id }, { altRole: 'learner' });
+
+    await learner.save();
+
+    return res.status(201).json({
+      message: 'Learner (alt) created successfully',
+      learner: {
+        id: learner._id,
+        name: learner.name,
+        email: learner.email,
+        altRole: 'learner'
+      }
+    });
+  } catch (error) {
+    console.error('Error saving learner (alt):', error);
+    return res.status(500).json({ message: 'Error creating learner (alt)', code: 500, error: error.message });
+  }
+};
+
+exports.mentorAltSignup = async (req, res) => {
+  let token = null;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && req.cookies.MindMateToken) {
+    token = req.cookies.MindMateToken;
+  }
+  const decoded = token ? require('jsonwebtoken').verify(token, process.env.JWT_SECRET) : null;
+  if (!decoded) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  let mentorImage = null;
+  const imageFile =
+    req.file
+    || (req.files && Array.isArray(req.files.image) && req.files.image[0]);
+  if (imageFile) {
+    try {
+      const streamUpload = (buffer) => new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'auto' },
+          (error, result) => (result ? resolve(result) : reject(error))
+        );
+        streamifier.createReadStream(buffer).pipe(stream);
+      });
+      const uploadResult = await streamUpload(imageFile.buffer);
+      mentorImage = uploadResult.secure_url;
+    } catch (err) {
+      return res.status(500).json({ message: 'Image upload failed', code: 500 });
+    }
+  } else {
+    mentorImage = req.body.image === null ? "null" : req.body.image;
+  }
+
+  let credentialsFolderUrl = null;
+  let credentialsUrls = [];
+  if (req.files && Array.isArray(req.files.credentials) && req.files.credentials.length > 0) {
+    try {
+      const credsReq = { ...req, files: req.files.credentials, headers: req.headers };
+      const credsRes = { data: null, status: function () { return this; }, json: function (data) { this.data = data; return this; } };
+      await uploadController.uploadMentorCredentials(credsReq, credsRes);
+
+      if (credsRes.data) {
+        credentialsFolderUrl = credsRes.data.folderUrl || credsRes.data.folderWebViewLink || null;
+        if (credsRes.data.files && Array.isArray(credsRes.data.files)) {
+          credentialsUrls = credsRes.data.files.map(f => f.webViewLink || f.webContentLink || f.url).filter(Boolean);
+        }
+      }
+    } catch (err) {
+      console.error('Error uploading mentor credentials:', err);
+      return res.status(500).json({ message: 'Credentials upload failed', code: 500 });
+    }
+  }
+
+  const {
+    sex, program, yearLevel, phoneNumber, bio, exp, address, modality,
+    proficiency, subjects, availability, style, sessionDur
+  } = req.body;
+
+  const parsedSubjects = typeof subjects === 'string' ? JSON.parse(subjects) : subjects;
+  const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
+  const parsedStyle = typeof style === 'string' ? JSON.parse(style) : style;
+
+  if (!decoded.id || !decoded.username || !decoded.email || !sex || !program || !yearLevel || !phoneNumber || !bio || !exp || !address || !modality || !proficiency || !parsedSubjects || !parsedAvailability || !parsedStyle || !sessionDur) {
+    return res.status(400).json({ message: 'All fields are required', code: 400 });
+  }
+
+  // Validate field formats
+  if (phoneNumber.length !== 11) {
+    return res.status(400).json({ message: 'Phone number must be 11 digits', code: 400 });
+  }
+  if (bio.length < 10 || bio.length > 550) {
+    return res.status(400).json({ message: 'Bio must be between 10 and 550 characters', code: 400 });
+  }
+
+  const validPrograms = ['BSIT', 'BSCS', 'BSEMC'];
+  const validYearLevels = ['1st year', '2nd year', '3rd year', '4th year', 'graduate'];
+  const validModalities = ['online', 'in-person', 'hybrid'];
+  const validSessionDurations = ['1hr', '2hrs', '3hrs'];
+  const validSexValues = ['male', 'female'];
+  const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const validStyles = ['lecture-based', 'interactive-discussion', 'q-and-a-discussion', 'demonstrations', 'project-based', 'step-by-step-discussion'];
+
+  // Validate enum values
+  if (!validPrograms.includes(program)) {
+    return res.status(400).json({ message: 'Invalid program', code: 400, validOptions: validPrograms });
+  }
+  if (!validYearLevels.includes(yearLevel)) {
+    return res.status(400).json({ message: 'Invalid year level', code: 400, validOptions: validYearLevels });
+  }
+  if (!validModalities.includes(modality)) {
+    return res.status(400).json({ message: 'Invalid modality', code: 400, validOptions: validModalities });
+  }
+  if (!validSessionDurations.includes(sessionDur)) {
+    return res.status(400).json({ message: 'Invalid session duration', code: 400, validOptions: validSessionDurations });
+  }
+  if (!validSexValues.includes(sex)) {
+    return res.status(400).json({ message: 'Invalid sex value', code: 400, validOptions: validSexValues });
+  }
+
+  if (!Array.isArray(parsedSubjects) || parsedSubjects.length === 0) {
+    return res.status(400).json({ message: 'Subjects must be a non-empty array', code: 400 });
+  }
+  if (!Array.isArray(parsedAvailability) || parsedAvailability.length === 0) {
+    return res.status(400).json({ message: 'Availability must be a non-empty array', code: 400 });
+  }
+  if (!Array.isArray(parsedStyle) || parsedStyle.length === 0) {
+    return res.status(400).json({ message: 'Style must be a non-empty array', code: 400 });
+  }
+
+  for (const day of parsedAvailability) {
+    if (!validDays.includes(day)) {
+      return res.status(400).json({ message: `Invalid availability day: ${day}`, code: 400, validOptions: validDays });
+    }
+  }
+
+  for (const style of parsedStyle) {
+    if (!validStyles.includes(style)) {
+      return res.status(400).json({ message: `Invalid learning style: ${style}`, code: 400, validOptions: validStyles });
+    }
+  }
+
+  try {
+    const mentor = new Mentor({
+      userId: decoded.id,
+      name: decoded.username,
+      email: decoded.email,
+      sex,
+      program,
+      yearLevel,
+      phoneNumber,
+      bio,
+      exp,
+      address,
+      modality,
+      proficiency,
+      subjects: parsedSubjects,
+      availability: parsedAvailability,
+      style: parsedStyle,
+      sessionDur,
+      image: mentorImage,
+      credentials: credentialsUrls,
+      credentialsFolderUrl: credentialsFolderUrl
+    });
+
+    // Set alt role
+    await User.updateOne({ _id: decoded.id }, { altRole: 'mentor' });
+
+    await mentor.save();
+
+    return res.status(201).json({
+      message: 'Mentor (alt) created successfully',
+      mentor: {
+        id: mentor._id,
+        name: mentor.name,
+        email: mentor.email,
+        altRole: 'mentor'
+      }
+    });
+  } catch (error) {
+    console.error('Error saving mentor (alt):', error);
+    return res.status(500).json({ message: 'Error creating mentor (alt)', code: 500, error: error.message });
+  }
+};
+
+exports.switchRole = async (req, res) => {
+  // accept either middleware user or token parsing
+  const decoded = getValuesFromToken(req) || req.user;
+  if (!decoded?.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  try {
+    // only fetch fields we need
+    const user = await User.findById(decoded.id).select('_id role altRole');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found', code: 404 });
+    }
+
+    const currentRole = user.role || null;
+    const newRole = user.altRole || null;
+
+    if (!newRole) {
+      return res.status(400).json({ message: 'No alternate role available to switch to', code: 400 });
+    }
+
+    // altRole can only be learner|mentor
+    if (!['learner', 'mentor'].includes(newRole)) {
+      return res.status(400).json({ message: 'Invalid alternate role value', code: 400 });
+    }
+
+    // If already same, nothing to do
+    if (currentRole === newRole) {
+      return res.status(200).json({ message: `Already on ${newRole}`, newRole });
+    }
+
+    // Ensure counterpart profile exists and is valid
+    if (newRole === 'learner') {
+      const hasLearner = await Learner.exists({ userId: user._id });
+      if (!hasLearner) {
+        return res.status(400).json({ message: 'No learner profile found for this user', code: 400 });
+      }
+    } else if (newRole === 'mentor') {
+      const mentor = await Mentor.findOne({ userId: user._id }).select('accountStatus');
+      if (!mentor) {
+        return res.status(400).json({ message: 'No mentor profile found for this user', code: 400 });
+      }
+      if (mentor.accountStatus === 'pending') {
+        return res.status(403).json({ message: 'Mentor account is still pending approval', code: 403 });
+      }
+      if (mentor.accountStatus === 'rejected') {
+        return res.status(403).json({ message: 'Mentor account has been rejected', code: 403 });
+      }
+    }
+
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { role: newRole, altRole: currentRole ?? null } }
+    );
+
+    // Invalidate session cookie so client must re-authenticate
+    try {
+      res.clearCookie('MindMateToken', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+      });
+    } catch {}
+
+    return res.status(200).json({ message: `Role switched to ${newRole}`, newRole });
+  } catch (error) {
+    console.error('Error switching role:', error);
+    return res.status(500).json({ message: 'Error switching role', code: 500, error: error.message });
+  }
+};

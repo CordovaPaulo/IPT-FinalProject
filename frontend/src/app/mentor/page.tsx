@@ -107,6 +107,11 @@ interface Feedback {
   updatedAt: string;
 }
 
+interface RoleData {
+  role: string;
+  altRole: string | null;
+}
+
 // Constants
 const TOPBAR_ITEMS = [
   { key: 'main', label: 'Learners', icon: '/main.svg' },
@@ -175,6 +180,7 @@ export default function MentorPage() {
   const [upcomingSchedule, setUpcomingSchedule] = useState<Schedule[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [files, setFiles] = useState<any[]>([]);
+  const [roleData, setRoleData] = useState<RoleData | null>(null);
   
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -219,14 +225,11 @@ export default function MentorPage() {
         const res = await api.get('/api/mentor/profile', {
           timeout: 10000,
           withCredentials: true,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
         });
         
         if (res.data && res.data.userData) {
           setUserData(res.data.userData);
+          setRoleData(res.data.roleData);
           console.log("Mentor profile data:", res.data);
         } else {
           throw new Error('Invalid response format');
@@ -246,7 +249,7 @@ export default function MentorPage() {
           useMockData();
         } else if (apiError.response?.status === 401) {
           setApiError('Authentication failed. Redirecting to login...');
-          setTimeout(() => router.push('/login'), 2000);
+          setTimeout(() => router.push('/auth/login'), 2000);
         } else {
           throw apiError;
         }
@@ -501,16 +504,43 @@ export default function MentorPage() {
   };
 
   // Account Functions
-  const registerLearnerRole = async () => {
-    router.push('/learner-info/alt');
-  };
+ const registerLearnerRole = async () => {
+      try {
+       if(roleData?.altRole !== null && roleData?.altRole === 'learner') {
+         toast.info('You have already registered as a Learner.');
+         return;
+       }
+ 
+       router.replace('/info/learner/alt');
+     } catch (error) {
+       console.error('Error registering role:', error);
+     }
+   };
 
-  const switchRole = async () => {
+  const switchRole = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
     try {
-      console.log("Switching role...");
-      router.push('/learner');
-    } catch (error) {
+      if (roleData?.altRole === null) { 
+        toast.error('No alternate role registered. Please register as a Learner first.');
+        return;
+      }
+      const res = await api.post('/api/auth/switch-role', {}, { withCredentials: true });
+
+      if (res.status === 200) {
+        const newRole = res.data?.newRole;
+        toast.success(`Role switched to ${newRole}. Please log in again.`);
+        try { document.cookie = 'MindMateToken=; Max-Age=0; path=/'; } catch {}
+        localStorage.removeItem('auth_token');
+        router.replace('/auth/login');
+      } else if (res.status === 403) {
+        toast.error('Mentor account still pending approval. Cannot switch roles at this time.');
+      } else {
+        toast.error('Error switching role. Please try again.');
+      }
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Error switching role. Please try again.';
       console.error('Error switching role:', error);
+      toast.error(message);
     }
   };
 
@@ -518,14 +548,14 @@ export default function MentorPage() {
     try {
       console.log("Logging out...");
       localStorage.removeItem('auth_token');
-      await api.post('/api/auth/logout', {}, { withCredentials: true });
+      await api.post('/api/auth/logout');
       router.replace('/auth/login');
       toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
+      toast.error('Error during logout. Please try again.');
     }
   };
-
   // Edit Information Functions
   const openEditInformation = () => {
     setShowEditInformation(true);

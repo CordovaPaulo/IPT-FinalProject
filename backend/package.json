@@ -6,7 +6,8 @@
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
     "createStudent": "node ./scripts/createStudent.js",
-    "createAdmin": "node ./scripts/createAdmin.js"
+    "createAdmin": "node ./scripts/createAdmin.js",
+    "setAltRole": "node ./scripts/setAltRoleNull.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.17.0",
