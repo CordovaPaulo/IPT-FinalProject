@@ -11,6 +11,7 @@ import EditInformationComponent from '@/components/mentorpage/information/page';
 import LogoutComponent from '@/components/mentorpage/logout/page';
 import api from "@/lib/axios";
 import './mentor.css';
+import { toast } from 'react-toastify';
 
 // Interfaces
 interface User {
@@ -517,8 +518,9 @@ export default function MentorPage() {
     try {
       console.log("Logging out...");
       localStorage.removeItem('auth_token');
-      document.cookie = 'MindMateToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      router.push('/login');
+      await api.post('/api/auth/logout', {}, { withCredentials: true });
+      router.replace('/auth/login');
+      toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
     }

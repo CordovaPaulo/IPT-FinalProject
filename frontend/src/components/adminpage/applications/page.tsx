@@ -346,14 +346,10 @@ const Applications: React.FC<ApplicationsProps> = ({
   const showCredentials = async (app: any) => {
     try {
       setIsLoading(true);
-      /*
-      const data = await getApplicantDetails(app.user_id);
-      const credentialsResponse = await getApplicantCreds(app.user_id);
-      */
-      const mentorCreds = await api.get(`/api/admin/mentors/credentials/${app.mentorId}`);
+      const mentorCreds = await api.get(`/api/admin/mentors/credentials/${app.roleId}`);
       const credsData = mentorCreds.data as CredentialsResponse;
       
-      const response = await api.get(`/api/admin/mentors/${app.mentorId}`);
+      const response = await api.get(`/api/admin/mentors/${app.roleId}`);
       const data = response.data;
       // Mock data for demonstration
       const mockData = {

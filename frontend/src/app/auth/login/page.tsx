@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import axios from "axios";
 import Navbar from "@/components/Navbar";
 import api, { setAuthToken } from "@/lib/axios";
 import styles from "./login.module.css";
@@ -24,6 +25,7 @@ export default function Login() {
   const passwordRef = useRef<HTMLInputElement>(null);
   const loginButtonRef = useRef<HTMLButtonElement>(null);
   const forgotPasswordRef = useRef<HTMLAnchorElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Constants
   const focusableElements = [
@@ -79,13 +81,14 @@ export default function Login() {
         break;
 
       case 'Enter':
-        if (index === focusableElements.length - 2) {
-          if (!isLoading) {
-            const formEvent = new Event('submit', { cancelable: true, bubbles: true });
-            e.currentTarget.dispatchEvent(formEvent);
-          }
-        } else if (index === focusableElements.length - 1) {
+        // prevent any default "submit-like" behavior and handle manually
+        e.preventDefault();
+        if (index === focusableElements.length - 1) {
           forgotPasswordRef.current?.click();
+        } else {
+          if (!isLoading) {
+            login();
+          }
         }
         break;
 
@@ -93,8 +96,7 @@ export default function Login() {
         e.preventDefault();
         if (index === focusableElements.length - 2) {
           if (!isLoading) {
-            const formEvent = new Event('submit', { cancelable: true, bubbles: true });
-            e.currentTarget.dispatchEvent(formEvent);
+            login();
           }
         } else if (index === focusableElements.length - 1) {
           forgotPasswordRef.current?.click();
@@ -118,53 +120,72 @@ export default function Login() {
     }
   };
 
-  const login = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const login = async () => {
     if (isLoading) return;
+    // Basic client-side validation
+    if (!iniCred.trim() || !password.trim()) {
+      toast.error("Please enter your login and password.");
+      return;
+    }
     setIsLoading(true);
-
     try {
-      const loginData = {
-        iniCred: iniCred,
+      const response = await api.post("/api/auth/login", {
+        iniCred: iniCred.trim(),
         password: password,
-      };
+      });
 
-      const response = await api.post("/api/auth/login", loginData);
-      const { token, userRole, user } = response.data;
-
-      if (token) {
-        setAuthToken(token);
-      }
-
-      if (response.status !== 200) {
-        toast.error("Login failed. Please check your credentials.");
+      const { token, userRole, user } = response.data || {};
+      if (!token) {
+        toast.error(response.data?.message || "Login failed. Please try again.");
         return;
       }
 
+      setAuthToken(token);
+
       const role = userRole || user?.role;
+      // Success toast
+      const who = user?.username ? `, ${user.username}` : "";
+      toast.success(`Welcome back${who}!`);
 
       if (!role || role === "user" || role === "") {
+        toast.info("Please complete your profile to continue.");
         router.replace("/auth/signup");
         return;
       }
 
       switch (role) {
         case "learner":
+          toast.success("Logged in as learner. Redirecting...");
           router.replace("/learner");
           break;
         case "mentor":
+          toast.success("Logged in as mentor. Redirecting...");
           router.replace("/mentor");
           break;
         case "admin":
+          toast.success("Logged in as admin. Redirecting...");
           router.replace("/admin");
           break;
         default:
           router.replace("/signup");
       }
-    } catch (error) {
-      toast.error("An error occurred during login. Please try again.");
-      console.error("Login failed:", error);
+    } catch (error: unknown) {
+      // Use server message when available (401/403/etc), else fallback
+      if (axios.isAxiosError(error)) {
+        const msg =
+          error.response?.data?.message ||
+          (error.response?.status === 401
+            ? "Invalid credentials. Please try again."
+            : error.message);
+        toast.error(msg);
+        console.error("Login failed:", {
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+      } else {
+        toast.error("An unexpected error occurred. Please try again.");
+        console.error("Login failed:", error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +209,7 @@ export default function Login() {
 
         <div className={styles.mainContent}>
           <h1>Login</h1>
-          <form onSubmit={login} className={styles.form}>
+          <div role="form" aria-label="Login form" className={styles.form}>
             <div className={styles.inputField}>
               <label htmlFor="iniCred">DOMAIN LOGIN</label>
               <div className={styles.inputWithIcon}>
@@ -262,7 +283,7 @@ export default function Login() {
 
             <button
               ref={loginButtonRef}
-              type="submit"
+              type="button"
               className={`${styles.button} ${isLoading ? styles.loading : ""} ${
                 isButtonActive ? styles.active : ""
               }`}
@@ -273,11 +294,12 @@ export default function Login() {
               onFocus={() => handleElementFocus(2)}
               disabled={isLoading}
               aria-busy={isLoading ? "true" : "false"}
+              onClick={login}
             >
               {isLoading && <span className={styles.loadingSpinner}></span>}
               {isLoading ? "Logging in..." : "Login"}
             </button>
-          </form>
+          </div>
         </div>
       </main>
     </div>

@@ -10,6 +10,7 @@ import EditInformation from '@/components/learnerpage/information/page';
 import LogoutComponent from '@/components/learnerpage/logout/page';
 import api from "@/lib/axios";
 import styles from './learner.module.css';
+import { toast } from 'react-toastify';
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {
@@ -408,9 +409,12 @@ export default function LearnerPage() {
     try {
       console.log("Logging out...");
       localStorage.removeItem('auth_token');
-      router.push('/login');
+      await api.post('/api/auth/logout', {}, { withCredentials: true });
+      router.replace('/auth/login');
+      toast .success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
+      toast.error('Error during logout. Please try again.');
     }
   };
 

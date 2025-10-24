@@ -6,6 +6,7 @@ const { multerUploads, multerUploadsMultiple, mentorSignup } = require('../servi
 router.post('/learner/signup', multerUploads, authController.learnerSignup);
 router.post('/mentor/signup', mentorSignup, authController.mentorSignup);
 router.post('/forgot-password', authController.forgotPassword);
+router.post('/logout', authController.logout);
 
 // verify token (existing) and alias for convenience (added)
 router.get('/reset-password/verify', authController.verifyResetToken);

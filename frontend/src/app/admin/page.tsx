@@ -8,6 +8,7 @@ import Dashboard from '@/components/adminpage/dashboard/page';
 import Applications from '@/components/adminpage/applications/page';
 import Users from '@/components/adminpage/users/page'; 
 import styles from './admin.module.css';
+import { toast } from 'react-toastify';
 
 // Interfaces
 interface User {
@@ -207,24 +208,18 @@ const AdminProfile: React.FC = () => {
 
   // Logout handler
   const handleLogout = async (): Promise<void> => {
-    // try {
-    //   setIsLoading(true);
-    //   const response = await api.post('/api/logout', {}, {
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //       Accept: 'application/json',
-    //     },
-    //   });
-
-    //   if (response.status === 200) {
-    //     router.push('/login');
-    //   }
-    // } catch (error) {
-    //   console.error('Logout failed:', error);
-    // } finally {
-    //   setIsLoading(false);
-    //   setShowLogoutModal(false);
-    // }
+    try {
+      setIsLoading(true);
+      await api.post('/api/auth/logout', {}, { withCredentials: true });
+      setShowLogoutModal(false);
+      router.replace('/auth/login');
+      toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast.error('Error during logout. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Components

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 import styles from './logout.module.css';
 
 interface LogoutComponentProps {
@@ -12,33 +13,19 @@ export default function LogoutComponent({ onCancel }: LogoutComponentProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Function to get CSRF token from cookies
-  const getCookie = (name: string): string | null => {
-    if (typeof document === 'undefined') return null;
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-  };
-
   // Function to remove token
   const removeToken = () => {
     localStorage.removeItem('auth_token');
     sessionStorage.removeItem('auth_token');
     document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  };
-
-  // Function to show toast notification
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    console.log(`${type.toUpperCase()}: ${message}`);
-    alert(message);
+    document.cookie = 'MindMateToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
   };
 
   const logOut = async () => {
     setIsLoggingOut(true);
     
     try {
-      const response = await fetch('/api/logout', {
+      const response = await fetch('http://localhost:3001/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,17 +35,16 @@ export default function LogoutComponent({ onCancel }: LogoutComponentProps) {
       });
 
       if (response.ok) {
-        showToast('Logout successful!', 'success');
+        toast.success('Logout successful!');
         removeToken();
-        setTimeout(() => {
-          router.push('/login');
-        }, 1000);
+        router.replace('/auth/login');
       } else {
-        showToast('Logout failed!', 'error');
+        const data = await response.json().catch(() => null);
+        toast.error(data?.message || 'Logout failed!');
       }
     } catch (error) {
       console.error('Logout error:', error);
-      showToast('Logout failed!', 'error');
+      toast.error('Logout failed!');
     } finally {
       setIsLoggingOut(false);
     }
