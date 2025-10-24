@@ -20,7 +20,8 @@ async function createSingleStudent(studentNumber, name) {
             username: name,
             email,
             password: hashedPassword,
-            role: null
+            role: null,
+            altRole: null
         });
         await user.save();
         console.log('User created:', { name, email, defaultPassword });

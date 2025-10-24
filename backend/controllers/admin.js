@@ -79,7 +79,7 @@ exports.getAllLearners = async (req, res) => {
         let users = [];
         if (userIds.length) {
             users = await User.find({ _id: { $in: userIds } })
-                .select('name email status role secondaryRole')
+                .select('username email status role altRole')
                 .lean();
         }
 
@@ -95,10 +95,7 @@ exports.getAllLearners = async (req, res) => {
             const program = ln.program || '';
             const yearLevel = ln.yearLevel || '';
             const role = userRecord.role || '';
-            const secondRole = userRecord?.secondaryRole || '';
-            const phoneNumber = ln.phoneNumber || '';
-            const sex = ln.sex || '';
-            const address = ln.address || '';
+            const secondRole = userRecord?.altRole || '';
 
             // extract leading digits before '@' as studentId, if present
             const match = String(email).match(/^(\d+)(?=@)/);
@@ -115,9 +112,9 @@ exports.getAllLearners = async (req, res) => {
                 yearLevel,
                 role,
                 secondRole,
-                phoneNumber,
-                sex,
-                address,
+                phoneNumber: ln.phoneNumber || '',
+                sex: ln.sex || '',
+                address: ln.address || '',
             };
         });
 
@@ -149,7 +146,7 @@ exports.getAllMentors = async (req, res) => {
         let users = [];
         if (userIds.length) {
             users = await User.find({ _id: { $in: userIds } })
-                .select('name email status role secondaryRole')
+                .select('username email status role altRole')
                 .lean();
         }
 
@@ -167,10 +164,7 @@ exports.getAllMentors = async (req, res) => {
             const program = mn.program || '';
             const yearLevel = mn.yearLevel || '';
             const role = userRecord.role || '';
-            const secondRole = userRecord?.secondaryRole || '';
-            const phoneNumber = mn.phoneNumber || '';
-            const sex = mn.sex || '';
-            const address = mn.address || '';
+            const secondRole = userRecord?.altRole || '';
 
             // extract leading digits before '@' as studentId, if present
             const match = String(email).match(/^(\d+)(?=@)/);
@@ -188,9 +182,9 @@ exports.getAllMentors = async (req, res) => {
                 yearLevel,
                 role,
                 secondRole,
-                phoneNumber,
-                sex,
-                address,
+                phoneNumber: mn.phoneNumber || '',
+                sex: mn.sex || '',
+                address: mn.address || '',
             };
         });
 

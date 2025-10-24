@@ -427,12 +427,13 @@ exports.getProfileInfo = async (req, res) => {
     console.log('Decoded token info:', decoded);
     try {
         const userData = await Mentor.findOne({ userId: decoded.id });
+        const roleData = await User.findById(decoded.id).select('role altRole');
 
-        if (!userData) {
+        if (!userData || !roleData) {
             return res.status(404).json({ message: "Mentor account does not exist", token: decoded, code: 404 });
         }
 
-        res.status(200).json({ userData });
+        res.status(200).json({ userData, roleData });
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
     }

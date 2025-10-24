@@ -149,10 +149,9 @@ const Applications: React.FC<ApplicationsProps> = ({
   //   return undefined;
   // };
 
-  // API functions
-  const approve = async (mentorId: number) => {
+  const approve = async (roleId: number) => {
     try {
-      const response = await api.patch(`/api/admin/mentor/status/approve/${mentorId}`);
+      const response = await api.patch(`/api/admin/mentor/status/approve/${roleId}`);
 
       if (response.status === 200) {
         console.log('Application accepted successfully!');
@@ -165,9 +164,9 @@ const Applications: React.FC<ApplicationsProps> = ({
     }
   };
 
-  const reject = async (mentorId: number) => {
+  const reject = async (roleId: number) => {
     try {
-      const response = await api.patch(`/api/admin/mentor/status/reject/${mentorId}`);
+      const response = await api.patch(`/api/admin/mentor/status/reject/${roleId}`);
 
       if (response.status === 200) {
         console.log('Application rejected successfully.');
@@ -242,10 +241,10 @@ const Applications: React.FC<ApplicationsProps> = ({
     // support legacy sampleApplicants shape: { mentors: { pending: [], accepted: [], rejected: [] } }
     if (input.mentors) {
       const { pending = [], accepted = [], rejected = [] } = input.mentors;
-      // ensure consistent field names (mentorId, mentorStatus)
+      // ensure consistent field names (roleId, mentorStatus)
       const mapLegacy = (arr: any[], statusLabel: string) =>
         (arr || []).map((a: any) => ({
-          mentorId: a.user_id ?? a.mentorId ?? a.id,
+          roleId: a.user_id ?? a.roleId ?? a.id,
           userId: a.user_id ?? a.userId,
           name: a.name,
           email: a.email,
@@ -271,23 +270,93 @@ const Applications: React.FC<ApplicationsProps> = ({
     setShowModal(true);
   };
 
-  const hideConfirmation = () => {
-    setShowModal(false);
-    setCurrentAppId(null);
-    setActionToConfirm('');
+  // Update the filteredApplicants useMemo to use localApplicants
+  const filteredApplicants = useMemo(() => {
+    let list = Array.isArray(localApplicants) ? [...localApplicants] : [];
+
+    // Map UI filter -> data values ('accepted' in data is 'accepted', approved mapping handled below)
+    if (activeFilter !== 'all') {
+      list = list.filter((a: any) => {
+        const status = (a.mentorStatus || '').toString().toLowerCase();
+        return status === activeFilter.toLowerCase();
+      });
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((a: any) =>
+        (a.name || '').toString().toLowerCase().includes(q) ||
+        (a.program || '').toString().toLowerCase().includes(q) ||
+        (a.studentId || '').toString().toLowerCase().includes(q)
+      );
+    }
+
+    // ensure rendering fields exist and map status label for UI where necessary
+    return list.map((a: any) => ({
+      ...a,
+      roleId: a.roleId ?? a.userId ?? a.id,
+      studentId: a.studentId ?? a.student_id ?? '',
+      mentorStatus: a.mentorStatus ?? a.status ?? '',
+    }));
+  }, [localApplicants, activeFilter, searchQuery]);
+ 
+   const showConfirmation = (id: string, action: string) => {
+     // -    setCurrentAppId(id);
+     setCurrentAppId(id);
+     setActionToConfirm(action);
+     setShowModal(true);
+   };
+
+   const hideConfirmation = () => {
+     setShowModal(false);
+     setCurrentAppId(null);
+     setActionToConfirm('');
+   };
+
+  // Update the confirmAction function
+  const confirmAction = async () => {
+    if (!currentAppId) return;
+
+    try {
+      setIsLoading(true);
+      if (actionToConfirm === 'Accepted') {
+        await approve(currentAppId as any);
+        // Update state for a flat array structure
+        setLocalApplicants((prev: any) =>
+          prev.map((app: any) =>
+            app.roleId === currentAppId
+              ? { ...app, mentorStatus: 'accepted' }
+              : app
+          )
+        );
+      } else if (actionToConfirm === 'Rejected') {
+        await reject(currentAppId as any);
+        // Update state for a flat array structure
+        setLocalApplicants((prev: any) =>
+          prev.map((app: any) =>
+            app.roleId === currentAppId
+              ? { ...app, mentorStatus: 'rejected' }
+              : app
+          )
+        );
+      }
+
+      onUpdateApplicants();
+      hideConfirmation();
+    } catch (error) {
+      console.error(`Error ${actionToConfirm.toLowerCase()} application`, error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const showCredentials = async (app: any) => {
     try {
       setIsLoading(true);
-      /*
-      const data = await getApplicantDetails(app.user_id);
-      const credentialsResponse = await getApplicantCreds(app.user_id);
-      */
-      const mentorCreds = await api.get(`/api/admin/mentors/credentials/${app.mentorId}`);
+      const mentorCreds = await api.get(`/api/admin/mentors/credentials/${app.roleId}`);
       const credsData = mentorCreds.data as CredentialsResponse;
       
-      const response = await api.get(`/api/admin/mentors/${app.mentorId}`);
+      const response = await api.get(`/api/admin/mentors/${app.roleId}`);
       const data = response.data;
       // Mock data for demonstration
       const mockData = {
@@ -505,7 +574,7 @@ const Applications: React.FC<ApplicationsProps> = ({
             </thead>
             <tbody>
               {filteredApplicants.map((app: any) => (
-                <tr key={app.mentorId}>
+                <tr key={app.roleId}>
                   <td>
                     <span className={styles['id-badge']}>{app.studentId }</span>
                   </td>
@@ -526,7 +595,7 @@ const Applications: React.FC<ApplicationsProps> = ({
                     <td className={styles['action-buttons']}>
                       <button
                         className={`${styles['action-btn']} ${styles.accept} ${app.mentorStatus === 'accepted' ? styles.active : ''}`}
-                        onClick={() => showConfirmation(app.mentorId, 'Accepted')}
+                        onClick={() => showConfirmation(app.roleId, 'Accepted')}
                         disabled={app.mentorStatus === 'accepted' || app.mentorStatus === 'rejected' || isLoading}
                       >
                         <i className="fas fa-check"></i>
@@ -534,7 +603,7 @@ const Applications: React.FC<ApplicationsProps> = ({
                       </button>
                       <button
                         className={`${styles['action-btn']} ${styles.reject} ${app.mentorStatus === 'rejected' ? styles.active : ''}`}
-                        onClick={() => showConfirmation(app.mentorId, 'Rejected')}
+                        onClick={() => showConfirmation(app.roleId, 'Rejected')}
                         disabled={app.mentorStatus === 'accepted' || app.mentorStatus === 'rejected' || isLoading}
                       >
                         <i className="fas fa-times"></i>

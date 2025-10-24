@@ -8,6 +8,7 @@ import Dashboard from '@/components/adminpage/dashboard/page';
 import Applications from '@/components/adminpage/applications/page';
 import Users from '@/components/adminpage/users/page'; 
 import styles from './admin.module.css';
+import { toast } from 'react-toastify';
 
 // Interfaces
 interface User {
@@ -149,13 +150,41 @@ const AdminProfile: React.FC = () => {
       const learnerResponse = await api.get('/api/admin/learners');
       const mentorResponse = await api.get('/api/admin/mentors');
 
-      const userData = [...learnerResponse.data, ...mentorResponse.data];
-      const usersData: User[] = userData.map((user: any) => ({
+      // Tag source so we can prioritize the primary role
+      const learners = (learnerResponse.data || []).map((u: any) => ({ ...u, _profileType: 'learner' }));
+      const mentors  = (mentorResponse.data  || []).map((u: any) => ({ ...u, _profileType: 'mentor'  }));
+
+      // Build map of unique users, prioritize record whose profileType matches primary role
+      const byUser = new Map<string, any>();
+      const pushWithPriority = (u: any) => {
+        const key = String(u.userId || u.roleId || u.email);
+        const existing = byUser.get(key);
+        const thisMatchesPrimary = u.role === u._profileType;
+
+        if (!existing) {
+          byUser.set(key, u);
+          return;
+        }
+
+        const existingMatchesPrimary = existing.role === existing._profileType;
+
+        // Replace only if this one matches primary and existing does not
+        if (thisMatchesPrimary && !existingMatchesPrimary) {
+          byUser.set(key, u);
+        }
+      };
+
+      // Process all; primary-matching ones can replace tentative ones
+      [...learners, ...mentors].forEach(pushWithPriority);
+
+      const deduped = Array.from(byUser.values());
+
+      const usersData: User[] = deduped.map((user: any) => ({
         roleId: user.roleId,
         name: user.name,
         email: user.email,
-        role: user.role,
-        secondRole: user.secondRole,
+        role: user.role,             // primary role
+        secondRole: user.secondRole, // secondary (altRole) if provided by backend
         yearLevel: user.yearLevel,
         program: user.program,
         studentId: user.studentId,
@@ -164,7 +193,6 @@ const AdminProfile: React.FC = () => {
         address: user.address,
       }));
 
-      console.log('Fetched Users:', usersData);
       setUsersFetch(usersData);
 
       // Update stats
@@ -207,24 +235,18 @@ const AdminProfile: React.FC = () => {
 
   // Logout handler
   const handleLogout = async (): Promise<void> => {
-    // try {
-    //   setIsLoading(true);
-    //   const response = await api.post('/api/logout', {}, {
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //       Accept: 'application/json',
-    //     },
-    //   });
-
-    //   if (response.status === 200) {
-    //     router.push('/login');
-    //   }
-    // } catch (error) {
-    //   console.error('Logout failed:', error);
-    // } finally {
-    //   setIsLoading(false);
-    //   setShowLogoutModal(false);
-    // }
+    try {
+      setIsLoading(true);
+      await api.post('/api/auth/logout', {}, { withCredentials: true });
+      setShowLogoutModal(false);
+      router.replace('/auth/login');
+      toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast.error('Error during logout. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Components

@@ -10,6 +10,7 @@ import EditInformation from '@/components/learnerpage/information/page';
 import LogoutComponent from '@/components/learnerpage/logout/page';
 import api from "@/lib/axios";
 import styles from './learner.module.css';
+import { toast } from 'react-toastify';
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {
@@ -17,6 +18,11 @@ function getCookie(name: string) {
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
   return null;
+}
+
+interface RoleData{
+  role: string;
+  altRole: string | null;
 }
 
 interface UserData {
@@ -187,6 +193,7 @@ export default function LearnerPage() {
   const [users, setUsers] = useState<Mentor[]>([]);
   const [profile, setProfile] = useState<UserData[]>([]);
   const [mentors, setMentors] = useState<MentorFromAPI[]>([]);
+  const [roleData, setRoleData] = useState<RoleData | null>(null);
   const [transformedMentors, setTransformedMentors] = useState<TransformedMentor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoadingMentors, setIsLoadingMentors] = useState(false);
@@ -392,15 +399,41 @@ export default function LearnerPage() {
   };
 
   const registerMentorRole = async () => {
-    router.push('/mentor-info/alt');
-  };
+     try {
+      if(roleData?.altRole !== null && roleData?.altRole === 'mentor') {
+        toast.info('You have already registered as a Mentor.');
+        return;
+      }
 
-  const switchRole = async () => {
-    try {
-      console.log("Switching role...");
-      router.push('/mentor');
+      router.push('/info/mentor/alt');
     } catch (error) {
+      console.error('Error registering role:', error);
+    }
+  };
+  
+  const switchRole = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    try {
+      if (roleData?.altRole === null) { 
+        toast.error('No alternate role registered. Please register as a Mentor first.');
+        return;
+      }
+      const res = await api.post('/api/auth/switch-role', {}, { withCredentials: true });
+
+      if (res.status === 200) {
+        const newRole = res.data?.newRole;
+        toast.success(`Role switched to ${newRole}. Please log in again.`);
+        // Clear client auth
+        try { document.cookie = 'MindMateToken=; Max-Age=0; path=/'; } catch {}
+        localStorage.removeItem('auth_token');
+        router.replace('/auth/login');
+      } else {
+        toast.error('Error switching role. Please try again.');
+      }
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Error switching role. Please try again.';
       console.error('Error switching role:', error);
+      toast.error(message);
     }
   };
 
@@ -408,9 +441,12 @@ export default function LearnerPage() {
     try {
       console.log("Logging out...");
       localStorage.removeItem('auth_token');
-      router.push('/login');
+      await api.post('/api/auth/logout');
+      router.replace('/auth/login');
+      toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
+      toast.error('Error during logout. Please try again.');
     }
   };
 
@@ -463,12 +499,16 @@ export default function LearnerPage() {
       
       const res = await api.get('/api/learner/profile', {
         withCredentials: true,
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        // headers: {
+        //   ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // },
       });
       
       setUserData(res.data.userData);
+      setRoleData({
+        role: res.data.roleData.role,
+        altRole: res.data.roleData.altRole
+      });
       console.log(res.data);
       
     } catch (error) {
@@ -486,9 +526,9 @@ export default function LearnerPage() {
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/mentors', {
         withCredentials: true,
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        // headers: {
+        //   ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // },
       });
       
       console.log("Mentors API Response:", res.data);
@@ -543,9 +583,9 @@ export default function LearnerPage() {
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/schedules', {
         withCredentials: true,
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        // headers: {
+        //   ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // },
       });
 
       setTodaySchedule(res.data.todaySchedule || []);

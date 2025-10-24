@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import styles from '../MentorInfo.module.css';
 import api from "@/lib/axios";
+import { toast } from 'react-toastify';
 
 // Interfaces
 interface DropdownOpenState {
@@ -89,12 +90,12 @@ const validationRules = {
 };
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
-function getCookie(name: string) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
+// function getCookie(name: string) {
+//   const value = `; ${document.cookie}`;
+//   const parts = value.split(`; ${name}=`);
+//   if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+//   return null;
+// }
 
 export default function MentorInfoPage() {
   const router = useRouter();
@@ -811,7 +812,8 @@ export default function MentorInfoPage() {
   // API functions
   const submitApplication = async () => {
     if (!validateForm()) {
-      alert('Please complete all required fields before submitting');
+      // alert('Please complete all required fields before submitting');
+      toast.error('Please complete all required fields before submitting');
       return;
     }
     
@@ -913,14 +915,15 @@ export default function MentorInfoPage() {
       }
 
       // Get token from cookie
-      const token = getCookie('MindMateToken');
+      // const token = getCookie('MindMateToken');
 
       // Send request with proper headers
-      const response = await api.post('/api/auth/mentor/signup', formData, {
+      const response = await api.post('/api/auth/mentor/alt-signup', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          // ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        withCredentials: true,
       });
 
       console.log('Mentor signup successful:', response.data);
@@ -955,7 +958,7 @@ export default function MentorInfoPage() {
     localStorage.clear();
     
     // Redirect to home or login
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   // JSX Return

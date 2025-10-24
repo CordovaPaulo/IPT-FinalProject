@@ -290,12 +290,13 @@ exports.getProfileInfo = async (req, res) => {
 
     try {
         const userData = await Learner.findOne({userId: decoded.id});
+        const roleData = await User.findOne({ _id: decoded.id }).select('role altRole');
 
-        if(!userData){
+        if(!userData || !roleData) {
             res.status(404).json({ message: "User Account is none existent", code: 404})
         }
 
-        res.status(200).json({userData})
+        res.status(200).json({userData, roleData})
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 })
     }
