@@ -955,7 +955,7 @@ export default function MentorInfoPage() {
     localStorage.clear();
     
     // Redirect to home or login
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   // JSX Return

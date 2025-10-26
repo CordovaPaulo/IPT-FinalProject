@@ -636,6 +636,9 @@
     height: auto;
     min-height: 100vh;
     position: relative;
+    border-top-left-radius: 40px;
+    border-top-right-radius: 40px;
+    
   }
   .page-header h1 {
     font-size: 1.5rem;
@@ -720,6 +723,8 @@
     margin: 10px;
     width: calc(100% - 20px);
     max-width: calc(100% - 20px);
+    border-top-left-radius: 40px;
+    border-top-right-radius: 40px;
   }
   .personal-field,
   .profile-field {
@@ -729,6 +734,7 @@
   .title {
     font-size: 15px;
   }
+
   .profile-preview-container {
     width: 70px;
     height: 70px;

@@ -1014,6 +1014,8 @@
 @media (min-width: 769px) and (max-width: 1024px) {
   .formContainer { 
     max-width: 90%; 
+    border-top-left-radius: 40px;
+    border-top-right-radius: 40px;
   }
   
   .personalField,
@@ -1052,6 +1054,8 @@
     margin: 10px;
     width: calc(100% - 20px);
     max-width: calc(100% - 20px);
+    border-top-left-radius: 40px;
+    border-top-right-radius: 40px;
   }
   
   .personalField,

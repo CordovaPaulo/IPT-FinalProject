@@ -117,7 +117,6 @@ html[data-a11y-motion="reduced"] * {
 
 /* Always show focus outlines */
 :where(:focus-visible) { outline: 2px solid #2563eb; outline-offset: 2px; }
-html[data-a11y-focus="always"] :where(:focus) { outline: 3px solid #ffbf47 !important; outline-offset: 3px; }
 
 /* Dyslexia-friendly font (fallbacks if not installed) */
 html[data-a11y-font="dyslexic"] body {

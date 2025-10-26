@@ -9,7 +9,6 @@ interface Applicant {
   user_id: any;
   name: any;
   program: any;
-  // applied_on?: any;
   status: any;
 }
 
@@ -47,7 +46,7 @@ interface CredentialsResponse {
 }
 
 interface ApplicationsProps {
-  applicants: any; // accept the applicants data structure (change to a stricter type if you have one)
+  applicants: any;
   onUpdateApplicants: () => void;
 }
 
@@ -132,22 +131,9 @@ const Applications: React.FC<ApplicationsProps> = ({
   const [currentApp, setCurrentApp] = useState<any>({});
   const [actionToConfirm, setActionToConfirm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  // const [filteredApplicants, setFilteredApplicants] = useState<any[]>([]);
 
   // Add new state to manage applicants data locally
   const [localApplicants, setLocalApplicants] = useState(applicants);
-
-  // useEffect(() => {
-  //   setFilteredApplicants(localApplicants);
-  // }, [localApplicants]);
-
-  // const getCookie = (name: string): string | undefined => {
-  //   if (typeof document === 'undefined') return undefined;
-  //   const value = `; ${document.cookie}`;
-  //   const parts = value.split(`; ${name}=`);
-  //   if (parts.length === 2) return parts.pop()?.split(';').shift();
-  //   return undefined;
-  // };
 
   const approve = async (roleId: number) => {
     try {
@@ -181,12 +167,6 @@ const Applications: React.FC<ApplicationsProps> = ({
 
   const getApplicantDetails = async (applicantId: number): Promise<ApplicantDetails> => {
     try {
-      // const csrfToken = getCookie('csrftoken');
-      // const headers: any = {
-      //   'Content-Type': 'application/json',
-      //   Accept: 'application/json',
-      // };
-
       const response = await api.get(`/api/admin/${applicantId}`);
 
       if (response.status === 200) {
@@ -231,17 +211,12 @@ const Applications: React.FC<ApplicationsProps> = ({
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
 
-  // const [localApplicants, setLocalApplicants] = useState<any[]>([]);
-
   // Data normalization
-  // Normalize incoming applicants (supports flat array from API or the sample nested object)
   const normalizeApplicants = (input: any): any[] => {
     if (!input) return [];
     if (Array.isArray(input)) return input;
-    // support legacy sampleApplicants shape: { mentors: { pending: [], accepted: [], rejected: [] } }
     if (input.mentors) {
       const { pending = [], accepted = [], rejected = [] } = input.mentors;
-      // ensure consistent field names (roleId, mentorStatus)
       const mapLegacy = (arr: any[], statusLabel: string) =>
         (arr || []).map((a: any) => ({
           roleId: a.user_id ?? a.roleId ?? a.id,
@@ -264,90 +239,15 @@ const Applications: React.FC<ApplicationsProps> = ({
 
   // Modal handlers
   const showConfirmation = (id: string, action: string) => {
-    // -    setCurrentAppId(id);
     setCurrentAppId(id);
     setActionToConfirm(action);
     setShowModal(true);
   };
 
-  // Update the filteredApplicants useMemo to use localApplicants
-  const filteredApplicants = useMemo(() => {
-    let list = Array.isArray(localApplicants) ? [...localApplicants] : [];
-
-    // Map UI filter -> data values ('accepted' in data is 'accepted', approved mapping handled below)
-    if (activeFilter !== 'all') {
-      list = list.filter((a: any) => {
-        const status = (a.mentorStatus || '').toString().toLowerCase();
-        return status === activeFilter.toLowerCase();
-      });
-    }
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((a: any) =>
-        (a.name || '').toString().toLowerCase().includes(q) ||
-        (a.program || '').toString().toLowerCase().includes(q) ||
-        (a.studentId || '').toString().toLowerCase().includes(q)
-      );
-    }
-
-    // ensure rendering fields exist and map status label for UI where necessary
-    return list.map((a: any) => ({
-      ...a,
-      roleId: a.roleId ?? a.userId ?? a.id,
-      studentId: a.studentId ?? a.student_id ?? '',
-      mentorStatus: a.mentorStatus ?? a.status ?? '',
-    }));
-  }, [localApplicants, activeFilter, searchQuery]);
- 
-   const showConfirmation = (id: string, action: string) => {
-     // -    setCurrentAppId(id);
-     setCurrentAppId(id);
-     setActionToConfirm(action);
-     setShowModal(true);
-   };
-
-   const hideConfirmation = () => {
-     setShowModal(false);
-     setCurrentAppId(null);
-     setActionToConfirm('');
-   };
-
-  // Update the confirmAction function
-  const confirmAction = async () => {
-    if (!currentAppId) return;
-
-    try {
-      setIsLoading(true);
-      if (actionToConfirm === 'Accepted') {
-        await approve(currentAppId as any);
-        // Update state for a flat array structure
-        setLocalApplicants((prev: any) =>
-          prev.map((app: any) =>
-            app.roleId === currentAppId
-              ? { ...app, mentorStatus: 'accepted' }
-              : app
-          )
-        );
-      } else if (actionToConfirm === 'Rejected') {
-        await reject(currentAppId as any);
-        // Update state for a flat array structure
-        setLocalApplicants((prev: any) =>
-          prev.map((app: any) =>
-            app.roleId === currentAppId
-              ? { ...app, mentorStatus: 'rejected' }
-              : app
-          )
-        );
-      }
-
-      onUpdateApplicants();
-      hideConfirmation();
-    } catch (error) {
-      console.error(`Error ${actionToConfirm.toLowerCase()} application`, error);
-    } finally {
-      setIsLoading(false);
-    }
+  const hideConfirmation = () => {
+    setShowModal(false);
+    setCurrentAppId(null);
+    setActionToConfirm('');
   };
 
   const showCredentials = async (app: any) => {
@@ -358,7 +258,7 @@ const Applications: React.FC<ApplicationsProps> = ({
       
       const response = await api.get(`/api/admin/mentors/${app.roleId}`);
       const data = response.data;
-      // Mock data for demonstration
+      
       const mockData = {
         user: data.name,
         info: {
@@ -441,7 +341,6 @@ const Applications: React.FC<ApplicationsProps> = ({
       setIsLoading(true);
       if (actionToConfirm === 'Accepted') {
         await approve(currentAppId as any);
-        // Update state for a flat array structure
         setLocalApplicants((prev: any) =>
           prev.map((app: any) =>
             app.mentorId === currentAppId
@@ -451,7 +350,6 @@ const Applications: React.FC<ApplicationsProps> = ({
         );
       } else if (actionToConfirm === 'Rejected') {
         await reject(currentAppId as any);
-        // Update state for a flat array structure
         setLocalApplicants((prev: any) =>
           prev.map((app: any) =>
             app.mentorId === currentAppId
@@ -470,17 +368,7 @@ const Applications: React.FC<ApplicationsProps> = ({
     }
   };
 
-  // Effects
-  useEffect(() => {
-    setLocalApplicants(normalizeApplicants(applicants));
-  }, [applicants]);
-
-  useEffect(() => {
-    console.log('Local applicants updated:', localApplicants);
-  }, [localApplicants]);
-
-  // Memoized computations
-  // Update the filteredApplicants useMemo to use localApplicants
+  // SINGLE filteredApplicants declaration - removed the duplicate
   const filteredApplicants = useMemo(() => {
     let list = Array.isArray(localApplicants) ? [...localApplicants] : [];
 
@@ -509,6 +397,15 @@ const Applications: React.FC<ApplicationsProps> = ({
       mentorStatus: a.mentorStatus ?? a.status ?? '',
     }));
   }, [localApplicants, activeFilter, searchQuery]);
+
+  // Effects
+  useEffect(() => {
+    setLocalApplicants(normalizeApplicants(applicants));
+  }, [applicants]);
+
+  useEffect(() => {
+    console.log('Local applicants updated:', localApplicants);
+  }, [localApplicants]);
 
   return (
     <>
@@ -567,7 +464,6 @@ const Applications: React.FC<ApplicationsProps> = ({
                 <th>ID</th>
                 <th>Applicant</th>
                 <th>Program</th>
-                {/* <th>Date</th> */}
                 <th>Credentials</th>
                 {activeFilter === 'all' ? <th>Actions</th> : <th>Status</th>}
               </tr>
@@ -576,13 +472,10 @@ const Applications: React.FC<ApplicationsProps> = ({
               {filteredApplicants.map((app: any) => (
                 <tr key={app.roleId}>
                   <td>
-                    <span className={styles['id-badge']}>{app.studentId }</span>
+                    <span className={styles['id-badge']}>{app.studentId}</span>
                   </td>
                   <td>{app.name}</td>
                   <td>{getProgramName(app.program)}</td>
-                  {/* <td>
-                    <span className={styles['date-badge']}>{formatDate(app.applied_on)}</span>
-                  </td> */}
                   <td>
                     <button
                       className={styles['credentials-btn']}
