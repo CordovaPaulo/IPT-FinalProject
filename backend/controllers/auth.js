@@ -8,7 +8,84 @@ const uploadController = require('./upload');
 const cloudinary = require('../service/cloudinary');
 const streamifier = require('streamifier');
 const { setCookie } = require('./cookie');
-const mailingController = require('./mailing'); // add
+const mailingController = require('./mailing');
+const VerificationToken = require('../models/VerificationToken');
+const crypto = require('crypto');
+// const APP_BASE = (process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/,'');
+// const API_BASE = (process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:5000').replace(/\/+$/,'');
+
+// Helper: send role confirmation email with verify/unverify links
+async function sendRoleConfirmationEmail({ id: uid, username, email }, role, roleDocId) {
+  try {
+    const ttlMs = 2 * 24 * 60 * 60 * 1000; // 2 days
+    const expiresAt = new Date(Date.now() + ttlMs);
+
+    // Create JTIs and persist them for one-time use
+    const verifyJti = crypto.randomUUID();
+    const unverifyJti = crypto.randomUUID();
+
+    await VerificationToken.create([
+      { jti: verifyJti, uid, role, roleId: roleDocId, type: 'role_verify', expiresAt },
+      { jti: unverifyJti, uid, role, roleId: roleDocId, type: 'role_unverify', expiresAt }
+    ]);
+
+    const verifyToken = jwt.sign(
+      { uid, role, roleId: roleDocId, type: 'role_verify', jti: verifyJti },
+      process.env.JWT_SECRET,
+      { expiresIn: '2d' }
+    );
+    const unverifyToken = jwt.sign(
+      { uid, role, roleId: roleDocId, type: 'role_unverify', jti: unverifyJti },
+      process.env.JWT_SECRET,
+      { expiresIn: '2d' }
+    );
+
+    const verifyUrl = `http://localhost:3001/api/auth/role/verify?token=${encodeURIComponent(verifyToken)}`;
+    const unverifyUrl = `http://localhost:3001/api/auth/role/unverify?token=${encodeURIComponent(unverifyToken)}`;
+
+    const subj = `Confirm your ${role === 'mentor' ? 'Mentor' : 'Learner'} account`;
+    const text = `
+Hi ${username},
+
+You just created a ${role} profile on MindMate. Please confirm:
+
+Verify: ${verifyUrl}
+Do not verify: ${unverifyUrl}
+
+If you didn't request this, you can ignore this email.
+
+MindMate Team
+`.trim();
+
+    const brandPrimary = '#4F46E5';
+    const html = `
+<!doctype html>
+<html>
+  <body style="font-family:Arial,Helvetica,sans-serif;background:#F8FAFC;padding:24px;">
+    <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden">
+      <div style="height:6px;background:${brandPrimary}"></div>
+      <div style="padding:20px 24px">
+        <h2 style="margin:0 0 10px 0">Confirm your ${role === 'mentor' ? 'Mentor' : 'Learner'} account</h2>
+        <p>Hi ${username},</p>
+        <p>You created a ${role} profile on MindMate. Please confirm your account:</p>
+        <p>
+          <a href="${verifyUrl}" style="background:${brandPrimary};color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;display:inline-block;margin-right:10px">Verify account</a>
+          <a href="${unverifyUrl}" style="background:#E11D48;color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;display:inline-block">Do not verify</a>
+        </p>
+        <p style="color:#475569;font-size:12px">If the buttons don't work, copy these links:</p>
+        <p style="word-break:break-all;font-size:12px"><strong>Verify:</strong> ${verifyUrl}</p>
+        <p style="word-break:break-all;font-size:12px"><strong>Do not verify:</strong> ${unverifyUrl}</p>
+      </div>
+    </div>
+  </body>
+</html>
+`.trim();
+
+    await mailingController.sendEmailNotification(email, subj, text, html);
+  } catch (e) {
+    console.error('[MAIL] Failed to send role confirmation email:', e.message);
+  }
+}
 
 
 exports.learnerSignup = async (req, res) => {
@@ -157,6 +234,13 @@ exports.learnerSignup = async (req, res) => {
     
     // Save learner
     await learner.save();
+
+    // Send confirmation email (after role/profile is registered)
+    sendRoleConfirmationEmail(
+      { id: decoded.id, username: decoded.username, email: decoded.email },
+      'learner',
+      learner._id
+    ).catch(() => {});
     
     return res.status(201).json({
       message: 'Learner created successfully',
@@ -345,6 +429,13 @@ exports.mentorSignup = async (req, res) => {
     
     // Save mentor
     await mentor.save();
+
+    // Send confirmation email (after role/profile is registered)
+    sendRoleConfirmationEmail(
+      { id: decoded.id, username: decoded.username, email: decoded.email },
+      'mentor',
+      mentor._id
+    ).catch(() => {});
     
     return res.status(201).json(mentor);
   } catch (error) {
@@ -387,6 +478,9 @@ exports.login = async (req, res) => {
       if (mentor && mentor.accountStatus === 'rejected') {
         return res.status(403).json({ message: 'Mentor account has been rejected' });
       }
+      if (mentor && mentor.verified === false) {
+        return res.status(403).json({ message: 'Mentor account is not verified yet' });
+      }
     }
 
     if (user.status === 'suspended') {
@@ -395,6 +489,13 @@ exports.login = async (req, res) => {
 
     if (user.status === 'banned') {
       return res.status(403).json({ message: 'User account is banned' });
+    }
+
+    if(user.role === 'learner'){
+      const learner = await Learner.findOne({ userId: user._id });
+      if(learner && learner.verified === false){
+        return res.status(403).json({ message: 'Learner account is not verified yet' });
+      }
     }
 
     const payload = { id: user._id, username: user.username, email: user.email, role: user.role, altRole: user.altRole, status: user.status };
@@ -1059,5 +1160,85 @@ exports.switchRole = async (req, res) => {
   } catch (error) {
     console.error('Error switching role:', error);
     return res.status(500).json({ message: 'Error switching role', code: 500, error: error.message });
+  }
+};
+
+// Verify via email link (no auth needed)
+exports.verifyRoleFromLink = async (req, res) => {
+  try {
+    const { token } = req.query || {};
+    if (!token) return res.status(400).send('Missing token');
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    if (payload?.type !== 'role_verify' || !payload?.jti) return res.status(400).send('Invalid token');
+
+    // Atomically mark token as used (one-time)
+    const vt = await VerificationToken.findOneAndUpdate(
+      { jti: payload.jti, type: 'role_verify', usedAt: null, expiresAt: { $gt: new Date() } },
+      { $set: { usedAt: new Date() } },
+      { new: true }
+    );
+    if (!vt) return res.status(400).send('Token already used or expired');
+
+    const { uid, role, roleId } = payload;
+
+    if (role === 'learner') {
+      const doc = await Learner.findById(roleId);
+      if (!doc || String(doc.userId) !== String(uid)) return res.status(404).send('Learner not found');
+      await Learner.updateOne({ _id: roleId }, { $set: { verified: true } });
+    } else if (role === 'mentor') {
+      const doc = await Mentor.findById(roleId);
+      if (!doc || String(doc.userId) !== String(uid)) return res.status(404).send('Mentor not found');
+      await Mentor.updateOne({ _id: roleId }, { $set: { verified: true } });
+    } else {
+      return res.status(400).send('Invalid role');
+    }
+
+    return res.status(200).send('<h2>Account verified successfully.</h2>You can close this tab.');
+  } catch (err) {
+    console.error('[VERIFY ROLE LINK] ', err.message);
+    return res.status(400).send('Invalid or expired token');
+  }
+};
+
+// Do not verify via email link (no auth needed)
+exports.unverifyRoleFromLink = async (req, res) => {
+  try {
+    const { token } = req.query || {};
+    if (!token) return res.status(400).send('Missing token');
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    if (payload?.type !== 'role_unverify' || !payload?.jti) return res.status(400).send('Invalid token');
+
+    // Atomically mark token as used (one-time)
+    const vt = await VerificationToken.findOneAndUpdate(
+      { jti: payload.jti, type: 'role_unverify', usedAt: null, expiresAt: { $gt: new Date() } },
+      { $set: { usedAt: new Date() } },
+      { new: true }
+    );
+    if (!vt) return res.status(400).send('Token already used or expired');
+
+    const { uid, role, roleId } = payload;
+
+    if (role === 'learner') {
+      const doc = await Learner.findById(roleId);
+      if (!doc || String(doc.userId) !== String(uid)) return res.status(404).send('Learner not found');
+      await Learner.updateOne({ _id: roleId }, { $set: { verified: false } });
+      await Learner.deleteOne({ _id: roleId });
+      await User.updateOne({ _id: uid }, { $set: { role: null } });
+    } else if (role === 'mentor') {
+      const doc = await Mentor.findById(roleId);
+      if (!doc || String(doc.userId) !== String(uid)) return res.status(404).send('Mentor not found');
+      await Mentor.updateOne({ _id: roleId }, { $set: { verified: false } });
+      await Mentor.deleteOne({ _id: roleId });
+      await User.updateOne({ _id: uid }, { $set: { role: null } });
+    } else {
+      return res.status(400).send('Invalid role');
+    }
+
+    return res.status(200).send('<h2>Account not verified and removed.</h2>You can close this tab.');
+  } catch (err) {
+    console.error('[UNVERIFY ROLE LINK] ', err.message);
+    return res.status(400).send('Invalid or expired token');
   }
 };

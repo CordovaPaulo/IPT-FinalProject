@@ -233,6 +233,39 @@ exports.approveMentor = async (req, res) => {
         }
         mentor.accountStatus = 'accepted';
         await mentor.save();
+
+        // Try to send approval email (non-blocking)
+        try {
+            // Prefer mentor.email, fallback to User.email
+            let to = mentor.email || null;
+            let username = mentor.name || 'Mentor';
+            if ((!to || !username) && mentor.userId) {
+                const user = await User.findById(mentor.userId).select('email username').lean();
+                to = to || user?.email || null;
+                username = username || user?.username || username;
+            }
+            if (to) {
+                const subject = 'Your Mentor Application was Approved';
+                const text = `Hi ${username},
+
+Great news! Your mentor application has been approved. You can now access your mentor dashboard.
+
+Thank you for being part of MindMate!`;
+
+                const html = `
+                  <div style="font-family:Arial,Helvetica,sans-serif">
+                    <h2>Mentor Application Approved</h2>
+                    <p>Hi ${username},</p>
+                    <p>Great news! Your mentor application has been <strong>approved</strong>. You can now access your mentor dashboard.</p>
+                    <p>Thank you for being part of MindMate!</p>
+                  </div>
+                `;
+                await mailingController.sendEmailNotification(to, subject, text, html);
+            }
+        } catch (mailErr) {
+            console.error('Error sending mentor approval email:', mailErr);
+        }
+
         return res.status(200).json({ message: 'Mentor approved successfully', mentor });
     } catch (error) {
         console.error('Error approving mentor:', error);
@@ -249,6 +282,45 @@ exports.rejectMentor = async (req, res) => {
         }
         mentor.accountStatus = 'rejected';
         await mentor.save();
+
+        // Try to send rejection email (non-blocking)
+        try {
+            // Optional reason from admin
+            const reason = (req.body && req.body.reason) ? String(req.body.reason) : null;
+
+            // Prefer mentor.email, fallback to User.email
+            let to = mentor.email || null;
+            let username = mentor.name || 'Mentor';
+            if ((!to || !username) && mentor.userId) {
+                const user = await User.findById(mentor.userId).select('email username').lean();
+                to = to || user?.email || null;
+                username = username || user?.username || username;
+            }
+            if (to) {
+                const subject = 'Your Mentor Application was Not Approved';
+                const text = `Hi ${username},
+
+We’re sorry to inform you that your mentor application was not approved at this time.${reason ? `
+
+Reason: ${reason}` : ''}
+
+You may review your submission and apply again if appropriate.`;
+
+                const html = `
+                  <div style="font-family:Arial,Helvetica,sans-serif">
+                    <h2>Mentor Application Not Approved</h2>
+                    <p>Hi ${username},</p>
+                    <p>We’re sorry to inform you that your mentor application was <strong>not approved</strong> at this time.</p>
+                    ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                    <p>You may review your submission and apply again if appropriate.</p>
+                  </div>
+                `;
+                await mailingController.sendEmailNotification(to, subject, text, html);
+            }
+        } catch (mailErr) {
+            console.error('Error sending mentor rejection email:', mailErr);
+        }
+
         return res.status(200).json({ message: 'Mentor rejected successfully', mentor });
     } catch (error) {
         console.error('Error rejecting mentor:', error);

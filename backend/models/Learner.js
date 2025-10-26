@@ -17,7 +17,8 @@ const learnerSchema = new mongoose.Schema({
     style: { type: [String], required: true, enum: ['lecture-based', 'interactive-discussion', 'q-and-a-discussion', 'demonstrations', 'project-based', 'step-by-step-discussion'] },
     sessionDur: { type: String, required: true, enum: ['1hr', '2hrs', '3hrs'] },
     image: { type: String, default: null },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    verified: { type: Boolean, default: false }
 }, { collection: 'learners' });
 
 const Learner = mongoose.model('learner', learnerSchema);

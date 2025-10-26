@@ -814,7 +814,7 @@ const LearnerInfo = () => {
 
       const token = getCookie('MindMateToken');
 
-      const response = await api.post('/api/auth/learner/signup', formData, {
+      const response = await api.post('/api/auth/learner/alt-signup', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
