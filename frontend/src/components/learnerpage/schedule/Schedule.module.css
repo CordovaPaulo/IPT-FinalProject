@@ -1,16 +1,21 @@
 /* Schedule.module.css */
 .booking {
-  width: 60%;
-  max-width: 1000px;
-  margin: 5rem auto;
-  max-height: 90vh;
+  border-bottom-width: 4px;
+  width: 1000px;
+  max-width: 910px;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(26, 79, 159, 0.5);
+  z-index: 9000;
   background: white;
   border-radius: 1.5rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  position: relative;
+  margin-left: 78%;
+
 }
 
 .header {
@@ -50,10 +55,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s;
+  transition: all 0.2s;
+  border-radius: 50%;
 }
 
 .header button:hover {
+  background: rgba(255, 255, 255, 0.1);
   transform: scale(1.1);
 }
 
@@ -77,6 +84,7 @@
 
 .profile div p {
   margin: 0.25rem 0;
+  line-height: 1.3;
 }
 
 .profile div p:first-child {
@@ -92,13 +100,7 @@
   background-color: white;
   overflow-y: auto;
   flex-grow: 1;
-}
-
-@media (min-width: 1024px) {
-  .content {
-    flex-direction: row;
-    gap: 3rem;
-  }
+  height: calc(100% - 180px);
 }
 
 .left {
@@ -109,7 +111,7 @@
 .right {
   flex: 1;
   min-width: 0;
-  max-width: 400px;
+  max-width: 100%;
 }
 
 .timeHeader {
@@ -160,12 +162,20 @@
 
 .timeBtn:hover {
   background-color: #e5e7eb;
+  border-color: #0b3b44;
+  color: #0b3b44;
 }
 
 .timeSelected {
   background-color: #0b3b44;
   color: white;
   border-color: #0b3b44;
+}
+
+.timeSelected:hover {
+  background-color: #0a2e34;
+  border-color: #0a2e34;
+  color: white;
 }
 
 .modeHeader {
@@ -201,13 +211,15 @@
   justify-content: center;
 }
 
+.modeBtn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #0b3b44;
+  color: #0b3b44;
+}
+
 .modeBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #f3f4f6;
-}
-
-.modeBtn:hover:not(:disabled) {
   background-color: #f3f4f6;
 }
 
@@ -219,6 +231,8 @@
 
 .modeActive:hover:not(:disabled) {
   background-color: #0a2e34;
+  border-color: #0a2e34;
+  color: white;
 }
 
 .locationInput {
@@ -231,12 +245,16 @@
   border: 2px solid #d1d5db;
   border-radius: 0.5rem;
   font-size: 0.875rem;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
+  background-color: white;
+  color: #4b5563;
+  max-width: 300px;
 }
 
 .locationField:focus {
   outline: none;
   border-color: #0b3b44;
+  box-shadow: 0 0 0 3px rgba(11, 59, 68, 0.1);
 }
 
 .calendar {
@@ -290,10 +308,13 @@
   border: 2px solid #d1d5db;
   cursor: pointer;
   transition: all 0.2s;
+  color: #0b3b44;
+  font-weight: 600;
 }
 
 .todayBtn:hover {
-  background-color: #f3f4f6;
+  background-color: #0b3b44;
+  color: white;
   border-color: #0b3b44;
 }
 
@@ -303,43 +324,22 @@
   user-select: none;
   -webkit-user-select: none;
   background: none;
-  border: none;
+  border: 2px solid #e5e7eb;
   font-size: 1.25rem;
   padding: 0.5rem;
-  border-radius: 0.5rem;
-  transition: background-color 0.2s;
+  border-radius: 50%;
+  transition: all 0.2s;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .arrow:hover {
-  background-color: #f3f4f6;
-}
-
-.yearSelect {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background-color: #f9f9f9;
-  border-radius: 0.5rem;
-  border: 2px solid #e5e7eb;
-}
-
-.yearOption {
-  padding: 0.5rem;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 0.25rem;
-  transition: all 0.2s;
-}
-
-.yearOption:hover {
-  background-color: #e5e7eb;
-}
-
-.yearActive {
   background-color: #0b3b44;
   color: white;
+  border-color: #0b3b44;
 }
 
 .calendarLegend {
@@ -368,6 +368,7 @@
 
 .legendDotUnavailable {
   background-color: #e5e7eb;
+  border: 1px solid #d1d5db;
 }
 
 .weekdays {
@@ -377,8 +378,10 @@
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #0b3b44;
   margin-bottom: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .days {
@@ -400,6 +403,7 @@
 
 .day:hover:not(.unavailable):not(.pastDate) {
   background-color: #f3f4f6;
+  color: #0b3b44;
 }
 
 .current {
@@ -418,10 +422,20 @@
   border-color: #349eb1;
 }
 
+.today:hover {
+  background-color: #2d8a9c;
+  color: white;
+}
+
 .selected {
   background-color: #0b3b44;
   color: white;
   border-color: #0b3b44;
+}
+
+.selected:hover {
+  background-color: #0a2e34;
+  color: white;
 }
 
 .available {
@@ -444,6 +458,8 @@
 .unavailable:hover,
 .pastDate:hover {
   background-color: #f9fafb;
+  color: #d1d5db;
+  transform: none;
 }
 
 .subjectSelect {
@@ -499,6 +515,7 @@
   position: sticky;
   bottom: 0;
   z-index: 10;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btnCancel {
@@ -516,7 +533,8 @@
 }
 
 .btnCancel:hover {
-  background-color: #fef2f2;
+  background-color: #dc2626;
+  color: white;
 }
 
 .btnProceed {
@@ -539,11 +557,27 @@
   box-shadow: 0 4px 12px rgba(11, 59, 68, 0.3);
 }
 
+.btnProceed:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .btnProceed:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background: linear-gradient(135deg, #6b7280, #9ca3af);
   transform: none;
   box-shadow: none;
+}
+
+@media (min-width: 1024px) {
+  .content {
+    flex-direction: row;
+    gap: 3rem;
+  }
+  
+  .right {
+    max-width: 400px;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -609,12 +643,14 @@
   
   .modeButtons {
     gap: 0.75rem;
+    flex-direction: row;
   }
   
   .modeBtn {
     padding: 0.5rem 0.75rem;
     min-width: 85px;
     font-size: 0.8rem;
+    flex: 1;
   }
   
   .locationField {
@@ -651,6 +687,8 @@
   
   .header button {
     font-size: 1.75rem;
+    width: 35px;
+    height: 35px;
   }
   
   .profile {
@@ -674,6 +712,7 @@
   .left, 
   .right {
     width: 100%;
+    max-width: 100%;
   }
   
   .timeSlots {
@@ -699,11 +738,12 @@
     padding: 0.4rem 0.6rem;
     min-width: 70px;
     font-size: 0.75rem;
+    flex: 1;
   }
   
   .calendar {
     padding: 0.625rem;
-    width: 41rem;
+    width: 100%;
   }
   
   .footer {
@@ -712,8 +752,8 @@
   }
 
   .subjectDropdown {
-  width: 41rem;
-}
+    width: 100%;
+  }
   
   .btnCancel,
   .btnProceed {
@@ -743,6 +783,8 @@
   
   .header button {
     font-size: 1.5rem;
+    width: 30px;
+    height: 30px;
   }
   
   .profile {
@@ -776,12 +818,14 @@
   
   .modeButtons {
     gap: 0.4rem;
+    flex-direction: row;
   }
   
   .modeBtn {
     padding: 0.35rem 0.5rem;
     min-width: 65px;
     font-size: 0.7rem;
+    flex: 1;
   }
   
   .calendar {
@@ -835,12 +879,13 @@
     width: 100%;
     justify-content: center;
   }
-  .calendar{
-    width: 16rem;
+  
+  .calendar {
+    width: 100%;
   }
 
   .subjectDropdown {
-  width: 16rem;
+    width: 100%;
   }
   
   .footer {
@@ -896,5 +941,6 @@
     padding: 0.4rem 0.6rem;
     min-width: 70px;
     font-size: 0.7rem;
+    flex: 1;
   }
 }

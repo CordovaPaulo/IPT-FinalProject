@@ -323,6 +323,7 @@
   border: 2px solid #e0e0e0;
   max-height: 80vh;
   overflow-y: auto;
+  margin-left: 18rem;
 }
 
 .modal-header {
@@ -423,8 +424,38 @@
   border-color: var(--primary-dark);
 }
 
-.confirm:hover {
-  background-color: var(--primary-dark);
+.modal-button.confirm {
+  background: linear-gradient(135deg, #0c434d, #3b9aa9); /* teal/blue gradient for reschedule/confirm */
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(12, 67, 77, 0.18);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.modal-button.confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(12, 67, 77, 0.22);
+}
+
+.modal-button.danger,
+.modal-button.confirm.danger {
+  background: linear-gradient(135deg, #ff3b30, #ff6b4a); /* bright red -> orange-red */
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(255, 59, 48, 0.18);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.modal-button.danger:hover,
+.modal-button.confirm.danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(255, 59, 48, 0.22);
 }
 
 .danger {

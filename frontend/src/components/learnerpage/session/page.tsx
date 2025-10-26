@@ -72,6 +72,9 @@ export default function SessionComponent({
   const [reschedIsOpen, setReschedIsOpen] = useState(false);
   const [selectedSessionID, setSelectedSessionID] = useState<number | string | null>(null);
 
+  // NEW: confirmation before opening reschedule dialog
+  const [showRescheduleConfirmation, setShowRescheduleConfirmation] = useState(false);
+
   const filteredFiles = mentFiles?.files?.filter(file => 
     String(file.owner_id) === String(selectedMentorId)
   ) || [];
@@ -102,8 +105,9 @@ export default function SessionComponent({
 
     switch (option) {
       case "reschedule":
+        // Show confirmation first, then open reschedule modal on confirm
         setSelectedSessionID(item.id);
-        setReschedIsOpen(true);
+        setShowRescheduleConfirmation(true);
         break;
       case "cancel":
         setShowCancelConfirmation(true);
@@ -514,6 +518,41 @@ export default function SessionComponent({
                 onClick={() => cancelSession(selectedItem)}
               >
                 Yes, Cancel Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Reschedule Confirmation Modal */}
+      {showRescheduleConfirmation && (
+        <div className={styles['modal-overlay']}>
+          <div className={styles['modal-content']}>
+            <div className={styles['modal-header']}>
+              <h3>Reschedule Session</h3>
+            </div>
+            <div className={styles['modal-body']}>
+              <p>
+                Are you sure you want to reschedule
+                <strong> {selectedItem?.subject}</strong> with
+                <strong> {selectedItem?.mentor?.user?.name}</strong>?
+              </p>
+            </div>
+            <div className={styles['modal-footer']}>
+              <button
+                className={[styles['modal-button'], styles['cancel']].join(' ')}
+                onClick={() => setShowRescheduleConfirmation(false)}
+              >
+                No, Keep It
+              </button>
+              <button
+                className={[styles['modal-button'], styles['confirm']].join(' ')}
+                onClick={() => {
+                  setShowRescheduleConfirmation(false);
+                  setReschedIsOpen(true);
+                }}
+              >
+                Yes, Reschedule
               </button>
             </div>
           </div>

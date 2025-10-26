@@ -252,6 +252,8 @@
   -ms-overflow-style:none;
   scrollbar-width:none;
   position:relative;
+  margin-left: 15%;
+
 }
 .credentials-modal::-webkit-scrollbar {
   display:none;

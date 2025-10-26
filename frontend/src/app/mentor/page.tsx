@@ -1111,23 +1111,6 @@ export default function MentorPage() {
           <div className="course-offered">
             <h1>Course Offered</h1>
             
-            <button 
-              onClick={() => {
-                console.log('Debug button clicked');
-                setShowAllCourses(true);
-              }}
-              style={{
-                background: 'red',
-                color: 'white',
-                padding: '5px 10px',
-                margin: '5px 0',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '12px'
-              }}
-            >
-              TEST: Show Popup
-            </button>
             
             <div className="course-grid">
               {displayedCourses.map((card, index) => (
@@ -1150,7 +1133,6 @@ export default function MentorPage() {
                   style={{ 
                     cursor: 'pointer',
                     background: '#f0f0f0',
-                    border: '2px dashed #ccc',
                     transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => {

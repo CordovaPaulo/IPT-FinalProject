@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
 import notify from '@/lib/toast';
 import styles from './Schedule.module.css';
@@ -28,23 +28,24 @@ interface Day {
 }
 
 export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
+  // State declarations in same order as first component
   const [selectedDate, setSelectedDate] = useState('');
-  const [availableTimes] = useState([
-    "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-    "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"
-  ]);
   const [selectedTime, setSelectedTime] = useState('');
-  const [sessionType, setSessionType] = useState('in-person');
+  const [sessionType, setSessionType] = useState<'in-person'|'online'>('in-person');
   const [meetingLocation, setMeetingLocation] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Calendar variables
   const [currentDate, setCurrentDate] = useState(new Date());
   const [days, setDays] = useState<Day[]>([]);
   const [showYearSelection, setShowYearSelection] = useState(false);
 
-  // Destructure from object instead of array
+  // Constants and computed values
+  const availableTimes = useMemo(() => [
+    "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+    "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"
+  ], []);
+
+  // Destructure mentor info
   const {
     mentorId,
     mentorName,
@@ -58,41 +59,19 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
     mentorSubjects,
   } = info || {};
 
-  // Add useEffect to log the received data for debugging
-  useEffect(() => {
-    console.log("Schedule component received info:", info);
-    console.log("Mentor details:", {
-      mentorId,
-      mentorName,
-      mentorYear,
-      mentorCourse,
-      mentorSessionDur,
-      mentorModality,
-      mentorTeachStyle,
-      mentorAvailability,
-      mentorProfilePic,
-      mentorSubjects,
-    });
-  }, [info]);
-
-  // Parse subjects with better error handling
-  const subjectOptions = () => {
+  // Helper functions
+  const subjectOptions = useMemo(() => {
     try {
-      if (Array.isArray(mentorSubjects)) {
-        return mentorSubjects;
-      }
-      if (typeof mentorSubjects === 'string') {
-        return JSON.parse(mentorSubjects);
-      }
+      if (Array.isArray(mentorSubjects)) return mentorSubjects;
+      if (typeof mentorSubjects === 'string') return JSON.parse(mentorSubjects);
       return [];
     } catch (e) {
       console.error("Error parsing subjects:", e);
       return [];
     }
-  };
+  }, [mentorSubjects]);
 
-  // Get available days with better error handling
-  const availableDays = () => {
+  const availableDays = useMemo(() => {
     try {
       if (Array.isArray(mentorAvailability)) {
         return mentorAvailability.map((day: string) => day.toLowerCase());
@@ -105,204 +84,167 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
       console.error("Error parsing availability:", e);
       return [];
     }
-  };
+  }, [mentorAvailability]);
 
-  // Generate years for selection (±5 years from current)
-  const years = Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i);
+  const years = useMemo(() => 
+    Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i), 
+    []
+  );
 
-  // Format date as YYYY-MM-DD for the input
+  const currentMonthYear = useMemo(() =>
+    new Date(currentDate).toLocaleDateString('default', { month: 'long', year: 'numeric' }),
+    [currentDate]
+  );
+
+  const isInPersonModality = useMemo(() => {
+    const m = (mentorModality || '').toLowerCase();
+    return m === 'in-person' || m === 'both';
+  }, [mentorModality]);
+
+  const isOnlineModality = useMemo(() => {
+    const m = (mentorModality || '').toLowerCase();
+    return m === 'online' || m === 'both';
+  }, [mentorModality]);
+
+  // Utility functions
   const formatDateForInput = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   };
 
-  // Check if date is today
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  };
-
-  // Check if date is in the past
   const isPastDate = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
+    const t = new Date(); t.setHours(0,0,0,0);
+    const c = new Date(date); c.setHours(0,0,0,0);
+    return c < t;
   };
 
-  // Check if date is available
   const isDateAvailable = (date: Date) => {
-    if (isPastDate(date)) {
-      return false;
-    }
-
-    const dayName = date
-      .toLocaleDateString("en-US", { weekday: "long" })
-      .toLowerCase();
-    return availableDays().includes(dayName);
+    if (isPastDate(date)) return false;
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    return availableDays.includes(dayName);
   };
 
-  // Generate calendar days
+  const isToday = (date: Date) => {
+    const t = new Date();
+    return date.getDate() === t.getDate() && date.getMonth() === t.getMonth() && date.getFullYear() === t.getFullYear();
+  };
+
+  // Calendar generation
   const generateDays = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+    const y = currentDate.getFullYear();
+    const m = currentDate.getMonth();
+    const first = new Date(y, m, 1);
+    const last = new Date(y, m + 1, 0);
+    const prevCount = first.getDay();
+    const nextCount = 6 - last.getDay();
 
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const prevMonthDays = firstDay.getDay();
-    const nextMonthDays = 6 - lastDay.getDay();
-
-    const newDays: Day[] = [];
-
-    // Previous month's days
-    const prevMonthLastDay = new Date(year, month, 0).getDate();
-    for (let i = prevMonthLastDay - prevMonthDays + 1; i <= prevMonthLastDay; i++) {
-      const date = new Date(year, month - 1, i);
-      newDays.push({
-        date,
-        isCurrentMonth: false,
-        isSelected: false,
-        isToday: isToday(date),
-        isAvailable: isDateAvailable(date),
-        isPast: isPastDate(date),
+    const list: Day[] = [];
+    const prevLast = new Date(y, m, 0).getDate();
+    
+    // Previous month
+    for (let i = prevLast - prevCount + 1; i <= prevLast; i++) {
+      const d = new Date(y, m - 1, i);
+      list.push({ 
+        date: d, 
+        isCurrentMonth: false, 
+        isSelected: false, 
+        isToday: isToday(d), 
+        isAvailable: isDateAvailable(d),
+        isPast: isPastDate(d)
       });
     }
-
-    // Current month's days
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      const date = new Date(year, month, i);
-      const dateString = formatDateForInput(date);
-      newDays.push({
-        date,
-        isCurrentMonth: true,
-        isSelected: selectedDate === dateString,
-        isToday: isToday(date),
-        isAvailable: isDateAvailable(date),
-        isPast: isPastDate(date),
+    
+    // Current month
+    for (let i = 1; i <= last.getDate(); i++) {
+      const d = new Date(y, m, i);
+      const ds = formatDateForInput(d);
+      list.push({ 
+        date: d, 
+        isCurrentMonth: true, 
+        isSelected: selectedDate === ds, 
+        isToday: isToday(d), 
+        isAvailable: isDateAvailable(d),
+        isPast: isPastDate(d)
       });
     }
-
-    // Next month's days
-    for (let i = 1; i <= nextMonthDays; i++) {
-      const date = new Date(year, month + 1, i);
-      newDays.push({
-        date,
-        isCurrentMonth: false,
-        isSelected: false,
-        isToday: isToday(date),
-        isAvailable: isDateAvailable(date),
-        isPast: isPastDate(date),
+    
+    // Next month
+    for (let i = 1; i <= nextCount; i++) {
+      const d = new Date(y, m + 1, i);
+      list.push({ 
+        date: d, 
+        isCurrentMonth: false, 
+        isSelected: false, 
+        isToday: isToday(d), 
+        isAvailable: isDateAvailable(d),
+        isPast: isPastDate(d)
       });
     }
-
-    setDays(newDays);
+    
+    setDays(list);
   };
 
-  // Handle date selection
+  // Calendar interactions
   const selectDate = (day: Day) => {
     if (!day.isAvailable) return;
-
     if (!day.isCurrentMonth) {
-      const newDate = new Date(day.date);
-      setCurrentDate(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
-      setTimeout(generateDays, 0);
+      const nd = new Date(day.date);
+      setCurrentDate(new Date(nd.getFullYear(), nd.getMonth(), 1));
       return;
     }
-
     setSelectedDate(formatDateForInput(day.date));
-    setTimeout(generateDays, 0);
   };
 
-  // Calendar navigation
-  const prevMonth = () => {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() - 1);
-    setCurrentDate(newDate);
-    setTimeout(generateDays, 0);
-  };
-
-  const nextMonth = () => {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() + 1);
-    setCurrentDate(newDate);
-    setTimeout(generateDays, 0);
-  };
-
-  const goToToday = () => {
-    const today = new Date();
-    setCurrentDate(today);
-    setSelectedDate(formatDateForInput(today));
-    setTimeout(generateDays, 0);
-  };
-
+  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  const goToToday = () => { const t = new Date(); setCurrentDate(t); setSelectedDate(formatDateForInput(t)); };
   const selectYear = (year: number) => {
     const newDate = new Date(currentDate);
     newDate.setFullYear(year);
     setCurrentDate(newDate);
     setShowYearSelection(false);
-    setTimeout(generateDays, 0);
   };
 
-  const currentMonthYear = new Date(currentDate).toLocaleDateString("default", {
-    month: "long",
-    year: "numeric",
-  });
-
-  // Confirm schedule
+  // Schedule confirmation
   const confirmSchedule = async () => {
     if (!selectedDate || !selectedTime || !selectedSubject) {
       notify.warn('Please select date, time and subject');
       return;
     }
-
-    if (sessionType === "in-person" && !meetingLocation) {
-      notify.warn("Please enter a meeting location");
+    if (sessionType === 'in-person' && !meetingLocation) {
+      notify.warn('Please enter a meeting location');
       return;
     }
-
     if (!mentorId) {
-      console.error("Missing mentorId - cannot create schedule", { mentorId, info });
-      notify.error("Unable to schedule: mentor information is incomplete. Please try again.");
+      notify.error("Unable to schedule: mentor information is incomplete.");
       return;
     }
 
+    const match = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!match) {
+      notify.error('Invalid time format');
+      return;
+    }
+    
+    let h = parseInt(match[1], 10); 
+    const minutes = match[2]; 
+    const period = match[3].toUpperCase();
+    if (period === 'PM' && h < 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    const formattedTime = `${String(h).padStart(2, '0')}:${minutes}`;
+
+    const scheduleDate = new Date(selectedDate);
+    const scheduleData = {
+      date: scheduleDate.toISOString(),
+      time: formattedTime,
+      location: sessionType === 'in-person' ? meetingLocation : 'online',
+      subject: selectedSubject,
+    };
+
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-
-      // Format time to 24-hour format for backend
-      const timeMatch = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (!timeMatch) {
-        throw new Error("Invalid time format");
-      }
-
-      let hours = parseInt(timeMatch[1]);
-      const minutes = timeMatch[2];
-      const period = timeMatch[3].toUpperCase();
-
-      if (period === "PM" && hours < 12) hours += 12;
-      if (period === "AM" && hours === 12) hours = 0;
-
-      const formattedTime = `${String(hours).padStart(2, "0")}:${minutes}`;
-
-      // Convert date to ISO string for MongoDB
-      const scheduleDate = new Date(selectedDate);
-
-      const scheduleData = {
-        date: scheduleDate.toISOString(),
-        time: formattedTime,
-        location: sessionType === "in-person" ? meetingLocation : "online",
-        subject: selectedSubject,
-      };
-
-      // Debugging logs: outgoing data
-      console.log("Scheduling data (outgoing):", { mentorId, scheduleData });
-
-      // Make API call to create schedule
       const token = getCookie('MindMateToken');
       const response = await api.post(`/api/learner/schedule/${mentorId}`, scheduleData, {
         withCredentials: true,
@@ -313,59 +255,47 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
       });
 
       if (response.status !== 201) {
-        console.error("Unexpected response creating schedule:", response.status, response.data);
         throw new Error('Failed to create schedule');
       }
-      const result = response.data;
+      
       notify.success('Session scheduled successfully!');
-      onConfirm(result);
+      onConfirm(response.data);
       onClose();
     } catch (error: any) {
-      if (error?.isAxiosError) {
-        console.error("Axios error scheduling:", {
-          message: error.message,
-          status: error?.response?.status,
-          responseData: error?.response?.data,
-          headers: error?.response?.headers,
-        });
-        notify.error(error?.response?.data?.message || error.message || 'Failed to create schedule');
-      } else {
-        console.error("Error scheduling:", error);
-        notify.error("Failed to create schedule. Please try again.");
-      }
+      console.error("Error scheduling:", error);
+      notify.error(error?.response?.data?.message || 'Failed to create schedule');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Initialize calendar
+  // Effects
+  useEffect(() => {
+    console.log("Schedule component received info:", info);
+  }, [info]);
+
   useEffect(() => {
     setSelectedDate(formatDateForInput(new Date()));
     generateDays();
   }, []);
 
-  // Regenerate days when currentDate changes
   useEffect(() => {
     generateDays();
   }, [currentDate, selectedDate]);
 
   return (
     <div className={styles.booking}>
-      {/* Header */}
       <div className={styles.header}>
-        <div>
-          <h1>Book a Session</h1>
-        </div>
+        <div className="flex items-center space-x-3"><h1>Book a Session</h1></div>
         <button onClick={onClose} aria-label="Close" type="button">×</button>
       </div>
 
-      {/* Profile info */}
       <div className={styles.profile}>
-        <img
-          alt="Profile image"
-          src={mentorProfilePic || 'https://placehold.co/400x400'}
-          width="64"
-          height="64"
+        <img 
+          src={mentorProfilePic || 'https://placehold.co/400x400'} 
+          alt="Profile" 
+          width="64" 
+          height="64" 
           onError={(e) => {
             e.currentTarget.src = 'https://placehold.co/400x400';
           }}
@@ -377,71 +307,49 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
         </div>
       </div>
 
-      {/* Main content */}
       <div className={styles.content}>
-        {/* Left side */}
         <div className={styles.left}>
           <div className={styles.timeHeader}>
             <h2>Select Time Slots</h2>
             <p>({mentorSessionDur || 'Duration not specified'})</p>
           </div>
           <div className={styles.timeSlots}>
-            {availableTimes.map((time) => (
-              <button
-                key={time}
-                onClick={() => setSelectedTime(time)}
-                className={`${styles.timeBtn} ${selectedTime === time ? styles.timeSelected : ''}`}
-              >
-                {time}
+            {availableTimes.map((t) => (
+              <button key={t} onClick={() => setSelectedTime(t)}
+                className={`${styles.timeBtn} ${selectedTime === t ? styles.timeSelected : ''}`}>
+                {t}
               </button>
             ))}
           </div>
 
           <h3 className={styles.modeHeader}>Select Mode of Session</h3>
           <div className={styles.modeButtons}>
-            <button
-              type="button"
-              onClick={() => setSessionType('in-person')}
+            <button type="button" onClick={() => setSessionType('in-person')}
               className={`${styles.modeBtn} ${sessionType === 'in-person' ? styles.modeActive : ''}`}
-              disabled={!mentorModality?.toLowerCase().includes('in-person') && !mentorModality?.toLowerCase().includes('both')}
-            >
-              <span aria-label="In Person"><i className="fas fa-user"></i></span>
-              <span>In Person</span>
+              disabled={!isInPersonModality}>
+              <span aria-label="In Person"><i className="fas fa-user"></i></span><span>In Person</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setSessionType('online')}
+            <button type="button" onClick={() => setSessionType('online')}
               className={`${styles.modeBtn} ${sessionType === 'online' ? styles.modeActive : ''}`}
-              disabled={!mentorModality?.toLowerCase().includes('online') && !mentorModality?.toLowerCase().includes('both')}
-            >
-              <span aria-label="Online"><i className="fas fa-laptop"></i></span>
-              <span>Online</span>
+              disabled={!isOnlineModality}>
+              <span aria-label="Online"><i className="fas fa-laptop"></i></span><span>Online</span>
             </button>
           </div>
 
           {sessionType === 'in-person' && (
             <div className={styles.locationInput}>
-              <input
-                type="text"
-                value={meetingLocation}
-                onChange={(e) => setMeetingLocation(e.target.value)}
-                placeholder="Enter meeting location"
-                className={styles.locationField}
-              />
+              <input value={meetingLocation} onChange={(e) => setMeetingLocation(e.target.value)}
+                type="text" placeholder="Enter meeting location" className={styles.locationField} required />
             </div>
           )}
         </div>
 
-        {/* Right side - Calendar */}
         <div className={styles.right}>
           <div className={styles.calendar}>
             <div className={styles.calendarHeader}>
               <button className={styles.arrow} onClick={prevMonth}>&lt;</button>
               <div className={styles.monthContainer}>
-                <button
-                  className={styles.month}
-                  onClick={() => setShowYearSelection(!showYearSelection)}
-                >
+                <button className={styles.month} onClick={() => setShowYearSelection(!showYearSelection)}>
                   {currentMonthYear}
                 </button>
                 <button className={styles.todayBtn} onClick={goToToday}>Today</button>
@@ -449,53 +357,35 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
               <button className={styles.arrow} onClick={nextMonth}>&gt;</button>
             </div>
 
-            {/* Year selection dropdown */}
             {showYearSelection && (
               <div className={styles.yearSelect}>
                 {years.map((year) => (
-                  <div
-                    key={year}
-                    onClick={() => selectYear(year)}
-                    className={`${styles.yearOption} ${currentDate.getFullYear() === year ? styles.yearActive : ''}`}
-                  >
+                  <div key={year} onClick={() => selectYear(year)}
+                    className={`${styles.yearOption} ${currentDate.getFullYear() === year ? styles.yearActive : ''}`}>
                     {year}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Available days legend */}
             <div className={styles.calendarLegend}>
-              <div className={styles.legendItem}>
-                <span className={`${styles.legendDot} ${styles.legendDotAvailable}`}></span>
-                <span>Available</span>
-              </div>
-              <div className={styles.legendItem}>
-                <span className={`${styles.legendDot} ${styles.legendDotUnavailable}`}></span>
-                <span>Unavailable</span>
-              </div>
+              <div className={styles.legendItem}><span className={`${styles.legendDot} ${styles.legendDotAvailable}`}></span><span>Available</span></div>
+              <div className={styles.legendItem}><span className={`${styles.legendDot} ${styles.legendDotUnavailable}`}></span><span>Unavailable</span></div>
             </div>
 
-            <div className={styles.weekdays}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <div key={day}>{day}</div>
-              ))}
-            </div>
+            <div className={styles.weekdays}>{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d)=>(<div key={d}>{d}</div>))}</div>
 
             <div className={styles.days}>
-              {days.map((day, index) => (
-                <div
-                  key={index}
-                  onClick={() => day.isAvailable && !day.isPast ? selectDate(day) : null}
-                  className={`
-                    ${styles.day}
-                    ${day.isToday ? styles.today : ''}
-                    ${day.isSelected ? styles.selected : ''}
-                    ${day.isCurrentMonth ? styles.current : styles.other}
-                    ${day.isAvailable && !day.isPast ? styles.available : styles.unavailable}
-                    ${day.isPast ? styles.pastDate : ''}
-                  `}
-                >
+              {days.map((day, idx) => (
+                <div key={idx} onClick={() => day.isAvailable ? selectDate(day) : null}
+                  className={[
+                    styles.day,
+                    day.isToday ? styles.today : '',
+                    day.isSelected ? styles.selected : '',
+                    day.isCurrentMonth ? styles.current : styles.other,
+                    day.isAvailable ? styles.available : styles.unavailable,
+                    day.isPast ? styles.pastDate : ''
+                  ].join(' ')}>
                   {day.date.getDate()}
                 </div>
               ))}
@@ -504,34 +394,18 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
 
           <div className={styles.subjectSelect}>
             <h3 className={styles.subjectHeader}>Select Subject</h3>
-            <select 
-              value={selectedSubject} 
-              onChange={(e) => setSelectedSubject(e.target.value)} 
-              className={styles.subjectDropdown} 
-              required
-            >
+            <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}
+              className={styles.subjectDropdown} required>
               <option value="" disabled>Choose a subject</option>
-              {subjectOptions().map((subject: string, index: number) => (
-                <option key={`${subject}-${index}`} value={subject}>
-                  {subject}
-                </option>
-              ))}
+              {subjectOptions.map((s, index) => (<option key={`${s}-${index}`} value={s}>{s}</option>))}
             </select>
           </div>
         </div>
       </div>
 
-      {/* Footer buttons */}
       <div className={styles.footer}>
-        <button onClick={onClose} type="button" className={styles.btnCancel}>
-          CANCEL
-        </button>
-        <button 
-          onClick={confirmSchedule} 
-          type="button" 
-          className={styles.btnProceed}
-          disabled={isSubmitting}
-        >
+        <button onClick={onClose} type="button" className={styles.btnCancel}>CANCEL</button>
+        <button onClick={confirmSchedule} type="button" className={styles.btnProceed} disabled={isSubmitting}>
           {isSubmitting ? 'PROCESSING...' : 'PROCEED'}
         </button>
       </div>
