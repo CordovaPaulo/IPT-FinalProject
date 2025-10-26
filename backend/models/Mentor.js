@@ -22,6 +22,7 @@ const mentorSchema = new mongoose.Schema({
     aveRating: { type: Number, default: 0 },
     credentials: { type: [String], default: []  },
     credentialsFolderUrl: { type: String, default: null },
+    verified: { type: Boolean, default: false },
 }, { collection: 'mentors' });
 
 const Mentor = mongoose.model('Mentors', mentorSchema);
