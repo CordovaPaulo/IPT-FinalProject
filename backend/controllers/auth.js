@@ -911,6 +911,12 @@ exports.learnerAltSignup = async (req, res) => {
 
     await learner.save();
 
+    sendRoleConfirmationEmail(
+      { id: decoded.id, username: decoded.username, email: decoded.email },
+      'learner',
+      learner._id
+    ).catch(() => {});
+
     return res.status(201).json({
       message: 'Learner (alt) created successfully',
       learner: {
@@ -1075,6 +1081,12 @@ exports.mentorAltSignup = async (req, res) => {
     await User.updateOne({ _id: decoded.id }, { altRole: 'mentor' });
 
     await mentor.save();
+
+    sendRoleConfirmationEmail(
+      { id: decoded.id, username: decoded.username, email: decoded.email },
+      'mentor',
+      mentor._id
+    ).catch(() => {});
 
     return res.status(201).json({
       message: 'Mentor (alt) created successfully',

@@ -716,7 +716,8 @@ export default function LearnerPage() {
 
     const normalizeForSession = (items: any[] = []) =>
       items.map((s: any) => ({
-        id: Number(s.id) || 0,
+        // id: Number(s.id) || 0,
+        id: String(s.id ?? s._id ?? ''), // keep string id to avoid falsy 0
         subject: s.subject || '',
         mentor: {
           user: { name: s.mentor?.user?.name || s.mentor?.name || 'Unknown Mentor' },

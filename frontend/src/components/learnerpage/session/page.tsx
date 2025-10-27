@@ -19,7 +19,7 @@ import api from '@/lib/axios';
 import styles from './session.module.css';
 
 interface ScheduleItem {
-  id: number | string;
+  id: string;
   subject: string;
   mentor: {
     user: {
