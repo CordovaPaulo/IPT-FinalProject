@@ -158,7 +158,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
       setRecords(transformedRecords);
       console.log("Using data.schedForReview with feedback:", transformedRecords);
     } else {
-      setRecords(sampleData);
+      // setRecords(sampleData);
       console.log("Using sample data");
     }
   }, [schedForReview, data, existingFeedbacks]);

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import './reschedule.module.css';
+import styles from './reschedule.module.css';
 import api from '@/lib/axios';
 import notify from '@/lib/toast';
 
@@ -77,19 +77,19 @@ export default function RescheduleDialog({ sessionId, currentDate, currentTime, 
   };
 
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
-      <div className="wrapper">
-        <div className="upper-element">
+    <div className={styles['modal-overlay']} onClick={handleOverlayClick}>
+      <div className={styles.wrapper}>
+        <div className={styles['upper-element']}>
           <h1>Reschedule Session</h1>
         </div>
 
-        <div className="lower-element">
+        <div className={styles['lower-element']}>
           <p>Are you sure you want to reschedule this session?</p>
-          <p className="current-schedule">
+          <p className={styles['current-schedule']}>
             Current: {currentDate} at {currentTime}
           </p>
 
-          <div className="datepicker-wrapper">
+          <div className={styles['datepicker-wrapper']}>
             <label htmlFor="reschedule-datetime">Pick new date & time:</label>
             <DatePicker
               id="reschedule-datetime"
@@ -100,22 +100,22 @@ export default function RescheduleDialog({ sessionId, currentDate, currentTime, 
               timeIntervals={15}
               dateFormat="yyyy-MM-dd HH:mm"
               minDate={new Date()}
-              className="dp__input"
+              className={styles.dp__input}
               placeholderText="Select date and time"
             />
           </div>
 
-          <div className="button-container">
-            <button onClick={onClose} className="cancel-button">
+          <div className={styles['button-container']}>
+            <button onClick={onClose} className={styles['cancel-button']}>
               Cancel
             </button>
             <button 
               onClick={rescheduleSession} 
-              className="confirm-button"
+              className={styles['confirm-button']}
               disabled={isSubmitting || !selectedDate}
             >
               {isSubmitting ? (
-                <span className="loader"></span>
+                <span className={styles.loader}></span>
               ) : (
                 <span>Reschedule</span>
               )}
