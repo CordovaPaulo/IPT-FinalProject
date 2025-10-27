@@ -97,9 +97,9 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
   const sendReminder = async (item: SessionItem) => {
     try {
       const token = getCookie('MindMateToken');
-      
+      console.log(item);
       // Use your actual API endpoint for sending reminders
-      const response = await api.post(`/api/mentor/schedule/remind/${item.id}`, {}, {
+      const response = await api.post(`/api/mentor/remind-sched/${item.id}`, {}, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -162,16 +162,11 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
         hour12: false,
       });
 
-      // Use your actual API endpoint for rescheduling
       const response = await api.post(`/api/mentor/resched-sched/${selectedItem.id}`, {
         date: formattedDate,
         time: formattedTime,
       }, {
         withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
       });
 
       if (response.status === 200) {

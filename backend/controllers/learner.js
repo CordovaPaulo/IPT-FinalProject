@@ -5,6 +5,8 @@ const Schedule = require('../models/Schedule');
 const Feedback = require('../models/feedback');
 const { getValuesFromToken } = require('../service/jwt');
 const mailingController = require('./mailing');
+const pusher = require('../service/pusher');
+const { schedulePayload, feedbackPayload } = require('../utils/realtimePayload');
 
 exports.getAllMentors = async (req, res) => {
   try {
@@ -99,9 +101,19 @@ exports.setSchedule = async (req, res) => {
             schedule.time,
             schedule.location
           );
+
+          const mentorChannelId = String(mentor.userId);
+          const channelName = `private-user-${mentorChannelId}`;
+          const eventName = 'new-schedule';
+
+          const payload = schedulePayload(schedule, mentor, learner);
+          console.log('[Pusher] triggering', { channelName, eventName, payload });
+          await pusher.trigger(channelName, eventName, payload);
         } catch (mailErr) {
           console.error('Error sending booking notification email (learner->mentor):', mailErr);
         }
+
+        
         res.status(201).json(schedule);
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
@@ -163,6 +175,16 @@ exports.setFeedback = async (req, res) => {
 
         await feedback.save();
         await mentor.save();
+        // Pusher: notify new feedback
+        try {
+          const mentorDoc = await Mentor.findById(feedback.mentor || id);
+          const channelName = `private-user-${String(mentorDoc.userId)}`;
+          const fbPayload = feedbackPayload(feedback);
+          console.log('[Pusher] new-feedback ->', channelName);
+          await pusher.trigger(channelName, 'new-feedback', fbPayload);
+        } catch (emitErr) {
+          console.error('Pusher emit error (learner.setFeedback):', emitErr);
+        }
         return res.status(201).json(feedback);
     } catch (error) {
         console.error('setFeedback error:', error);
@@ -398,6 +420,18 @@ exports.cancelSched = async (req, res) => {
       console.error('Error sending cancellation email (learner):', mailErr);
     }
 
+    // Pusher: notify schedule cancellation
+    try {
+      const mentorDoc = await Mentor.findById(schedule.mentor);
+      const learnerDoc = await Learner.findById(schedule.learner);
+      const channelName = `private-user-${String(mentorDoc.userId)}`;
+      const payload = schedulePayload(schedule, mentorDoc, learnerDoc);
+      console.log('[Pusher] schedule-cancelled ->', channelName);
+      await pusher.trigger(channelName, 'schedule-cancelled', payload);
+    } catch (emitErr) {
+      console.error('Pusher emit error (learner.cancelSched):', emitErr);
+    }
+
     return res.status(200).json({ message: 'Schedule canceled', code: 200 });
   } catch (error) {
     console.error('cancelSched error:', error);
@@ -471,22 +505,14 @@ exports.reschedSched = async (req, res) => {
 
     // optional socket emit
     try {
-      const io = req.app?.get && req.app.get('io');
-      if (io) {
-        io.to(String(schedule.mentor)).emit('scheduleRescheduled', {
-          scheduleId: id,
-          rescheduledBy: String(learner._id),
-          old: oldValues,
-          updated: {
-            date: schedule.date,
-            time: schedule.time,
-            location: schedule.location,
-            subject: schedule.subject
-          }
-        });
-      }
+      const mentorDoc = await Mentor.findById(schedule.mentor);
+      const learnerDoc = await Learner.findById(schedule.learner);
+      const channelName = `private-user-${String(mentorDoc.userId)}`;
+      const payload = schedulePayload(schedule, mentorDoc, learnerDoc);
+      console.log('[Pusher] schedule-rescheduled ->', channelName);
+      await pusher.trigger(channelName, 'schedule-rescheduled', payload);
     } catch (emitErr) {
-      console.error('Socket emit error (learner.reschedSched):', emitErr);
+      console.error('Pusher emit error (learner.reschedSched):', emitErr);
     }
 
     // email mentor
@@ -638,6 +664,18 @@ MindMate Team`
       }
     } catch (mailErr) {
       console.error('acceptOffer notify mentor error:', mailErr);
+    }
+
+    // Pusher: notify offer acceptance
+    try {
+      const mentorDoc = await Mentor.findById(schedule.mentor);
+      const learnerDoc = await Learner.findById(schedule.learner);
+      const channelName = `private-user-${String(mentorDoc.userId)}`;
+      const payload = schedulePayload(schedule, mentorDoc, learnerDoc);
+      console.log('[Pusher] offer accepted -> new-schedule ->', channelName);
+      await pusher.trigger(channelName, 'new-schedule', payload);
+    } catch (emitErr) {
+      console.error('Pusher emit error (learner.acceptOffer):', emitErr);
     }
 
     return res.status(201).json({ message: 'Offer accepted. Schedule created.', schedule, code: 201 });
