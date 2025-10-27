@@ -246,9 +246,9 @@ export default function MentorInfoPage() {
         alert('Please select an image file');
         return;
       }
-      
-      if (file.size > 2000000) {
-        alert('File size should be less than 2MB');
+
+      if (file.size > (5 * 1024 * 1024)) {
+        alert('File size should be less than 5MB');
         return;
       }
       

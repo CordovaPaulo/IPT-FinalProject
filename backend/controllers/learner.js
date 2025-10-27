@@ -92,16 +92,9 @@ exports.setSchedule = async (req, res) => {
         });
 
         await schedule.save();
-        // optionally notify mentor about new booking by learner (email)
-        try {
-          await mailingController.sendRescheduleByLearner( // reuse reschedule-by-learner to notify mentor of a new booking might be odd
-            schedule._id,
-            learner._id,
-            schedule.date,
-            schedule.time,
-            schedule.location
-          );
 
+        // Notify mentor via Pusher only (no email)
+        try {
           const mentorChannelId = String(mentor.userId);
           const channelName = `private-user-${mentorChannelId}`;
           const eventName = 'new-schedule';
@@ -109,11 +102,10 @@ exports.setSchedule = async (req, res) => {
           const payload = schedulePayload(schedule, mentor, learner);
           console.log('[Pusher] triggering', { channelName, eventName, payload });
           await pusher.trigger(channelName, eventName, payload);
-        } catch (mailErr) {
-          console.error('Error sending booking notification email (learner->mentor):', mailErr);
+        } catch (emitErr) {
+          console.error('Pusher emit error (learner.setSchedule):', emitErr);
         }
 
-        
         res.status(201).json(schedule);
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
