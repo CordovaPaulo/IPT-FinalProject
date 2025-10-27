@@ -5,6 +5,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import styles from './RescheduleDialog.module.css';
 import notify from '@/lib/toast';
+import api from '@/lib/axios';
 
 interface RescheduleDialogProps {
   id: number;
@@ -33,19 +34,12 @@ export default function RescheduleDialog({ id, onClose, onReschedule }: Reschedu
       setIsSubmitting(true);
 
       // API call (same endpoint as Vue version)
-      const response = await fetch(`/api/resched/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          date: formattedDate,
-          time: formattedTime,
-        }),
+      const response = await api.post(`/api/mentor/resched-sched/${id}`, {
+        date: formattedDate,
+        time: formattedTime,
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         notify.success('Session rescheduled successfully!');
         onReschedule(selectedDate);
         onClose();

@@ -12,6 +12,7 @@ import LogoutComponent from '@/components/mentorpage/logout/page';
 import api from "@/lib/axios";
 import './mentor.css';
 import { toast } from 'react-toastify';
+import Pusher from 'pusher-js';
 
 // Interfaces
 interface User {
@@ -193,6 +194,7 @@ export default function MentorPage() {
   const [showAccessibilityNav, setShowAccessibilityNav] = useState(false);
   const [focusedTopbarIndex, setFocusedTopbarIndex] = useState(0);
   const [isTopbarFocused, setIsTopbarFocused] = useState(false);
+  const [mentorData, setMentorData] = useState<any | null>(null);
 
   // Refs
   const topbarRef = useRef<HTMLDivElement>(null);
@@ -211,6 +213,73 @@ export default function MentorPage() {
       user.program.toLowerCase().includes(searchLower)
     );
   });
+
+  // proxy code
+  useEffect(() => {
+    // Initialize only after the mentor's User id is available
+    if (!userData?.userId) return;
+
+    // Optional: enable client logs while testing
+    // @ts-ignore
+    Pusher.logToConsole = true;
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+      authEndpoint: `/api/pusher-auth`,
+    });
+
+    const channelName = `private-user-${userData.userId}`; // userId only
+    const channel = pusher.subscribe(channelName);
+
+    channel.bind('pusher:subscription_succeeded', () => {
+      console.log('[Pusher] subscribed:', channelName);
+    });
+    channel.bind('pusher:subscription_error', (status: any) => {
+      console.error('[Pusher] subscription error:', status);
+    });
+
+    channel.bind('new-schedule', (newSchedule: any) => {
+      console.log('[Pusher] new-schedule received:', newSchedule);
+      toast.info(`New schedule request from ${newSchedule.learner.name}!`);
+      const scheduleDate = new Date(newSchedule.date);
+      const today = new Date();
+      scheduleDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+
+      if (scheduleDate.getTime() === today.getTime()) {
+        setTodaySchedule(prev => [newSchedule, ...prev]);
+      } else {
+        setUpcomingSchedule(prev => [newSchedule, ...prev]);
+      }
+    });
+
+    channel.bind('schedule-rescheduled', (updated: any) => {
+      console.log('[Pusher] schedule-rescheduled', updated);
+      setTodaySchedule(prev => prev.filter(s => s.id !== updated.id));
+      setUpcomingSchedule(prev => prev.filter(s => s.id !== updated.id));
+      const d = new Date(updated.date); d.setHours(0,0,0,0);
+      const t = new Date(); t.setHours(0,0,0,0);
+      if (d.getTime() === t.getTime()) setTodaySchedule(prev => [updated, ...prev]);
+      else if (d > t) setUpcomingSchedule(prev => [updated, ...prev]);
+    });
+
+    channel.bind('schedule-cancelled', (cancelled: any) => {
+      console.log('[Pusher] schedule-cancelled', cancelled);
+      setTodaySchedule(prev => prev.filter(s => s.id !== cancelled.id));
+      setUpcomingSchedule(prev => prev.filter(s => s.id !== cancelled.id));
+    });
+
+    channel.bind('new-feedback', (fb: any) => {
+      console.log('[Pusher] new-feedback', fb);
+      toast.info(`New feedback received!`);
+      setFeedbacks(prev => [fb, ...prev]);
+    });
+
+    return () => {
+      pusher.unsubscribe(channelName);
+      pusher.disconnect();
+    };
+  }, [userData.userId]);
 
   // API Functions
   const fetchUserData = async () => {

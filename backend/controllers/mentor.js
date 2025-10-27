@@ -8,11 +8,41 @@ const { uploadFile } = require('../service/drive');
 const stream = require('stream');
 const mailingController = require('./mailing'); // added
 const uploadController = require('./upload');   // already present
+const pusher = require('../service/pusher');
+const { schedulePayload } = require('../utils/realtimePayload');
 
 function bufferToStream(buffer) {
   const pass = new stream.PassThrough();
   pass.end(buffer);
   return pass;
+}
+
+// Parse a date-only string into a Date at local midnight.
+// Supports 'YYYY-MM-DD' and 'MM/DD/YYYY'.
+function parseDateOnly(input) {
+  if (!input) return null;
+  if (input instanceof Date && !isNaN(input)) {
+    const d = new Date(input);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  if (typeof input === 'string') {
+    let d = new Date(input);
+    if (isNaN(d)) {
+      // try MM/DD/YYYY
+      const m = input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) {
+        const mm = Number(m[1]) - 1;
+        const dd = Number(m[2]);
+        const yyyy = Number(m[3]);
+        d = new Date(yyyy, mm, dd);
+      }
+    }
+    if (isNaN(d)) return null;
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  return null;
 }
 
 exports.getAllLearners = async (req, res) => {
@@ -69,7 +99,14 @@ exports.setSchedule = async (req, res) => {
         return res.status(400).json({ message: 'Time must be between 08:00 and 20:00', code: 400 });
     }
 
-    if (date < new Date().toISOString().split('T')[0]) {
+    // filepath: c:\Users\new_u\OneDrive\Desktop\IPT-FinalProject\backend\controllers\mentor.js
+    const schedDate = parseDateOnly(date);
+    if (!schedDate) {
+        return res.status(400).json({ message: 'Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY', code: 400 });
+    }
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (schedDate < today) {
         return res.status(400).json({ message: 'Date must be in the future', code: 400 });
     }
 
@@ -77,12 +114,25 @@ exports.setSchedule = async (req, res) => {
         const schedule = new Schedule({
             learner: learner.userId,
             mentor: decoded.id,
-            date,
+            date: schedDate,
             time,
             location,
             subject
         });
         await schedule.save();
+
+        // Notify learner via Pusher
+        try {
+          const mentorDoc = await Mentor.findById(schedule.mentor);
+          const learnerDoc = await Learner.findById(schedule.learner);
+          const channelName = `private-user-${String(learnerDoc.userId)}`;
+          const payload = schedulePayload(schedule, mentorDoc, learnerDoc);
+          console.log('[Pusher] mentor->learner new-schedule ->', channelName);
+          await pusher.trigger(channelName, 'new-schedule', payload);
+        } catch (emitErr) {
+          console.error('Pusher emit error (mentor.setSchedule):', emitErr);
+        }
+
         res.status(201).json(schedule);
     } catch (error) {
         res.status(500).json({ message: 'Server error', code: 500 });
@@ -183,6 +233,18 @@ exports.cancelSched = async (req, res) => {
             console.error('Socket emit error (cancelSched):', emitErr);
         }
 
+        // Notify learner via Pusher
+        try {
+          const mentorDoc = await Mentor.findById(schedule.mentor);
+          const learnerDoc = await Learner.findById(schedule.learner);
+          const channelName = `private-user-${String(learnerDoc.userId)}`;
+          const payload = schedulePayload(schedule, mentorDoc, learnerDoc);
+          console.log('[Pusher] mentor->learner schedule-cancelled ->', channelName);
+          await pusher.trigger(channelName, 'schedule-cancelled', payload);
+        } catch (emitErr) {
+          console.error('Pusher emit error (mentor.cancelSched):', emitErr);
+        }
+
         res.status(200).json({ message: 'Schedule canceled', mailing: mailResult, code: 200 });
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
@@ -237,8 +299,17 @@ exports.reschedSched = async (req, res) => {
             return res.status(400).json({ message: 'Time must be between 08:00 and 20:00', code: 400 });
         }
 
-        if (date && date < new Date().toISOString().split('T')[0]) {
-            return res.status(400).json({ message: 'Date must be in the future', code: 400 });
+        let newDateOnly = null;
+        if (date) {
+            newDateOnly = parseDateOnly(date);
+            if (!newDateOnly) {
+                return res.status(400).json({ message: 'Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY', code: 400 });
+            }
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            if (newDateOnly < today) {
+                return res.status(400).json({ message: 'Date must be in the future', code: 400 });
+            }
         }
 
         // Keep old values for notification
@@ -250,7 +321,7 @@ exports.reschedSched = async (req, res) => {
         };
 
         // Apply updates
-        if (date) schedule.date = new Date(date);
+        if (newDateOnly) schedule.date = newDateOnly;
         if (time) schedule.time = time;
         if (location) schedule.location = location;
         if (subject) schedule.subject = subject;
@@ -295,6 +366,18 @@ exports.reschedSched = async (req, res) => {
        } catch (mailErr) {
          console.error('Error sending reschedule email (mentor):', mailErr);
        }
+
+        // Notify learner via Pusher
+        try {
+          const mentorDoc = await Mentor.findById(schedule.mentor);
+          const learnerDoc = await Learner.findById(schedule.learner);
+          const channelName = `private-user-${String(learnerDoc.userId)}`;
+          const payload = schedulePayload(schedule, mentorDoc, learnerDoc);
+          console.log('[Pusher] mentor->learner schedule-rescheduled ->', channelName);
+          await pusher.trigger(channelName, 'schedule-rescheduled', payload);
+        } catch (emitErr) {
+          console.error('Pusher emit error (mentor.reschedSched):', emitErr);
+        }
 
         res.status(200).json({ message: 'Schedule rescheduled', schedule, code: 200 });
     } catch (error) {
