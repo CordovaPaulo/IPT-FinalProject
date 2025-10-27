@@ -4,10 +4,12 @@
 }
 
 .dashboard-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--white);
+  /* remove sticky behavior so the "Dashboard Overview" text scrolls normally */
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+  /* keep existing visual styles (if any) */
+  background: transparent;
   padding: 1rem 0;
   margin-top: 0;
   margin-bottom: 2rem;
