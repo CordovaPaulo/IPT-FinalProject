@@ -583,8 +583,10 @@
 @media (max-width: 1200px) {
   .booking {
     width: 92%;
-    max-width: 900px;
+    max-width: 852px;
     max-height: 92vh;
+    margin-left: 83%;
+
   }
   
   .content {
@@ -675,6 +677,8 @@
     width: 96%;
     max-width: 700px;
     max-height: 96vh;
+    margin-left: 93%;
+
   }
   
   .header {
@@ -770,6 +774,7 @@
     max-height: 98vh;
     border-radius: 0.5rem;
     margin: 1%;
+
   }
   
   .header {
@@ -847,9 +852,10 @@
 
 @media (max-width: 480px) {
   .booking {
-    width: 96%;
-    max-height: 96vh;
-    margin: 2%;
+    width: 90%;
+    max-height: 91vh;
+    margin-left: 93%;
+
   }
   
   .content {

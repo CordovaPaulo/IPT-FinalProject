@@ -13,7 +13,7 @@ export default function Home() {
   };
 
   const goToSignup = () => {
-    router.push('/auth/signup');
+    router.push('/auth/login');
   };
 
   return (

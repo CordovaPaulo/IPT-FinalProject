@@ -195,21 +195,23 @@
 /* Tablet Responsive Design */
 @media (max-width: 1024px) {
   .mainSearchContainer {
-    justify-content: center;
+    /* keep search on the right */
+    justify-content: flex-end !important;
     margin-bottom: 1.25rem;
     padding: 0 1rem;
   }
 
   .mainSearchInput {
-    width: 100%;
-    max-width: 500px;
+    /* don't stretch full width so container can right-align it */
+    width: auto;
+    max-width: 320px;
     margin-right: 0.75rem;
-    flex: 1;
+    flex: 0 0 auto;
   }
 
   .mainSearchInput:focus {
-    width: 100%;
-    max-width: 500px;
+    width: auto;
+    max-width: 360px;
   }
 
   .mainUserGrid {
@@ -221,26 +223,23 @@
 
 /* Mobile Responsive Design */
 @media (max-width: 768px) {
-  .mainWrapper {
-    padding: 1rem;
-  }
-
   .mainSearchContainer {
-    justify-content: center;
+    /* keep search on the right */
+    justify-content: flex-end !important;
     margin-bottom: 1rem;
     padding: 0 0.5rem;
   }
 
   .mainSearchInput {
-    width: 100%;
-    max-width: 400px;
+    width: auto;
+    max-width: 280px;
     margin-right: 0.75rem;
-    flex: 1;
+    flex: 0 0 auto;
   }
 
   .mainSearchInput:focus {
-    width: 100%;
-    max-width: 400px;
+    width: auto;
+    max-width: 300px;
   }
 
   .mainUserGrid {
@@ -248,124 +247,43 @@
     gap: 1rem;
     padding: 0 0.5rem;
   }
-
-  .mainUserCard {
-    border-radius: 8px;
-  }
-
-  .mainUpperElement,
-  .mainLowerElement {
-    padding: 1rem;
-  }
-
-  .mainUserCard img {
-    width: 70px;
-    height: 70px;
-  }
-
-  .mainUserCard h1 {
-    font-size: 0.9rem;
-  }
-
-  .mainLowerElement p {
-    font-size: 0.75rem;
-  }
-
-  .mainSeeMoreBtn {
-    padding: 0.4rem 1rem;
-    font-size: 0.75rem;
-  }
-
-  .mainViewPopup {
-    max-width: 95%;
-    max-height: 95vh;
-  }
 }
 
 /* Small Mobile Responsive Design */
 @media (max-width: 480px) {
-  .mainWrapper {
-    padding: 0.75rem;
-    width: 100%;
-  }
-
   .mainSearchContainer {
-    justify-content: center;
+    /* keep search on the right */
+    justify-content: flex-end !important;
     margin-bottom: 1rem;
     padding: 0 0.25rem;
   }
 
   .mainSearchInput {
-    width: 100%;
-    max-width: 320px;
+    width: auto;
+    max-width: 240px;
     margin-right: 0.5rem;
     font-size: 0.85rem;
     padding: 0.4rem 0.875rem;
+    flex: 0 0 auto;
   }
 
   .mainSearchInput:focus {
-    width: 100%;
-    max-width: 320px;
-  }
-
-  .mainSearchButton {
-    width: 32px;
-    height: 32px;
-  }
-
-  .mainUserGrid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 0.75rem;
-    padding: 0 0.25rem;
-  }
-
-  .mainUserCard img {
-    width: 60px;
-    height: 60px;
-  }
-
-  .mainUserCard h1 {
-    font-size: 0.85rem;
-    margin: 0.5rem 0 0.3rem;
-  }
-
-  .mainUpperElement,
-  .mainLowerElement {
-    padding: 0.875rem;
-  }
-
-  .mainStars {
-    margin: 0.3rem 0;
-  }
-
-  .mainFilledStar {
-    font-size: 1.2rem;
-  }
-
-  .mainSeeMoreBtn {
-    margin-top: 0.75rem;
-    padding: 0.35rem 0.875rem;
-    font-size: 0.7rem;
-  }
-
-  .mainButtonGroup {
-    gap: 0.3rem;
-    width: 80%;
+    width: auto;
+    max-width: 260px;
   }
 }
 
 /* Extra Small Mobile Responsive Design */
 @media (max-width: 360px) {
-  .mainUserGrid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 0.6rem;
+  .mainSearchContainer {
+    justify-content: flex-end !important;
   }
 
   .mainSearchInput {
-    max-width: 280px;
+    max-width: 220px;
   }
 
   .mainSearchInput:focus {
-    max-width: 280px;
+    max-width: 240px;
   }
 }
