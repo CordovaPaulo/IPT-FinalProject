@@ -52,12 +52,116 @@
   transform: scale(1.05);
 }
 
+/* Desktop default (keep existing or slightly tighter) */
 .userGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1.3rem;
   width: 100%;
   max-width: 1100px;
+}
+
+/* Tablet Responsive Design - match mentor behaviour: slightly smaller cards */
+@media (max-width: 1024px) {
+  .searchContainer {
+    justify-content: flex-end !important;
+    margin-bottom: 1.25rem;
+    padding: 0 1rem;
+  }
+
+  .searchInput {
+    width: auto;
+    max-width: 320px;
+    margin-right: 0.75rem;
+    flex: 0 0 auto;
+  }
+
+  .searchInput:focus {
+    width: auto;
+    max-width: 360px;
+  }
+
+  .userGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.25rem;
+    padding: 0 1rem;
+  }
+}
+
+/* Mobile Responsive Design - match mentor behaviour: smaller cards */
+@media (max-width: 768px) {
+  .searchContainer {
+    justify-content: flex-end !important;
+    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+  }
+
+  .searchInput {
+    width: auto;
+    max-width: 280px;
+    margin-right: 0.75rem;
+    flex: 0 0 auto;
+  }
+
+  .searchInput:focus {
+    width: auto;
+    max-width: 300px;
+  }
+
+  .userGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    padding: 0 0.5rem;
+  }
+}
+
+/* Small Mobile Responsive Design */
+@media (max-width: 480px) {
+  .searchContainer {
+    justify-content: flex-end !important;
+    margin-bottom: 1rem;
+    padding: 0 0.25rem;
+  }
+
+  .searchInput {
+    width: auto;
+    max-width: 240px;
+    margin-right: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.875rem;
+    flex: 0 0 auto;
+  }
+
+  .searchInput:focus {
+    width: auto;
+    max-width: 260px;
+  }
+
+  .userGrid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.9rem;
+    padding: 0 0.25rem;
+  }
+}
+
+.viewPopup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
+}
+
+.stars {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0.1rem 0;
+}
+
+.filledStar {
+  font-size: 1.1rem;
 }
 
 .userCard {
@@ -158,97 +262,4 @@
 .lowerElement button:hover {
   background: linear-gradient(135deg, #2b737e, #0b2b31);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.viewPopup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2000;
-}
-
-.stars {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.15rem;
-  margin: 0.1rem 0;
-}
-
-.filledStar {
-  font-size: 1.1rem;
-}
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .userGrid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 1rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .userGrid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 0.6rem;
-  }
-
-  .searchContainer {
-    justify-content: flex-end !important;
-  }
-
-  .searchInput {
-    width: 200px;
-  }
-
-  .searchInput:focus {
-    width: 250px;
-  }
-
-  .userCard img {
-    width: 60px;
-    height: 60px;
-  }
-
-  .upperElement {
-    padding: 0.7rem;
-  }
-
-  .lowerElement {
-    padding: 0.7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .userGrid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.5rem;
-  }
-
-  .userCard h1 {
-    font-size: 0.8rem;
-  }
-
-  .lowerElement p {
-    font-size: 0.7rem;
-  }
-
-  .lowerElement button {
-    padding: 0.3rem 0.8rem;
-    font-size: 0.7rem;
-  }
-
-  .searchInput {
-    width: 180px;
-  }
-
-  .searchInput:focus {
-    width: 200px;
-  }
-
-  .userCard img {
-    width: 50px;
-    height: 50px;
-  }
 }

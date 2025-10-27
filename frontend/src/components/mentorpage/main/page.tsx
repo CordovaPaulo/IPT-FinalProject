@@ -260,24 +260,15 @@ export default function MainComponent({
         {filteredUsers.length > 0 ? (
           filteredUsers.map((user, index) => (
             <div 
-            key={user.id} 
-            className={styles.mainUserCard}
-            ref={el => userCardRefs.current[index] = el}
-            tabIndex={focusedIndex === index ? 0 : -1}
-            style={{
-              border: focusedIndex === index ? '2px solid #6b7280' : 'none',
-              boxShadow: focusedIndex === index ? '0 2px 2px rgba(146, 145, 145, 0.1)' : 'none',
-              cursor: 'pointer'
-            }}
-            onClick={() => openView(user.id)}
-            onKeyDown={(e) => {
-              // Handle Enter key on individual cards
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                openView(user.id);
-              }
-            }}
-          >
+              key={user.id} 
+              className={styles.mainUserCard}
+              ref={el => userCardRefs.current[index] = el}
+              tabIndex={focusedIndex === index ? 0 : -1}
+              style={{
+                border: focusedIndex === index ? '2px solid #6b7280' : 'none',
+                boxShadow: focusedIndex === index ? '0 2px 2px rgba(146, 145, 145, 0.1)' : 'none'
+              }}
+            >
               <div className={styles.mainUpperElement}>
                 <img
                   src={getImageUrl(user.image)}
