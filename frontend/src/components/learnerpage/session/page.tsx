@@ -69,20 +69,49 @@ export default function SessionComponent({
   const [todaySchedule, setTodaySchedule] = useState<ScheduleItem[]>([]);
   const [upcommingSchedule, setUpcommingSchedule] = useState<ScheduleItem[]>([]);
   const [selectedMentorId, setSelectedMentorId] = useState<number | null>(null);
+  const [mentorFilesLocal, setMentorFilesLocal] = useState<Array<{
+    id: number | string;
+    file_name: string;
+    file_id: string;
+    owner_id: number | string;
+  }>>([]);
+  const [isFetchingFiles, setIsFetchingFiles] = useState(false);
   const [reschedIsOpen, setReschedIsOpen] = useState(false);
   const [selectedSessionID, setSelectedSessionID] = useState<number | string | null>(null);
 
   // NEW: confirmation before opening reschedule dialog
   const [showRescheduleConfirmation, setShowRescheduleConfirmation] = useState(false);
 
-  const filteredFiles = mentFiles?.files?.filter(file => 
-    String(file.owner_id) === String(selectedMentorId)
-  ) || [];
+  // Use local fetched files first, fallback to prop mentFiles
+  const filteredFiles = (mentorFilesLocal.length > 0
+    ? mentorFilesLocal
+    : (mentFiles?.files || [])
+  ).filter(file => String(file.owner_id) === String(selectedMentorId)) || [];
 
-  const openFileModal = (files: any[], event: React.MouseEvent, mentorId: number) => {
+  const openFileModal = async (event: React.MouseEvent, mentorId: number | string) => {
     event.stopPropagation();
-    setSelectedMentorId(mentorId);
+    setSelectedMentorId(Number(mentorId) || mentorId);
+    setMentorFilesLocal([]); // clear previous
     setIsFileModalOpen(true);
+    setIsFetchingFiles(true);
+
+    try {
+      const res = await api.get(`/api/learner/learning-mats/${mentorId}`, { withCredentials: true });
+      const files = (res.data?.files || []).map((f: any) => ({
+        id: f.id ?? f.file_id ?? f.fileId ?? 0,
+        file_name: f.file_name || f.name || f.fileName || '',
+        file_id: f.file_id || f.id || '',
+        owner_id: f.owner_id ?? String(mentorId),
+        // include the direct links returned by backend so we can use them directly
+        webViewLink: f.webViewLink || f.web_view_link || '',
+        webContentLink: f.webContentLink || f.web_content_link || ''
+      }));
+      setMentorFilesLocal(files);
+    } catch (err) {
+      console.error('Error fetching mentor files:', err);
+    } finally {
+      setIsFetchingFiles(false);
+    }
   };
 
   const closeFileModal = () => {
@@ -149,28 +178,49 @@ export default function SessionComponent({
     }
   };
 
-  const previewFile = async (fileId: string) => {
+  const previewFile = async (linkOrId: string) => {
     try {
-      const response = await fetch(`/api/preview/file/${fileId}`);
+      // If we already received a direct webViewLink, open it directly
+      if (linkOrId && (linkOrId.startsWith('http://') || linkOrId.startsWith('https://'))) {
+        window.open(linkOrId, '_blank');
+        return;
+      }
+
+      // Fallback: call backend preview endpoint which returns webViewLink
+      const response = await fetch(`/api/preview/file/${linkOrId}`);
       const data = await response.json();
-      window.open(data.webViewLink, '_blank');
+      if (data?.webViewLink) window.open(data.webViewLink, '_blank');
     } catch (error) {
       console.error('Error previewing file:', error);
     }
   };
 
-  const downloadFile = async (fileId: string, fileName: string) => {
+  const downloadFile = async (linkOrId: string, fileName?: string) => {
     try {
-      const response = await fetch(`/api/download/file/${fileId}`);
+      // If we have a direct download link, use it
+      if (linkOrId && (linkOrId.startsWith('http://') || linkOrId.startsWith('https://'))) {
+        // Create an anchor and click it to initiate download (works for direct links like webContentLink)
+        const a = document.createElement('a');
+        a.href = linkOrId;
+        if (fileName) a.download = fileName;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
+      // Fallback: call backend download endpoint which streams the file
+      const response = await fetch(`/api/download/file/${linkOrId}`);
       const blob = await response.blob();
-      
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      if (fileName) a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading file:', error);
     }
@@ -352,7 +402,7 @@ export default function SessionComponent({
                           size="2x"
                           style={{ color: '#f72197', cursor: 'pointer' }}
                           className={styles['file-icon']}
-                          onClick={(e) => openFileModal(item.files || [], e, item.mentor?.ment_inf_id || 0)}
+                          onClick={(e) => openFileModal(e, item.mentor?.id ?? item.mentor?.ment_inf_id ?? 0)}
                         />
                       </div>
                     </div>
@@ -435,7 +485,7 @@ export default function SessionComponent({
                           size="2x"
                           style={{ color: '#f72197', cursor: 'pointer' }}
                           className={styles['file-icon']}
-                          onClick={(e) => openFileModal(item.files || [], e, item.mentor?.ment_inf_id || 0)}
+                          onClick={(e) => openFileModal(e, item.mentor?.id ?? item.mentor?.ment_inf_id ?? 0)}
                         />
                       </div>
                     </div>
@@ -458,11 +508,13 @@ export default function SessionComponent({
               </button>
             </div>
             <div className={styles['modal-body']}>
-              {filteredFiles.length === 0 ? (
-                <div className={styles['no-files']}>
-                  <p>No files available from this mentor</p>
-                </div>
+              {isFetchingFiles ? (
+                <div>Loading files...</div>
               ) : (
+                <div>
+                  {(filteredFiles || []).length === 0 ? (
+                    <div>No files available</div>
+                  ) : (
                 filteredFiles.map((file) => (
                   <div key={file.id} className={styles['file-item']}>
                     <FontAwesomeIcon icon={faFile} className={styles['file-icon']} />
@@ -470,14 +522,14 @@ export default function SessionComponent({
                     <div className={styles['file-actions']}>
                       <button
                         className={[styles['modal-button'], styles['preview']].join(' ')}
-                        onClick={() => previewFile(file.file_id)}
+                        onClick={() => previewFile(file.webViewLink || file.file_id)}
                         title="Preview"
                       >
                         <FontAwesomeIcon icon={faEye} />
                       </button>
                       <button
                         className={[styles['modal-button'], styles['download']].join(' ')}
-                        onClick={() => downloadFile(file.file_id, file.file_name)}
+                        onClick={() => downloadFile(file.webContentLink || file.file_id, file.file_name)}
                         title="Download"
                       >
                         <FontAwesomeIcon icon={faDownload} />
@@ -485,6 +537,9 @@ export default function SessionComponent({
                     </div>
                   </div>
                 ))
+                )}
+                  {/* <button onClick={closeFileModal}>Close</button> */}
+                </div>
               )}
             </div>
           </div>

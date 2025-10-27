@@ -7,6 +7,7 @@ const { getValuesFromToken } = require('../service/jwt');
 const mailingController = require('./mailing');
 const pusher = require('../service/pusher');
 const { schedulePayload, feedbackPayload } = require('../utils/realtimePayload');
+const uploadController = require('./upload');
 
 exports.getAllMentors = async (req, res) => {
   try {
@@ -673,6 +674,55 @@ MindMate Team`
     return res.status(201).json({ message: 'Offer accepted. Schedule created.', schedule, code: 201 });
   } catch (error) {
     console.error('acceptOffer error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
+
+exports.getMentorLearningMaterials = async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ message: 'Mentor id is required', code: 400 });
+  }
+
+  try {
+    // Resolve mentor by either _id or userId to be flexible
+    const mentor = await Mentor.findOne({ $or: [{ _id: id }, { userId: id }] });
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    }
+
+    // Need the username used for Drive folder naming (uploads use User.username)
+    let user = null;
+    if (mentor.userId) {
+      user = await User.findOne({ _id: mentor.userId }).select('username');
+    }
+
+    const username = user?.username;
+    if (!username) {
+      return res.status(404).json({ message: 'Associated user (for mentor) not found or missing username', code: 404 });
+    }
+
+    // Delegate to upload controller helper which lists files under learning_materials/{username}
+    const data = await uploadController.listDriveFilesForUser(username, 'learning_materials');
+
+    const files = (data.files || []).map(f => ({
+      id: f.id || f.fileId || null,
+      file_name: f.name || f.fileName || null,
+      file_id: f.id || f.fileId || null,
+      webViewLink: f.webViewLink || null,
+      webContentLink: f.webContentLink || null,
+      size: f.size || null,
+      md5Checksum: f.md5Checksum || null,
+      owner_id: String(mentor._id)
+    }));
+
+    return res.status(200).json({
+      folderId: data.folderId || null,
+      folderPath: data.folderPath || null,
+      files
+    });
+  } catch (error) {
+    console.error('getMentorLearningMaterials error:', error);
     return res.status(500).json({ message: error.message, code: 500 });
   }
 };

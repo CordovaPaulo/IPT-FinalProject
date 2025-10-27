@@ -56,12 +56,14 @@ interface Schedule {
   subject: string;
   location: string;
   mentor: {
+    id: string;
     name: string;
     program: string;
     yearLevel: string;
     image: string;
   };
   learner: {
+    id: string;
     name: string;
     program: string;
     yearLevel: string;
@@ -721,7 +723,12 @@ export default function LearnerPage() {
         subject: s.subject || '',
         mentor: {
           user: { name: s.mentor?.user?.name || s.mentor?.name || 'Unknown Mentor' },
-          ment_inf_id: Number(s.mentor?.ment_inf_id ?? s.mentor?.id ?? 0)
+          ment_inf_id: Number(s.mentor?.ment_inf_id ?? s.mentor?.id ?? 0),
+          id: String(s.mentor?.id ?? s.mentor?.ment_inf_id ?? '') // <-- explicit mentor id
+        },
+        learner: {
+          id: String(s.learner?.id ?? s.learner?._id ?? ''), // <-- explicit learner id
+          name: s.learner?.name || ''
         },
         date: s.date ? String(s.date) : '',
         time: s.time || '',
