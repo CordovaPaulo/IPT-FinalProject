@@ -87,6 +87,8 @@ const LearnerInfo = () => {
   // State declarations
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 2;
+  // success modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   // Form data state
   const [gender, setGender] = useState('');
@@ -822,7 +824,8 @@ const LearnerInfo = () => {
       });
       
       console.log('Learner signup successful:', response.data);
-      router.replace('/auth/login');
+      // show modal prompting user to verify email, then redirect on close
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Learner signup error:', error);
       alert('There was an error submitting your information. Please try again.');
@@ -1574,6 +1577,57 @@ const LearnerInfo = () => {
           )}
         </button>
       </div>
+
+      {/* Success modal */}
+      {showSuccessModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Registration successful"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 9999
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              padding: 24,
+              borderRadius: 8,
+              width: '90%',
+              maxWidth: 480,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+              textAlign: 'center'
+            }}
+          >
+            <h2 style={{ marginTop: 0, color: '#000' }}>Registration Successful</h2>
+            <p style={{ color: '#000' }}>Please verify your account via the link we just sent to your email. You will be redirected to the login page after closing this message.</p>
+            <div style={{ marginTop: 18 }}>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  router.replace('/auth/login');
+                }}
+                style={{
+                  padding: '10px 18px',
+                  background: '#2563eb',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer'
+                }}
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
