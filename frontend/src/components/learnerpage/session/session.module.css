@@ -323,7 +323,7 @@
   border: 2px solid #e0e0e0;
   max-height: 80vh;
   overflow-y: auto;
-  margin-left: 18rem;
+  margin-left: 18rem;  /* maintains position in full screen */
 }
 
 .modal-header {
@@ -545,6 +545,7 @@
     padding: 0 0.3rem 0.5rem 0.3rem;
   }
   .modal-content {
+    margin-left: 0;  /* removes the left margin for responsive */
     width: 95%;
   }
 }
@@ -565,6 +566,7 @@
   }
 
   .modal-content {
+    margin-left: 0;
     width: 95%;
     max-width: 400px;
   }
