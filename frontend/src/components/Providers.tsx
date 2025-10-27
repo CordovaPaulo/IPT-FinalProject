@@ -13,7 +13,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <RouteAnnouncer />
         {children}
         {/* Floating accessibility button + settings dialog */}
-        <AccessibilitySettings />
+        {/* <AccessibilitySettings /> */}
       </AccessibilityProvider>
     // </AuthProvider>
   );
