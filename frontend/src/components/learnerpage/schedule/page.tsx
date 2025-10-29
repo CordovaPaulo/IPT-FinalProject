@@ -60,10 +60,10 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
   } = info || {};
 
   // Helper functions
-  const subjectOptions = useMemo(() => {
+  const subjectOptions: string[] = useMemo(() => {
     try {
-      if (Array.isArray(mentorSubjects)) return mentorSubjects;
-      if (typeof mentorSubjects === 'string') return JSON.parse(mentorSubjects);
+      if (Array.isArray(mentorSubjects)) return mentorSubjects as string[];
+      if (typeof mentorSubjects === 'string') return JSON.parse(mentorSubjects) as string[];
       return [];
     } catch (e) {
       console.error("Error parsing subjects:", e);

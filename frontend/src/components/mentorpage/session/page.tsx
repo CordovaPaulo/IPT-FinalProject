@@ -43,6 +43,8 @@ interface SessionItem {
 interface SessionComponentProps {
   schedule?: SessionItem[];
   upcomingSchedule?: SessionItem[];
+  userData?: any; // allow mentor page to pass user data
+  onScheduleCreated?: () => Promise<void>;
 }
 
 // Helper to get cookie value
@@ -53,10 +55,10 @@ function getCookie(name: string) {
   return null;
 }
 
-export default function SessionComponent({ schedule = [], upcomingSchedule = [] }: SessionComponentProps) {
+export default function SessionComponent({ schedule = [], upcomingSchedule = [], userData, onScheduleCreated }: SessionComponentProps) {
   const [todaySchedule, setTodaySchedule] = useState<SessionItem[]>([]);
   const [upcommingSchedule, setUpcommingSchedule] = useState<SessionItem[]>([]);
-  const [selectedSessionID, setSelectedSessionID] = useState<string | null>(null); // Changed to string
+  const [selectedSessionID, setSelectedSessionID] = useState<string | null>(null); // keep string|null
   const [activePopup, setActivePopup] = useState<{ type: string | null; index: number | null }>({ type: null, index: null });
   const [showRemindConfirmation, setShowRemindConfirmation] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -268,7 +270,7 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
                       <h1>{item.subject}</h1>
                       <div 
                         className={styles.sessionEllipsisContainer} 
-                        ref={el => todayPopupRefs.current[index] = el}
+                        ref={el => { todayPopupRefs.current[index] = el; }} // return void
                       >
                         <FontAwesomeIcon 
                           icon={faEllipsisH}
@@ -339,7 +341,7 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
                       <h1>{item.subject}</h1>
                       <div 
                         className={styles.sessionEllipsisContainer} 
-                        ref={el => upcomingPopupRefs.current[index] = el}
+                        ref={el => { upcomingPopupRefs.current[index] = el; }} // return void
                       >
                         <FontAwesomeIcon 
                           icon={faEllipsisH}
@@ -472,7 +474,6 @@ export default function SessionComponent({ schedule = [], upcomingSchedule = [] 
           id={selectedItem.id}
           onClose={() => setReschedIsOpen(false)}
           onReschedule={handleReschedule}
-          currentSession={selectedItem}
         />
       )}
     </div>

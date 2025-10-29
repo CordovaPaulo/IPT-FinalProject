@@ -988,7 +988,7 @@ export default function LearnerPage() {
       {isEdit && (
         <div className={styles['edit-information-popup']}>
           <EditInformation 
-            UserData={userData}
+            userData={userData}   // <- changed prop name to match component
             onClose={() => setIsEdit(false)}
             onUpdateUserData={handleUpdateUserData}
           />

@@ -34,8 +34,9 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
-  const [userDeetsForSched, setUserDeetsForSched] = useState<any[]>([]);
-  
+  // was any[] but we set an object - use any (object) for schedule data
+  const [userDeetsForSched, setUserDeetsForSched] = useState<any>(null);
+
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: '',
     year: '',
@@ -127,7 +128,6 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
         mentorAvailability: mentor.availability || [],
         mentorProfilePic: mentor.image || '',
         mentorSubjects: mentor.subjects || [],
-        // Add more fields from userInfo if needed
       };
       
       setUserDeetsForSched(scheduleData);
@@ -360,7 +360,7 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
         )}
 
         {/* Schedule Modal - This will appear when showSchedule is true */}
-        {showSchedule && (
+        {showSchedule && userDeetsForSched && (
           <div className={styles.popupOverlay}>
             <Schedule
               info={userDeetsForSched}

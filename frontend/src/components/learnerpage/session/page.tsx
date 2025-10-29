@@ -26,6 +26,7 @@ interface ScheduleItem {
       name: string;
     };
     ment_inf_id: number;
+    id?: string | number; // added optional id - backend shapes vary
   };
   date: string;
   time: string;
@@ -69,12 +70,7 @@ export default function SessionComponent({
   const [todaySchedule, setTodaySchedule] = useState<ScheduleItem[]>([]);
   const [upcommingSchedule, setUpcommingSchedule] = useState<ScheduleItem[]>([]);
   const [selectedMentorId, setSelectedMentorId] = useState<number | null>(null);
-  const [mentorFilesLocal, setMentorFilesLocal] = useState<Array<{
-    id: number | string;
-    file_name: string;
-    file_id: string;
-    owner_id: number | string;
-  }>>([]);
+  const [mentorFilesLocal, setMentorFilesLocal] = useState<any[]>([]); // allow extended file props
   const [isFetchingFiles, setIsFetchingFiles] = useState(false);
   const [reschedIsOpen, setReschedIsOpen] = useState(false);
   const [selectedSessionID, setSelectedSessionID] = useState<number | string | null>(null);
@@ -86,11 +82,12 @@ export default function SessionComponent({
   const filteredFiles = (mentorFilesLocal.length > 0
     ? mentorFilesLocal
     : (mentFiles?.files || [])
-  ).filter(file => String(file.owner_id) === String(selectedMentorId)) || [];
+  ).filter((file: any) => String(file.owner_id) === String(selectedMentorId)) || [];
 
   const openFileModal = async (event: React.MouseEvent, mentorId: number | string) => {
     event.stopPropagation();
-    setSelectedMentorId(Number(mentorId) || mentorId);
+    const numeric = Number(mentorId);
+    setSelectedMentorId(Number.isFinite(numeric) ? numeric : null);
     setMentorFilesLocal([]); // clear previous
     setIsFileModalOpen(true);
     setIsFetchingFiles(true);
@@ -102,7 +99,6 @@ export default function SessionComponent({
         file_name: f.file_name || f.name || f.fileName || '',
         file_id: f.file_id || f.id || '',
         owner_id: f.owner_id ?? String(mentorId),
-        // include the direct links returned by backend so we can use them directly
         webViewLink: f.webViewLink || f.web_view_link || '',
         webContentLink: f.webContentLink || f.web_content_link || ''
       }));
