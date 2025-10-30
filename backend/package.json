@@ -8,7 +8,8 @@
     "createStudent": "node ./scripts/createStudent.js",
     "createAdmin": "node ./scripts/createAdmin.js",
     "setAltRole": "node ./scripts/setAltRoleNull.js",
-    "roleBackFill": "node ./scripts/backfillRoleStatuses.js"
+    "roleBackFill": "node ./scripts/backfillRoleStatuses.js",
+    "scheduleBackFill": "node ./scripts/backfillSchedules.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.17.0",
