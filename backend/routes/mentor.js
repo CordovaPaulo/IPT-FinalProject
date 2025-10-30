@@ -12,6 +12,8 @@ router.post('/resched-sched/:id', jwtService.authenticateToken('mentor'), mentor
 router.post('/remind-sched/:id', jwtService.authenticateToken('mentor'), mentorController.sendReminder);
 router.post('/files/upload', jwtService.authenticateToken('mentor'), multerUploadsMultiple, uploadController.uploadLearningMaterials);
 router.post('/send-offer/:learnerId', jwtService.authenticateToken('mentor'), mentorController.sendOffer);
+router.post('/send-offer/group/:learnerId', jwtService.authenticateToken('mentor'), mentorController.sendGroupSessionOffer);
+router.post('/send-existing-offer/group/:learnerId/:sessionId', jwtService.authenticateToken('mentor'), mentorController.sendExistingGroupSessionOffer);
 
 // GET routes
 router.get('/profile', jwtService.authenticateToken('mentor'), mentorController.getProfileInfo);
@@ -22,6 +24,8 @@ router.get('/feedbacks', jwtService.authenticateToken('mentor'), mentorControlle
 router.get('/feedbacks/reviewer/:id', jwtService.authenticateToken('mentor'), mentorController.getReviewer);
 router.get('/files', jwtService.authenticateToken('mentor'), mentorController.getLearningMaterialsList);
 router.get('/files/:fileId', jwtService.authenticateToken('mentor'), mentorController.getLearningMaterial);
+router.get('/schedules/group', jwtService.authenticateToken('mentor'), mentorController.getGroupSessions)
+
 
 // DELETE routes
 router.delete('/files/:fileId', jwtService.authenticateToken('mentor'), mentorController.deleteLearningMaterial);

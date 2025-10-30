@@ -74,22 +74,39 @@ exports.setSchedule = async (req, res) => {
             return res.status(404).json({ message: 'Learner not found', code: 404 });
         }
 
-        // Convert date string to Date object
+        // Convert date string to Date object and validate
         const scheduleDate = new Date(date);
+        if (Number.isNaN(scheduleDate.getTime())) {
+          return res.status(400).json({ message: 'Invalid date', code: 400 });
+        }
 
+        // Learners can only create one-on-one schedules
+        const sessionType = 'one-on-one';
         const mentorName = mentor.name;
         const learnerName = learner.name;
 
-        // Create schedule with proper ObjectId references
+        // Prevent duplicate for same mentor/learner/date/time
+        const existing = await Schedule.findOne({
+          learners: learner._id,
+          mentor: mentor._id,
+          date: scheduleDate,
+          time
+        });
+        if (existing) {
+          return res.status(409).json({ message: 'Schedule already exists for this slot', schedule: existing, code: 409 });
+        }
+
+        // Create schedule using arrays for learners and learnerNames
         const schedule = new Schedule({
-            learner: learner._id,
+            learners: [learner._id],
+            learnerNames: [learnerName],
             mentor: mentor._id,
-            learnerName: learnerName,
             mentorName: mentorName,
             date: scheduleDate,
             time,
             location,
-            subject
+            subject,
+            sessionType
         });
 
         await schedule.save();
@@ -208,12 +225,11 @@ exports.getSchedules = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Retrieve all schedules for this learner
+        // Retrieve all schedules that include this learner (learners is now an array)
+        // Don't use mongoose.populate here — if model registration order is problematic
+        // populate() can throw MissingSchemaError. Resolve mentor/learners manually below.
         const schedules = await Schedule.find({
-            $or: [
-                { learner: learner._id },
-                { learner: learner.userId }
-            ]
+            learners: learner._id
         });
 
         console.log('Found schedules:', schedules.length);
@@ -228,32 +244,31 @@ exports.getSchedules = async (req, res) => {
             schedDate.setHours(0, 0, 0, 0);
             
             console.log('Processing schedule:', schedule._id);
-            console.log('Mentor ID:', schedule.mentor);
-            console.log('Learner ID:', schedule.learner);
-            
-            // Try different approaches to find mentor and learner
-            let mentor = await Mentor.findById(schedule.mentor);
-            if (!mentor) {
-                mentor = await Mentor.findOne({ userId: schedule.mentor });
-            }
-            if (!mentor) {
-                mentor = await Mentor.findOne({ _id: schedule.mentor });
+            console.log('Mentor ID:', schedule.mentor?._id || schedule.mentor);
+            console.log('Learners:', Array.isArray(schedule.learners) ? schedule.learners.map(l => String(l._id || l)).join(',') : schedule.learners);
+
+            // Resolve mentor (populated if available)
+            let mentor = schedule.mentor;
+            const mentordeets = await Mentor.findById(schedule.mentor);
+            if (mentor || mentor._id || !mentordeets) {
+                if (!mentordeets) mentordeets = await Mentor.findOne({ userId: schedule.mentor });
             }
             
-            let schedLearner = await Learner.findById(schedule.learner);
-            if (!schedLearner) {
-                schedLearner = await Learner.findOne({ userId: schedule.learner });
+            let schedLearner = null;
+            if (Array.isArray(schedule.learners) && schedule.learners.length > 0) {
+                const first = schedule.learners[0];
+                schedLearner = await Learner.findById(first);
+                if (!schedLearner) schedLearner = await Learner.findOne({ userId: first });
+            } else {
+                if (Array.isArray(schedule.learnerNames) && schedule.learnerNames.length > 0) {
+                    schedLearner = { name: schedule.learnerNames[0], program: 'N/A', yearLevel: 'N/A', image: 'https://placehold.co/600x400', _id: null };
+                }
             }
-            if (!schedLearner) {
-                schedLearner = await Learner.findOne({ _id: schedule.learner });
-            }
-            
+
             console.log('Found mentor:', mentor?.name || 'Not found');
             console.log('Found learner:', schedLearner?.name || 'Not found');
-            
-            // Simplified response payload with only required information
+
             const transformedSchedule = {
-                // Schedule information
                 id: schedule._id,
                 date: schedDate.toISOString().split('T')[0],
                 time: schedule.time,
@@ -262,18 +277,20 @@ exports.getSchedules = async (req, res) => {
                 
                 // Mentor information (include id)
                 mentor: {
-                    id: mentor?._id || schedule.mentor, // <- added id
-                    name: mentor?.name || 'Unknown Mentor',
-                    program: mentor?.program || 'N/A',
-                    yearLevel: mentor?.yearLevel || 'N/A',
-                    image: mentor?.image || 'https://placehold.co/600x400'
+                    id: mentordeets?._id || schedule.mentor, // populated or raw id
+                    name: mentordeets?.name || 'Unknown Mentor',
+                    program: mentordeets?.program || 'N/A',
+                    yearLevel: mentordeets?.yearLevel || 'N/A',
+                    image: mentordeets?.image || 'https://placehold.co/600x400'
                 },
                 
                 // Learner information (name, program, year level)
                 learner: {
-                    name: schedLearner?.name || 'Unknown Learner',
+                    id: schedLearner?._id || null,
+                    name: schedLearner?.name || (Array.isArray(schedule.learnerNames) ? schedule.learnerNames[0] : 'Unknown Learner'),
                     program: schedLearner?.program || 'N/A',
-                    yearLevel: schedLearner?.yearLevel || 'N/A'
+                    yearLevel: schedLearner?.yearLevel || 'N/A',
+                    image: schedLearner?.image || 'https://placehold.co/600x400'
                 }
             };
             
@@ -600,6 +617,9 @@ exports.acceptOffer = async (req, res) => {
     if (!mentor) mentor = await Mentor.findOne({ userId: payload.mentorId });
     if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
 
+    // determine if this is a group offer (explicit sessionType preferred)
+    const isGroupOffer = !!(payload.sessionType === 'group' || payload.groupName || payload.maxParticipants || (payload.offerId && payload.offerId.toString().includes('-')) || payload.scheduleId);
+
     // 5) Basic validations matching your other endpoints
     const scheduleDate = new Date(payload.date);
     if (Number.isNaN(scheduleDate.getTime())) {
@@ -609,39 +629,229 @@ exports.acceptOffer = async (req, res) => {
       return res.status(400).json({ message: 'Time must be between 06:00 and 22:00', code: 400 });
     }
 
-    // Prevent duplicates (same mentor/learner/date/time)
-    const existing = await Schedule.findOne({
-      learner: learner._id,
-      mentor: mentor._id,
-      date: scheduleDate,
-      time: payload.time
-    });
-    if (existing) {
-      return res.status(409).json({ message: 'Schedule already exists for this slot', schedule: existing, code: 409 });
-    }
+    if (isGroupOffer) {
+      // If payload references a specific scheduleId, join that schedule directly
+      if (payload.scheduleId) {
+        const groupSchedule = await Schedule.findById(payload.scheduleId);
+        if (!groupSchedule) return res.status(404).json({ message: 'Referenced group session not found', code: 404 });
+        if (groupSchedule.sessionType !== 'group') return res.status(400).json({ message: 'Referenced schedule is not a group session', code: 400 });
+        if (String(groupSchedule.mentor) !== String(mentor._id)) return res.status(403).json({ message: 'Not authorized for this schedule', code: 403 });
 
-    // 6) Create the schedule
-    const schedule = new Schedule({
-      learner: learner._id,
-      mentor: mentor._id,
-      learnerName: learner.name,
-      mentorName: mentor.name,
-      date: scheduleDate,
-      time: payload.time,
-      location: payload.location,
-      subject: payload.subject
-    });
-    await schedule.save();
+        // check if learner already joined
+        const alreadyJoined = Array.isArray(groupSchedule.learners) && groupSchedule.learners.some(l => String(l) === String(learner._id));
+        if (alreadyJoined) {
+          return res.status(409).json({ message: 'You already joined this group session', schedule: groupSchedule, code: 409 });
+        }
 
-    // 7) Notify mentor (best-effort)
-    try {
-      const mentorUser = mentor.userId ? await User.findById(mentor.userId) : null;
-      const mentorEmail = mentorUser?.email || mentor.email;
-      if (mentorEmail) {
-        await mailingController.sendEmailNotification(
-          mentorEmail,
-          `Offer accepted: ${payload.subject}`,
-          `Hello ${mentor.name},
+        // enforce maxParticipants if present on schedule
+        const max = groupSchedule.maxParticipants || payload.maxParticipants;
+        if (max && Array.isArray(groupSchedule.learners) && groupSchedule.learners.length >= Number(max)) {
+          return res.status(409).json({ message: 'Group session is full', code: 409 });
+        }
+
+        groupSchedule.learners = groupSchedule.learners || [];
+        groupSchedule.learnerNames = groupSchedule.learnerNames || [];
+        groupSchedule.learners.push(learner._id);
+        groupSchedule.learnerNames.push(learner.name);
+        await groupSchedule.save();
+
+        // Notify mentor & pusher (best-effort)
+        try {
+          const mentorUser = mentor.userId ? await User.findById(mentor.userId) : null;
+          const mentorEmail = mentorUser?.email || mentor.email;
+          if (mentorEmail) {
+            await mailingController.sendEmailNotification(
+              mentorEmail,
+              `Group invite accepted: ${groupSchedule.subject}`,
+              `Hello ${mentor.name},
+
+${learner.name} joined your group session "${groupSchedule.groupName || 'Group Study Session'}".
+
+Details:
+- Subject: ${groupSchedule.subject}
+- Date: ${new Date(groupSchedule.date).toLocaleDateString()}
+- Time: ${groupSchedule.time}
+- Location: ${groupSchedule.location}
+
+Best regards,
+MindMate Team`
+            );
+          }
+        } catch (mailErr) {
+          console.error('acceptOffer (group via scheduleId) notify mentor error:', mailErr);
+        }
+
+        try {
+          const mentorDoc = await Mentor.findById(groupSchedule.mentor);
+          const learnerDoc = await Learner.findById(learner._id);
+          const channelName = `private-user-${String(mentorDoc.userId)}`;
+          const payloadData = schedulePayload(groupSchedule, mentorDoc, learnerDoc);
+          await pusher.trigger(channelName, 'group-join', payloadData);
+        } catch (emitErr) {
+          console.error('Pusher emit error (learner.acceptOffer group join - scheduleId):', emitErr);
+        }
+
+        return res.status(200).json({ message: 'Joined group session', schedule: groupSchedule, code: 200 });
+      }
+
+      // fallback: existing behavior - find by mentor/date/time/subject
+      let groupSchedule = await Schedule.findOne({
+        mentor: mentor._id,
+        date: scheduleDate,
+        time: payload.time,
+        subject: payload.subject,
+        sessionType: 'group'
+      });
+
+      if (groupSchedule) {
+        // check if learner already joined
+        const alreadyJoined = Array.isArray(groupSchedule.learners) && groupSchedule.learners.some(l => String(l) === String(learner._id));
+        if (alreadyJoined) {
+          return res.status(409).json({ message: 'You already joined this group session', schedule: groupSchedule, code: 409 });
+        }
+
+        // enforce maxParticipants if present on schedule or payload
+        const max = groupSchedule.maxParticipants || payload.maxParticipants;
+        if (max && Array.isArray(groupSchedule.learners) && groupSchedule.learners.length >= Number(max)) {
+          return res.status(409).json({ message: 'Group session is full', code: 409 });
+        }
+
+        // add learner to group
+        groupSchedule.learners = groupSchedule.learners || [];
+        groupSchedule.learnerNames = groupSchedule.learnerNames || [];
+        groupSchedule.learners.push(learner._id);
+        groupSchedule.learnerNames.push(learner.name);
+        await groupSchedule.save();
+
+        // Notify mentor & pusher (best-effort)
+        try {
+          const mentorUser = mentor.userId ? await User.findById(mentor.userId) : null;
+          const mentorEmail = mentorUser?.email || mentor.email;
+          if (mentorEmail) {
+            await mailingController.sendEmailNotification(
+              mentorEmail,
+              `Group offer accepted: ${payload.subject}`,
+              `Hello ${mentor.name},
+
+${learner.name} joined your group session "${payload.groupName || groupSchedule.groupName || 'Group Study Session'}".
+
+Details:
+- Subject: ${payload.subject}
+- Date: ${scheduleDate.toLocaleDateString()}
+- Time: ${payload.time}
+- Location: ${payload.location}
+
+Best regards,
+MindMate Team`
+            );
+          }
+        } catch (mailErr) {
+          console.error('acceptOffer (group) notify mentor error:', mailErr);
+        }
+
+        try {
+          const mentorDoc = await Mentor.findById(groupSchedule.mentor);
+          const learnerDoc = await Learner.findById(learner._id);
+          const channelName = `private-user-${String(mentorDoc.userId)}`;
+          const payloadData = schedulePayload(groupSchedule, mentorDoc, learnerDoc);
+          await pusher.trigger(channelName, 'group-join', payloadData);
+        } catch (emitErr) {
+          console.error('Pusher emit error (learner.acceptOffer group join):', emitErr);
+        }
+
+        return res.status(200).json({ message: 'Joined group session', schedule: groupSchedule, code: 200 });
+      } else {
+        // No existing group schedule: create one with this first learner (existing behavior)
+        const newGroup = new Schedule({
+          learners: [learner._id],
+          learnerNames: [learner.name],
+          mentor: mentor._id,
+          mentorName: mentor.name,
+          date: scheduleDate,
+          time: payload.time,
+          location: payload.location,
+          subject: payload.subject,
+          sessionType: 'group',
+          groupName: payload.groupName || null,
+          maxParticipants: payload.maxParticipants || null,
+          offerId: payload.offerId || null
+        });
+        await newGroup.save();
+
+        // Notify mentor & pusher (best-effort)
+        try {
+          const mentorUser = mentor.userId ? await User.findById(mentor.userId) : null;
+          const mentorEmail = mentorUser?.email || mentor.email;
+          if (mentorEmail) {
+            await mailingController.sendEmailNotification(
+              mentorEmail,
+              `Group offer accepted: ${payload.subject}`,
+              `Hello ${mentor.name},
+
+${learner.name} accepted your group session offer.
+
+Details:
+- Subject: ${payload.subject}
+- Date: ${scheduleDate.toLocaleDateString()}
+- Time: ${payload.time}
+- Location: ${payload.location}
+
+Best regards,
+MindMate Team`
+            );
+          }
+        } catch (mailErr) {
+          console.error('acceptOffer (group) notify mentor error:', mailErr);
+        }
+
+        try {
+          const mentorDoc = await Mentor.findById(newGroup.mentor);
+          const learnerDoc = await Learner.findById(learner._id);
+          const channelName = `private-user-${String(mentorDoc.userId)}`;
+          const payloadData = schedulePayload(newGroup, mentorDoc, learnerDoc);
+          await pusher.trigger(channelName, 'new-schedule', payloadData);
+        } catch (emitErr) {
+          console.error('Pusher emit error (learner.acceptOffer new group):', emitErr);
+        }
+
+        return res.status(201).json({ message: 'Group session created and joined', schedule: newGroup, code: 201 });
+      }
+    } else {
+      // existing one-on-one flow unchanged...
+      // Prevent duplicates (same mentor/learner/date/time)
+      const existing = await Schedule.findOne({
+        learners: learner._id,
+        mentor: mentor._id,
+        date: scheduleDate,
+        time: payload.time
+      });
+      if (existing) {
+        return res.status(409).json({ message: 'Schedule already exists for this slot', schedule: existing, code: 409 });
+      }
+
+      // Create the schedule using arrays and sessionType
+      const schedule = new Schedule({
+        learners: [learner._id],
+        learnerNames: [learner.name],
+        mentor: mentor._id,
+        mentorName: mentor.name,
+        date: scheduleDate,
+        time: payload.time,
+        location: payload.location,
+        subject: payload.subject,
+        sessionType: 'one-on-one'
+      });
+      await schedule.save();
+
+      // 7) Notify mentor (best-effort)
+      try {
+        const mentorUser = mentor.userId ? await User.findById(mentor.userId) : null;
+        const mentorEmail = mentorUser?.email || mentor.email;
+        if (mentorEmail) {
+          await mailingController.sendEmailNotification(
+            mentorEmail,
+            `Offer accepted: ${payload.subject}`,
+            `Hello ${mentor.name},
 
 ${learner.name} accepted your offer.
 
@@ -653,25 +863,26 @@ Details:
 
 Best regards,
 MindMate Team`
-        );
+          );
+        }
+      } catch (mailErr) {
+        console.error('acceptOffer notify mentor error:', mailErr);
       }
-    } catch (mailErr) {
-      console.error('acceptOffer notify mentor error:', mailErr);
-    }
 
-    // Pusher: notify offer acceptance
-    try {
-      const mentorDoc = await Mentor.findById(schedule.mentor);
-      const learnerDoc = await Learner.findById(schedule.learner);
-      const channelName = `private-user-${String(mentorDoc.userId)}`;
-      const payload = schedulePayload(schedule, mentorDoc, learnerDoc);
-      console.log('[Pusher] offer accepted -> new-schedule ->', channelName);
-      await pusher.trigger(channelName, 'new-schedule', payload);
-    } catch (emitErr) {
-      console.error('Pusher emit error (learner.acceptOffer):', emitErr);
-    }
+      // Pusher: notify offer acceptance
+      try {
+        const mentorDoc = await Mentor.findById(schedule.mentor);
+        const learnerDoc = await Learner.findById(schedule.learners[0]);
+        const channelName = `private-user-${String(mentorDoc.userId)}`;
+        const payloadData = schedulePayload(schedule, mentorDoc, learnerDoc);
+        console.log('[Pusher] offer accepted -> new-schedule ->', channelName);
+        await pusher.trigger(channelName, 'new-schedule', payloadData);
+      } catch (emitErr) {
+        console.error('Pusher emit error (learner.acceptOffer):', emitErr);
+      }
 
-    return res.status(201).json({ message: 'Offer accepted. Schedule created.', schedule, code: 201 });
+      return res.status(201).json({ message: 'Offer accepted. Schedule created.', schedule, code: 201 });
+    }
   } catch (error) {
     console.error('acceptOffer error:', error);
     return res.status(500).json({ message: error.message, code: 500 });
