@@ -1,6 +1,6 @@
 const Learner = require('../models/Learner');
 const Mentor = require('../models/Mentor');
-const User = require('../models/User');
+const User = require('../models/user');
 const Schedule = require('../models/Schedule');
 const Feedback = require('../models/feedback');
 const { authenticateToken, getValuesFromToken } = require('../service/jwt');
