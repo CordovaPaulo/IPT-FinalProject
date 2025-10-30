@@ -8,6 +8,7 @@ import SessionComponent from '@/components/learnerpage/session/page';
 import ReviewsComponent from '@/components/learnerpage/reviews/page';
 import EditInformation from '@/components/learnerpage/information/page';
 import LogoutComponent from '@/components/learnerpage/logout/page';
+import CommunityForumComponent from '@/components/learnerpage/community/page';
 import api from "@/lib/axios";
 import styles from './learner.module.css';
 import { toast } from 'react-toastify';
@@ -123,6 +124,16 @@ interface TransformedMentor {
   rating_ave: number;
 }
 
+interface ForumData {
+  id: number;
+  title: string;
+  author: string;
+  replies: number;
+  views: number;
+  lastActivity: string;
+  category: string;
+}
+
 const transformSchedulesForReview = (schedules: any[]): any[] => {
   return schedules.map(schedule => ({
     id: schedule.id,
@@ -199,6 +210,7 @@ export default function LearnerPage() {
   const [roleData, setRoleData] = useState<RoleData | null>(null);
   const [transformedMentors, setTransformedMentors] = useState<TransformedMentor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [forumData, setForumData] = useState<ForumData[]>([]);
   const [isLoadingMentors, setIsLoadingMentors] = useState(false);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   
@@ -210,6 +222,8 @@ export default function LearnerPage() {
   
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [showDatePopup, setShowDatePopup] = useState(false);
+  const datePopupRef = useRef<HTMLDivElement>(null);
 
   const [focusedTopbarIndex, setFocusedTopbarIndex] = useState(0);
   const [isTopbarFocused, setIsTopbarFocused] = useState(false);
@@ -218,15 +232,26 @@ export default function LearnerPage() {
   const topbarItems = [
     { key: 'main', label: 'Mentors', icon: '/main.svg' },
     { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
-    { key: 'records', label: 'Reviews', icon: '/records.svg' }
+    { key: 'records', label: 'Reviews', icon: '/records.svg' },
+    { key: 'community', label: 'Community', icon: '/community.svg' }
   ];
-// proxy code
+
   useEffect(() => {
-    // Initialize only after the mentor's User id is available
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePopupRef.current && !datePopupRef.current.contains(event.target as Node)) {
+        setShowDatePopup(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!userData?.userId) return;
 
-    // Optional: enable client logs while testing
-    // @ts-ignore
     Pusher.logToConsole = true;
 
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
@@ -234,7 +259,7 @@ export default function LearnerPage() {
       authEndpoint: `/api/pusher-auth`,
     });
 
-    const channelName = `private-user-${userData.userId}`; // userId only
+    const channelName = `private-user-${userData.userId}`;
     const channel = pusher.subscribe(channelName);
 
     channel.bind('pusher:subscription_succeeded', () => {
@@ -280,6 +305,57 @@ export default function LearnerPage() {
       pusher.disconnect();
     };
   }, [userData.userId]);
+
+  const fetchForumData = async () => {
+    try {
+      console.log("Fetching forum data...");
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/learner/forum', {
+        timeout: 10000,
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      console.log("Forum API Response:", res.data);
+      setForumData(res.data);
+      
+    } catch (error) {
+      console.error('Error fetching forum data:', error);
+      const mockForumData: ForumData[] = [
+        {
+          id: 1,
+          title: "Best study techniques for Algorithms?",
+          author: "Alice Johnson",
+          replies: 15,
+          views: 89,
+          lastActivity: "2 hours ago",
+          category: "Study Tips"
+        },
+        {
+          id: 2,
+          title: "How to prepare for programming exams?",
+          author: "Bob Smith",
+          replies: 23,
+          views: 156,
+          lastActivity: "5 hours ago",
+          category: "Exam Preparation"
+        },
+        {
+          id: 3,
+          title: "Mathematics problem solving strategies",
+          author: "Carol Davis",
+          replies: 8,
+          views: 67,
+          lastActivity: "1 day ago",
+          category: "Mathematics"
+        }
+      ];
+      setForumData(mockForumData);
+    }
+  };
 
   const startLoading = () => setIsLoading(true);
   const stopLoading = () => setIsLoading(false);
@@ -486,7 +562,6 @@ export default function LearnerPage() {
       if (res.status === 200) {
         const newRole = res.data?.newRole;
         toast.success(`Role switched to ${newRole}. Please log in again.`);
-        // Clear client auth
         try { document.cookie = 'MindMateToken=; Max-Age=0; path=/'; } catch {}
         localStorage.removeItem('auth_token');
         router.replace('/auth/login');
@@ -562,9 +637,6 @@ export default function LearnerPage() {
       
       const res = await api.get('/api/learner/profile', {
         withCredentials: true,
-        // headers: {
-        //   ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        // },
       });
       
       setUserData(res.data.userData);
@@ -589,9 +661,6 @@ export default function LearnerPage() {
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/mentors', {
         withCredentials: true,
-        // headers: {
-        //   ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        // },
       });
       
       console.log("Mentors API Response:", res.data);
@@ -646,9 +715,6 @@ export default function LearnerPage() {
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/schedules', {
         withCredentials: true,
-        // headers: {
-        //   ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        // },
       });
 
       setTodaySchedule(res.data.todaySchedule || []);
@@ -691,7 +757,8 @@ export default function LearnerPage() {
           mentorProfile(),
           fetchMentFiles(),
           fetchMentors(),
-          fetchSchedules()
+          fetchSchedules(),
+          fetchForumData()
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -718,16 +785,15 @@ export default function LearnerPage() {
 
     const normalizeForSession = (items: any[] = []) =>
       items.map((s: any) => ({
-        // id: Number(s.id) || 0,
-        id: String(s.id ?? s._id ?? ''), // keep string id to avoid falsy 0
+        id: String(s.id ?? s._id ?? ''),
         subject: s.subject || '',
         mentor: {
           user: { name: s.mentor?.user?.name || s.mentor?.name || 'Unknown Mentor' },
           ment_inf_id: Number(s.mentor?.ment_inf_id ?? s.mentor?.id ?? 0),
-          id: String(s.mentor?.id ?? s.mentor?.ment_inf_id ?? '') // <-- explicit mentor id
+          id: String(s.mentor?.id ?? s.mentor?.ment_inf_id ?? '')
         },
         learner: {
-          id: String(s.learner?.id ?? s.learner?._id ?? ''), // <-- explicit learner id
+          id: String(s.learner?.id ?? s.learner?._id ?? ''),
           name: s.learner?.name || ''
         },
         date: s.date ? String(s.date) : '',
@@ -777,6 +843,14 @@ export default function LearnerPage() {
             schedForReview={schedForReview}
             userData={userData}
             data={{ schedForReview: schedForReview }}
+          />
+        );
+      case 'community':
+        return (
+          <CommunityForumComponent 
+            forumData={forumData}
+            userData={userData}
+            onForumUpdate={fetchForumData}
           />
         );
       default:
@@ -966,13 +1040,38 @@ export default function LearnerPage() {
             </div>
           ))}
         </div>
-        <div className={styles['topbar-date']}>
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
+        
+        <div className={styles.dateContainer} ref={datePopupRef}>
+          <button 
+            className={styles.calendarIconBtn}
+            onClick={() => setShowDatePopup(!showDatePopup)}
+            aria-label="Show current date and time"
+          >
+            <img src="/time.svg" alt="Calendar" className={styles.calendarIcon} />
+          </button>
+          
+          {showDatePopup && (
+            <div className={styles.datePopup}>
+              <div className={styles.dateContent}>
+                <div className={styles.currentDate}>
+                  {new Date().toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </div>
+                <div className={styles.currentTime}>
+                  {new Date().toLocaleTimeString("en-US", {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </div>
+              </div>
+              <div className={styles.popupArrow}></div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -988,7 +1087,7 @@ export default function LearnerPage() {
       {isEdit && (
         <div className={styles['edit-information-popup']}>
           <EditInformation 
-            userData={userData}   // <- changed prop name to match component
+            userData={userData}
             onClose={() => setIsEdit(false)}
             onUpdateUserData={handleUpdateUserData}
           />

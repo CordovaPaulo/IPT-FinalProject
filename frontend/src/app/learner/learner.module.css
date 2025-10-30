@@ -510,16 +510,100 @@
   font-weight: 600;
 }
 
-.topbar-date {
-  font-size: 0.875rem;
-  color: rgba(42, 67, 98, 0.9);
-  font-weight: 500;
-  background-color: #d4d7dd;
-  padding: 10px 15px;
-  border-radius: 20px;
+/* Calendar Icon Styles */
+.dateContainer {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+}
+
+.calendarIconBtn {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.calendarIconBtn:hover {
+  background: #e9ecef;
+  border-color: #006981;
+  transform: scale(1.05);
+}
+
+.calendarIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.datePopup {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e0e0e0;
+  z-index: 1000;
+  min-width: 200px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dateContent {
+  padding: 16px;
+  text-align: center;
+}
+
+.currentDate {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.currentTime {
+  font-size: 16px;
+  font-weight: 700;
+  color: #006981;
+  background: #f0f9ff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.popupArrow {
+  position: absolute;
+  top: -5px;
+  right: 18px;
+  width: 10px;
+  height: 10px;
+  background: white;
+  transform: rotate(45deg);
+  border-left: 1px solid #e0e0e0;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Hide the old date display */
+.topbar-date {
+  display: none;
 }
 
 /* Popup Styles */
@@ -669,7 +753,7 @@
     min-width: max-content;
   }
 
-  .topbar-date {
+  .dateContainer {
     display: none;
   }
   

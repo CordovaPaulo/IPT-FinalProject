@@ -9,8 +9,10 @@ import FilesComponent from '@/components/mentorpage/files/page';
 import FileManagerComponent from '@/components/mentorpage/filemanager/page';
 import EditInformationComponent from '@/components/mentorpage/information/page';
 import LogoutComponent from '@/components/mentorpage/logout/page';
+import CommunityForumComponent from '@/components/mentorpage/community/page';
+import SessionAnalyticsComponent from '@/components/mentorpage/analytics/page';
 import api from "@/lib/axios";
-import './mentor.css';
+import styles from './mentor.module.css';
 import { toast } from 'react-toastify';
 import Pusher from 'pusher-js';
 
@@ -119,7 +121,9 @@ const TOPBAR_ITEMS = [
   { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
   { key: 'reviews', label: 'Reviews', icon: '/records.svg' },
   { key: 'files', label: 'Files', icon: '/uploadCloud.svg' },
-  { key: 'fileManage', label: 'File Manager', icon: '/files.svg' }
+  { key: 'fileManage', label: 'File Manager', icon: '/files.svg' },
+  { key: 'community', label: 'Community', icon: '/community.svg' },
+  { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' }
 ];
 
 // Helper Functions
@@ -133,9 +137,9 @@ function getCookie(name: string) {
 
 const StarRating = ({ rating }: { rating: number }) => {
   return (
-    <div className="stars">
+    <div className={styles.stars}>
       {[...Array(5)].map((_, i) => (
-        <span key={i} className={i < Math.round(rating) ? 'filledStar' : 'emptyStar'}>
+        <span key={i} className={i < Math.round(rating) ? styles.filledStar : styles.emptyStar}>
           {i < Math.round(rating) ? '★' : '☆'}
         </span>
       ))}
@@ -144,7 +148,7 @@ const StarRating = ({ rating }: { rating: number }) => {
 };
 
 export default function MentorPage() {
-   const router = useRouter();
+  const router = useRouter();
   
   // State Declarations
   const [isLoading, setIsLoading] = useState(false);
@@ -176,13 +180,14 @@ export default function MentorPage() {
     __v: 0
   });
   
-  // Relaxed types to avoid duplicate-type collisions across files during build
   const [users, setUsers] = useState<any[]>([]);
   const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
   const [upcomingSchedule, setUpcomingSchedule] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
   const [roleData, setRoleData] = useState<RoleData | null>(null);
+  const [forumData, setForumData] = useState<any[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
   
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -196,9 +201,11 @@ export default function MentorPage() {
   const [focusedTopbarIndex, setFocusedTopbarIndex] = useState(0);
   const [isTopbarFocused, setIsTopbarFocused] = useState(false);
   const [mentorData, setMentorData] = useState<any | null>(null);
+  const [showDatePopup, setShowDatePopup] = useState(false);
 
   // Refs
   const topbarRef = useRef<HTMLDivElement>(null);
+  const datePopupRef = useRef<HTMLDivElement>(null);
 
   // Computed Properties
   const subjects = userData?.subjects || [];
@@ -215,13 +222,24 @@ export default function MentorPage() {
     );
   });
 
-  // proxy code
+  // Close date popup when clicking outside
   useEffect(() => {
-    // Initialize only after the mentor's User id is available
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePopupRef.current && !datePopupRef.current.contains(event.target as Node)) {
+        setShowDatePopup(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Pusher setup for real-time updates
+  useEffect(() => {
     if (!userData?.userId) return;
 
-    // Optional: enable client logs while testing
-    // @ts-ignore
     Pusher.logToConsole = true;
 
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
@@ -229,14 +247,11 @@ export default function MentorPage() {
       authEndpoint: `/api/pusher-auth`,
     });
 
-    const channelName = `private-user-${userData.userId}`; // userId only
+    const channelName = `private-user-${userData.userId}`;
     const channel = pusher.subscribe(channelName);
 
     channel.bind('pusher:subscription_succeeded', () => {
       console.log('[Pusher] subscribed:', channelName);
-    });
-    channel.bind('pusher:subscription_error', (status: any) => {
-      console.error('[Pusher] subscription error:', status);
     });
 
     channel.bind('new-schedule', (newSchedule: any) => {
@@ -458,6 +473,38 @@ export default function MentorPage() {
       }
     ];
     setFeedbacks(mockFeedbacks);
+
+    const mockForumData = [
+      {
+        id: 1,
+        title: "Best practices for teaching Algorithms?",
+        author: "Alice Johnson",
+        replies: 12,
+        views: 45,
+        lastActivity: "2 hours ago",
+        category: "Teaching Methods"
+      },
+      {
+        id: 2,
+        title: "How to handle difficult students?",
+        author: "Bob Smith",
+        replies: 8,
+        views: 32,
+        lastActivity: "5 hours ago",
+        category: "Student Management"
+      }
+    ];
+    setForumData(mockForumData);
+
+    const mockAnalyticsData = {
+      totalSessions: 24,
+      participationRate: 85,
+      averageRating: 4.7,
+      popularSubjects: ["Mathematics", "Programming", "Algorithms"],
+      weeklyTrend: [12, 19, 15, 17, 14, 16, 18],
+      learnerEngagement: 78
+    };
+    setAnalyticsData(mockAnalyticsData);
   };
 
   const fetchLearners = async () => {
@@ -539,6 +586,78 @@ export default function MentorPage() {
     }
   };
 
+  const fetchForumData = async () => {
+    try {
+      console.log("Fetching forum data...");
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/mentor/forum', {
+        timeout: 10000,
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      console.log("Forum API Response:", res.data);
+      setForumData(res.data);
+      
+    } catch (error) {
+      console.error('Error fetching forum data:', error);
+      const mockForumData = [
+        {
+          id: 1,
+          title: "Best practices for teaching Algorithms?",
+          author: "Alice Johnson",
+          replies: 12,
+          views: 45,
+          lastActivity: "2 hours ago",
+          category: "Teaching Methods"
+        },
+        {
+          id: 2,
+          title: "How to handle difficult students?",
+          author: "Bob Smith",
+          replies: 8,
+          views: 32,
+          lastActivity: "5 hours ago",
+          category: "Student Management"
+        }
+      ];
+      setForumData(mockForumData);
+    }
+  };
+
+  const fetchAnalyticsData = async () => {
+    try {
+      console.log("Fetching analytics data...");
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/mentor/analytics', {
+        timeout: 10000,
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      console.log("Analytics API Response:", res.data);
+      setAnalyticsData(res.data);
+      
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      const mockAnalyticsData = {
+        totalSessions: 24,
+        participationRate: 85,
+        averageRating: 4.7,
+        popularSubjects: ["Mathematics", "Programming", "Algorithms"],
+        weeklyTrend: [12, 19, 15, 17, 14, 16, 18],
+        learnerEngagement: 78
+      };
+      setAnalyticsData(mockAnalyticsData);
+    }
+  };
+
   const getFiles = async () => {
     try {
       console.log("Fetching files...");
@@ -574,18 +693,18 @@ export default function MentorPage() {
   };
 
   // Account Functions
- const registerLearnerRole = async () => {
-      try {
-       if(roleData?.altRole !== null && roleData?.altRole === 'learner') {
-         toast.info('You have already registered as a Learner.');
-         return;
-       }
- 
-       router.replace('/info/learner/alt');
-     } catch (error) {
-       console.error('Error registering role:', error);
-     }
-   };
+  const registerLearnerRole = async () => {
+    try {
+      if(roleData?.altRole !== null && roleData?.altRole === 'learner') {
+        toast.info('You have already registered as a Learner.');
+        return;
+      }
+
+      router.replace('/info/learner/alt');
+    } catch (error) {
+      console.error('Error registering role:', error);
+    }
+  };
 
   const switchRole = async (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -626,6 +745,7 @@ export default function MentorPage() {
       toast.error('Error during logout. Please try again.');
     }
   };
+
   // Edit Information Functions
   const openEditInformation = () => {
     setShowEditInformation(true);
@@ -729,12 +849,12 @@ export default function MentorPage() {
     if (!apiError) return null;
     
     return (
-      <div className="api-error-banner">
-        <div className="error-content">
-          <span className="error-icon">⚠️</span>
-          <span className="error-message">{apiError}</span>
+      <div className={styles.apiErrorBanner}>
+        <div className={styles.errorContent}>
+          <span className={styles.errorIcon}>⚠️</span>
+          <span className={styles.errorMessage}>{apiError}</span>
           <button 
-            className="error-close"
+            className={styles.errorClose}
             onClick={() => setApiError(null)}
           >
             ×
@@ -748,13 +868,7 @@ export default function MentorPage() {
     const [isVisible, setIsVisible] = useState(false);
     const [focusedNavIndex, setFocusedNavIndex] = useState(0);
 
-    const navItems = [
-      { key: 'main', label: 'Learners', icon: '/main.svg' },
-      { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
-      { key: 'reviews', label: 'Reviews', icon: '/records.svg' },
-      { key: 'files', label: 'Files', icon: '/uploadCloud.svg' },
-      { key: 'fileManage', label: 'File Manager', icon: '/files.svg' }
-    ];
+    const navItems = TOPBAR_ITEMS;
 
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -831,12 +945,12 @@ export default function MentorPage() {
 
     return (
       <>
-        <div className="accessibility-nav-pad-overlay" onClick={handleNavPadClose}></div>
-        <div className="accessibility-nav-pad">
-          <div className="nav-pad-header">
+        <div className={styles.accessibilityNavPadOverlay} onClick={handleNavPadClose}></div>
+        <div className={styles.accessibilityNavPad}>
+          <div className={styles.navPadHeader}>
             <h3>Accessibility Navigation</h3>
             <button 
-              className="close-nav-pad" 
+              className={styles.closeNavPad} 
               onClick={handleNavPadClose}
               aria-label="Close navigation pad"
             >
@@ -844,32 +958,32 @@ export default function MentorPage() {
             </button>
           </div>
           
-          <div className="nav-pad-controls">
-            <div className="nav-visual-indicator">
-              <div className="nav-track">
+          <div className={styles.navPadControls}>
+            <div className={styles.navVisualIndicator}>
+              <div className={styles.navTrack}>
                 {navItems.map((item, index) => (
                   <div
                     key={item.key}
-                    className={`nav-point ${index === focusedNavIndex ? 'focused' : ''} ${
-                      item.key === activeComponent ? 'active' : ''
+                    className={`${styles.navPoint} ${index === focusedNavIndex ? styles.focused : ''} ${
+                      item.key === activeComponent ? styles.active : ''
                     }`}
                     onClick={() => {
                       setFocusedNavIndex(index);
                       activateFocusedNavItem();
                     }}
                   >
-                    <div className="nav-point-icon">
+                    <div className={styles.navPointIcon}>
                       <img src={item.icon} alt={item.label} />
                     </div>
-                    <span className="nav-point-label">{item.label}</span>
+                    <span className={styles.navPointLabel}>{item.label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="nav-direction">
+            <div className={styles.navDirection}>
               <button 
-                className="nav-btn left-btn"
+                className={styles.navBtn}
                 onClick={() => navigateNavItems('left')}
                 aria-label="Navigate to previous nav item"
               >
@@ -877,17 +991,17 @@ export default function MentorPage() {
                 <span>Previous</span>
               </button>
               
-              <div className="nav-display">
-                <span className="current-nav-item">
+              <div className={styles.navDisplay}>
+                <span className={styles.currentNavItem}>
                   {navItems[focusedNavIndex]?.label}
                 </span>
-                <span className="nav-position">
+                <span className={styles.navPosition}>
                   {focusedNavIndex + 1} of {navItems.length}
                 </span>
               </div>
               
               <button 
-                className="nav-btn right-btn"
+                className={styles.navBtn}
                 onClick={() => navigateNavItems('right')}
                 aria-label="Navigate to next nav item"
               >
@@ -896,9 +1010,9 @@ export default function MentorPage() {
               </button>
             </div>
 
-            <div className="nav-activation">
+            <div className={styles.navActivation}>
               <button 
-                className="activate-btn"
+                className={styles.activateBtn}
                 onClick={activateFocusedNavItem}
                 aria-label={`Activate ${navItems[focusedNavIndex]?.label} section`}
               >
@@ -907,12 +1021,12 @@ export default function MentorPage() {
               </button>
             </div>
 
-            <div className="quick-nav-grid">
+            <div className={styles.quickNavGrid}>
               {navItems.map((item, index) => (
                 <button 
                   key={item.key}
-                  className={`quick-nav-btn ${item.key === activeComponent ? 'active' : ''} ${
-                    index === focusedNavIndex ? 'focused' : ''
+                  className={`${styles.quickNavBtn} ${item.key === activeComponent ? styles.active : ''} ${
+                    index === focusedNavIndex ? styles.focused : ''
                   }`}
                   onClick={() => quickNavigate(item.key)}
                 >
@@ -922,20 +1036,20 @@ export default function MentorPage() {
               ))}
             </div>
 
-            <div className="nav-shortcuts">
-              <div className="shortcut-item">
+            <div className={styles.navShortcuts}>
+              <div className={styles.shortcutItem}>
                 <kbd>←</kbd> / <kbd>→</kbd>
                 <span>Navigate Nav Items</span>
               </div>
-              <div className="shortcut-item">
+              <div className={styles.shortcutItem}>
                 <kbd>Enter</kbd> / <kbd>Space</kbd>
                 <span>Activate Focused Item</span>
               </div>
-              <div className="shortcut-item">
+              <div className={styles.shortcutItem}>
                 <kbd>Home</kbd> / <kbd>End</kbd>
                 <span>Jump to First/Last</span>
               </div>
-              <div className="shortcut-item">
+              <div className={styles.shortcutItem}>
                 <kbd>ESC</kbd>
                 <span>Close Navigation Pad</span>
               </div>
@@ -947,13 +1061,13 @@ export default function MentorPage() {
   };
 
   const renderComponent = () => {
-    // cast children as any to avoid mismatched prop-type errors during build
     const MainComp: any = MainComponent;
     const SessionComp: any = SessionComponent;
     const ReviewsComp: any = ReviewsComponent;
     const FilesComp: any = FilesComponent;
     const FileManagerComp: any = FileManagerComponent;
-    const LogoutComp: any = LogoutComponent;
+    const CommunityForumComp: any = CommunityForumComponent;
+    const SessionAnalyticsComp: any = SessionAnalyticsComponent;
 
     const mainContent = (() => {
       switch (activeComponent) {
@@ -978,7 +1092,7 @@ export default function MentorPage() {
           return <SessionComp 
             schedule={todaySchedule} 
             upcomingSchedule={upcomingSchedule}
-            userData={userData} // SessionComponent now accepts userData
+            userData={userData}
             onScheduleCreated={fetchSchedules}
           />;
         case 'reviews':
@@ -998,8 +1112,19 @@ export default function MentorPage() {
             setFiles={setFiles}
             userData={userData}
           />;
+        case 'community':
+          return <CommunityForumComp 
+            forumData={forumData}
+            userData={userData}
+            onForumUpdate={fetchForumData}
+          />;
+        case 'analytics':
+          return <SessionAnalyticsComp 
+            analyticsData={analyticsData}
+            userData={userData}
+            onDataRefresh={fetchAnalyticsData}
+          />;
         case 'logout': 
-          // perform actual logout immediately when logout is selected
           logout();
           return null;
         default:
@@ -1035,6 +1160,8 @@ export default function MentorPage() {
           fetchSchedules(),
           fetchFeedbacks(),
           getFiles(),
+          fetchForumData(),
+          fetchAnalyticsData(),
         ]);
       } catch (error) {
         console.error("Critical error during initialization:", error);
@@ -1066,13 +1193,13 @@ export default function MentorPage() {
   }, [userData]);
 
   return (
-    <div className="mentor-page">
+    <div className={styles.mentorPage}>
       <ErrorDisplay />
       
       {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-backdrop"></div>
-          <div className="loading-spinner">Loading...</div>
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingBackdrop}></div>
+          <div className={styles.loadingSpinner}>Loading...</div>
         </div>
       )}
 
@@ -1088,7 +1215,7 @@ export default function MentorPage() {
       <AccessibilityNavPad />
 
       <button 
-        className="accessibility-toggle-btn"
+        className={styles.accessibilityToggleBtn}
         onClick={() => setShowAccessibilityNav(prev => !prev)}
         aria-label="Toggle accessibility navigation"
         title="Accessibility Navigation (Ctrl+Alt+N)"
@@ -1097,28 +1224,28 @@ export default function MentorPage() {
       </button>
 
       {isMobileView && (
-        <button className="sidebar-toggle" onClick={toggleSidebar}>
+        <button className={styles.sidebarToggle} onClick={toggleSidebar}>
           ☰
         </button>
       )}
 
       {isMobileView && isSidebarVisible && (
-        <div className="sidebar-overlay" onClick={toggleSidebar}></div>
+        <div className={styles.sidebarOverlay} onClick={toggleSidebar}></div>
       )}
 
       <div 
-        className={`sidebar ${
-          isMobileView ? 'sidebar-mobile' : ''
+        className={`${styles.sidebar} ${
+          isMobileView ? styles.sidebarMobile : ''
         } ${
-          isMobileView && isSidebarVisible ? 'sidebar-mobile-visible' : ''
+          isMobileView && isSidebarVisible ? styles.sidebarMobileVisible : ''
         }`}
       >
-        <div className="logo-container">
-          <img src="/logo_gccoed.png" alt="GCCoEd Logo" className="logo" />
-          <span className="logo-text">MindMates</span>
+        <div className={styles.logoContainer}>
+          <img src="/logo_gccoed.png" alt="GCCoEd Logo" className={styles.logo} />
+          <span className={styles.logoText}>MindMates</span>
         </div>
 
-        <div className="upper-element">
+        <div className={styles.upperElement}>
           <div>
             <h1>Hi, Mentor!</h1>
             <img
@@ -1139,17 +1266,11 @@ export default function MentorPage() {
           </div>
         </div>
 
-        <div className="footer-element">
-          <div className="user-information">
+        <div className={styles.footerElement}>
+          <div className={styles.userInformation}>
             <h1>User Information</h1>
-            <div className="lines">
-              <h3>Year Level:</h3>
-              <div>
-                <p>{userData.yearLevel}</p>
-              </div>
-            </div>
 
-            <div className="lines">
+            <div className={styles.lines}>
               <h3>Program:</h3>
               <div>
                 <p>{courseAbbreviation}</p>
@@ -1157,15 +1278,15 @@ export default function MentorPage() {
             </div>
           </div>
           
-          <div className="availability">
+          <div className={styles.availability}>
             <h1>Availability</h1>
-            <div className="lines">
+            <div className={styles.lines}>
               <h3>Days:</h3>
               <div>
                 <p>{userData.availability?.join(", ") || 'Not specified'}</p>
               </div>
             </div>
-            <div className="lines">
+            <div className={styles.lines}>
               <h3>Duration:</h3>
               <div>
                 <p>{userData.sessionDur || 'Not specified'}</p>
@@ -1173,14 +1294,13 @@ export default function MentorPage() {
             </div>
           </div>
 
-          <div className="course-offered">
+          <div className={styles.courseOffered}>
             <h1>Course Offered</h1>
             
-            
-            <div className="course-grid">
+            <div className={styles.courseGrid}>
               {displayedCourses.map((card, index) => (
-                <div key={index} className="course-card">
-                  <div className="lines">
+                <div key={index} className={styles.courseCard}>
+                  <div className={styles.lines}>
                     <div>
                       <p title={card}>{card}</p>
                     </div>
@@ -1189,25 +1309,12 @@ export default function MentorPage() {
               ))}
               {remainingCoursesCount > 0 && (
                 <div 
-                  className="course-card remaining-courses" 
+                  className={`${styles.courseCard} ${styles.remainingCourses}`} 
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('See More clicked - courses:', subjects.length);
                     toggleShowAllCourses();
                   }}
-                  style={{ 
-                    cursor: 'pointer',
-                    background: '#f0f0f0',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#e0e0e0';
-                    e.currentTarget.style.borderColor = '#007bff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f0f0f0';
-                    e.currentTarget.style.borderColor = '#ccc';
-                  }}
+                  style={{ cursor: 'pointer' }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
@@ -1218,7 +1325,7 @@ export default function MentorPage() {
                   role="button"
                   aria-label={`Show all ${subjects.length} courses`}
                 >
-                  <div className="lines">
+                  <div className={styles.lines}>
                     <div>
                       <p style={{ color: '#007bff', fontWeight: 'bold' }}>
                         +{remainingCoursesCount} more
@@ -1230,19 +1337,19 @@ export default function MentorPage() {
             </div>
 
             {showAllCourses && (
-              <div className="all-courses-popup">
-                <div className="popup-overlay" onClick={toggleShowAllCourses}></div>
-                <div className="popup-content">
+              <div className={styles.allCoursesPopup}>
+                <div className={styles.popupOverlay} onClick={toggleShowAllCourses}></div>
+                <div className={styles.popupContent}>
                   <h3>All Courses Offered ({subjects.length})</h3>
-                  <div className="popup-courses">
+                  <div className={styles.popupCourses}>
                     {subjects.map((course, index) => (
-                      <div key={index} className="popup-course">
+                      <div key={index} className={styles.popupCourse}>
                         {course}
                       </div>
                     ))}
                   </div>
                   <button 
-                    className="close-popup"
+                    className={styles.closePopup}
                     onClick={toggleShowAllCourses}
                   >
                     Close
@@ -1252,13 +1359,13 @@ export default function MentorPage() {
             )}
           </div>
 
-          <div className="account-actions">
-            <div className="account-dropdown">
-              <button className="account-dropbtn">
-                <img src="/person.svg" alt="Account" className="account-icon" />
+          <div className={styles.accountActions}>
+            <div className={styles.accountDropdown}>
+              <button className={styles.accountDropbtn}>
+                <img src="/person.svg" alt="Account" className={styles.accountIcon} />
                 Account
               </button>
-              <div className="account-dropdown-content">
+              <div className={styles.accountDropdownContent}>
                 <a onClick={openEditInformation} style={{ cursor: 'pointer' }}>
                   <img src="/edit.svg" alt="Edit" /> Edit Information
                 </a>
@@ -1279,42 +1386,68 @@ export default function MentorPage() {
 
       <div 
         ref={topbarRef}
-        className={`topbar ${
-          isMobileView && !isSidebarVisible ? 'topbar-expanded' : ''
-        } ${isTopbarFocused ? 'topbar-focused' : ''}`}
+        className={`${styles.topbar} ${
+          isMobileView && !isSidebarVisible ? styles.topbarExpanded : ''
+        } ${isTopbarFocused ? styles.topbarFocused : ''}`}
         tabIndex={0}
         onKeyDown={handleTopbarKeyDown}
         onFocus={focusTopbar}
         onBlur={() => setIsTopbarFocused(false)}
         onClick={focusTopbar}
       >
-        <div className="topbar-left">
+        <div className={styles.topbarLeft}>
           {TOPBAR_ITEMS.map((item, index) => (
             <div 
               key={item.key}
               onClick={() => switchComponent(item.key)}
-              className={`topbar-option ${
-                activeComponent === item.key ? 'active' : ''
-              } ${index === focusedTopbarIndex && isTopbarFocused ? 'focused' : ''}`}
+              className={`${styles.topbarOption} ${
+                activeComponent === item.key ? styles.active : ''
+              } ${index === focusedTopbarIndex && isTopbarFocused ? styles.focused : ''}`}
             >
-              <img src={item.icon} alt={item.label} className="nav-icon" />
-              <span className="nav-text">{item.label}</span>
+              <img src={item.icon} alt={item.label} className={styles.navIcon} />
+              <span className={styles.navText}>{item.label}</span>
             </div>
           ))}
         </div>
-        <div className="topbar-date">
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+        
+        {/* Calendar Icon with Date Popup */}
+        <div className={styles.dateContainer} ref={datePopupRef}>
+          <button 
+            className={styles.calendarIconBtn}
+            onClick={() => setShowDatePopup(!showDatePopup)}
+            aria-label="Show current date and time"
+          >
+            <img src="/time.svg" alt="Calendar" className={styles.calendarIcon} />
+          </button>
+          
+          {showDatePopup && (
+            <div className={styles.datePopup}>
+              <div className={styles.dateContent}>
+                <div className={styles.currentDate}>
+                  {new Date().toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </div>
+                <div className={styles.currentTime}>
+                  {new Date().toLocaleTimeString("en-US", {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </div>
+              </div>
+              <div className={styles.popupArrow}></div>
+            </div>
+          )}
         </div>
       </div>
 
       <div 
-        className={`main-content ${
-          isMobileView && !isSidebarVisible ? 'content-expanded' : ''
+        className={`${styles.mainContent} ${
+          isMobileView && !isSidebarVisible ? styles.contentExpanded : ''
         }`}
         style={{ position: 'relative' }}
       >
@@ -1322,10 +1455,10 @@ export default function MentorPage() {
       </div>
 
       {showOffer && (
-        <div className="offer-popup">
-          <div className="popup-container">
+        <div className={styles.offerPopup}>
+          <div className={styles.popupContainer}>
             <h3>Make Offer to Student</h3>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>Subject:</label>
               <select>
                 {subjects.map((subject, index) => (
@@ -1333,15 +1466,15 @@ export default function MentorPage() {
                 ))}
               </select>
             </div>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>Date:</label>
               <input type="date" />
             </div>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>Time:</label>
               <input type="time" />
             </div>
-            <div className="form-actions">
+            <div className={styles.formActions}>
               <button onClick={() => setShowOffer(false)}>Cancel</button>
               <button onClick={handleOfferConfirm}>Send Offer</button>
             </div>
