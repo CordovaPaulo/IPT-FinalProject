@@ -1,6 +1,6 @@
 const Learner = require('../models/Learner');
 const Mentor = require('../models/Mentor');
-const User = require('../models/User');
+const User = require('../models/user');
 const Schedule = require('../models/Schedule');
 const Feedback = require('../models/feedback');
 const { getValuesFromToken } = require('../service/jwt');
@@ -778,3 +778,311 @@ exports.uploadFiles = async (req, res) => {
     return res.status(500).json({ message: 'Failed to upload files', code: 500 });
   }
 };
+
+exports.sendGroupSessionOffer = async (req, res) => {
+  const { learnerId } = req.params;
+  const { date, time, location, subject, message, groupName, maxParticipants } = req.body;
+
+  if (!learnerId) return res.status(400).json({ message: 'learnerId param is required', code: 400 });
+
+  const decoded = getValuesFromToken(req);
+  if (!decoded?.id) return res.status(403).json({ message: 'Invalid token', code: 403 });
+
+  if (!date || !time || !location || !subject) {
+    return res.status(400).json({ message: 'date, time, location and subject are required', code: 400 });
+  }
+
+  try {
+    const mentor = await Mentor.findOne({ $or: [{ _id: decoded.id }, { userId: decoded.id }] });
+    if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+
+    // fetch learner
+    let learner = await Learner.findById(learnerId);
+    if (!learner) learner = await Learner.findOne({ _id: learnerId });
+    if (!learner) return res.status(404).json({ message: 'Learner not found', code: 404 });
+
+    // resolve recipient email
+    let toEmail = learner.email;
+    if (!toEmail && learner.userId) {
+      const u = await User.findById(learner.userId);
+      toEmail = u?.email || null;
+    }
+    if (!toEmail) return res.status(400).json({ message: 'Learner email not found', code: 400 });
+
+    const appBase = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3001';
+    // explicitly mark this offer as a group offer (sessionType = 'group')
+    const offerPayload = {
+      // hyphenated id helps earlier heuristics detect group offers; also include explicit sessionType
+      offerId: `${Date.now().toString()}-${Math.random().toString(36).slice(2,8)}`,
+      sessionType: 'group',
+      mentorId: String(mentor._id),
+      learnerId: String(learner._id),
+      date,
+      time,
+      location,
+      subject,
+      groupName: groupName || null,
+      maxParticipants: maxParticipants || null,
+      createdAt: new Date().toISOString()
+    };
+    const token = Buffer.from(JSON.stringify(offerPayload)).toString('base64url');
+    const acceptLink = `${appBase}/api/learner/offers/accept?token=${token}`;
+
+    const prettyDate = new Date(date).toLocaleDateString();
+    const emailSubject = `Group Offer: ${subject} - ${groupName ? groupName : 'Group Study Session'}`;
+    const emailText = `
+Hello ${learner.name},
+
+${mentor.name} has invited you to a group study session${groupName ? `: "${groupName}"` : ''}.
+
+Details:
+- Subject: ${subject}
+- Date: ${prettyDate}
+- Time: ${time}
+- Location: ${location}
+${maxParticipants ? `- Max participants: ${maxParticipants}\n` : ''}
+${message ? `\nMessage from mentor:\n${message}\n` : ''}
+
+To accept this group offer, open the link below:
+${acceptLink}
+
+If you do not wish to join, you can ignore this email.
+
+Best regards,
+MindMate Team
+    `.trim();
+
+    const emailHtml = `
+<p>Hello ${learner.name},</p>
+<p><strong>${mentor.name}</strong> has invited you to a group study session${groupName ? `: "<em>${groupName}</em>"` : ''}.</p>
+<ul>
+  <li><strong>Subject:</strong> ${subject}</li>
+  <li><strong>Date:</strong> ${prettyDate}</li>
+  <li><strong>Time:</strong> ${time}</li>
+  <li><strong>Location:</strong> ${location}</li>
+  ${maxParticipants ? `<li><strong>Max participants:</strong> ${maxParticipants}</li>` : ''}
+</ul>
+${message ? `<p><strong>Message from mentor:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>` : ''}
+<p>
+  <a href="${acceptLink}" style="background:#1a73e8;color:#fff;padding:10px 16px;text-decoration:none;border-radius:6px;display:inline-block;">
+    Accept Group Offer
+  </a>
+</p>
+<p>If you did not expect this email, you can ignore it.</p>
+<p>Best regards,<br/>MindMate Team</p>
+    `.trim();
+
+    const mailResult = await mailingController.sendEmailNotification(
+      toEmail,
+      emailSubject,
+      emailText,
+      emailHtml
+    );
+
+    if (!mailResult) {
+      return res.status(500).json({ message: 'Failed to send offer email', code: 500 });
+    }
+
+    // notify via pusher if learner has a linked userId
+    try {
+      if (learner.userId) {
+        const channelName = `private-user-${String(learner.userId)}`;
+        await pusher.trigger(channelName, 'group-offer', {
+          offerId: offerPayload.offerId,
+          sessionType: 'group',
+          mentor: { id: String(mentor._id), name: mentor.name },
+          subject,
+          date,
+          time,
+          location,
+          groupName: groupName || null,
+          maxParticipants: maxParticipants || null
+        });
+      }
+    } catch (pushErr) {
+      console.error('Pusher emit error (sendGroupSessionOffer):', pushErr);
+    }
+
+    return res.status(200).json({
+      message: 'Group offer sent',
+      acceptLink, // included for testing; remove in production if sensitive
+      code: 200
+    });
+  } catch (error) {
+    console.error('sendGroupSessionOffer error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
+
+exports.sendExistingGroupSessionOffer = async (req, res) => {
+  const { learnerId, sessionId } = req.params;
+  const decoded = getValuesFromToken(req);
+  if (!decoded?.id) return res.status(403).json({ message: 'Invalid token', code: 403 });
+
+  if (!learnerId || !sessionId) {
+    return res.status(400).json({ message: 'learnerId and sessionId params are required', code: 400 });
+  }
+
+  try {
+    const mentor = await Mentor.findOne({ $or: [{ _id: decoded.id }, { userId: decoded.id }] });
+    if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+
+    const session = await Schedule.findById(sessionId);
+    if (!session || session.sessionType !== 'group') {
+      return res.status(404).json({ message: 'Group session not found', code: 404 });
+    }
+
+    // ensure mentor owns the session
+    if (String(session.mentor) !== String(mentor._id)) {
+      return res.status(403).json({ message: 'Not authorized to modify this session', code: 403 });
+    }
+
+    // resolve learner document (allow either _id or userId)
+    let learner = await Learner.findOne({ $or: [{ _id: learnerId }, { userId: learnerId }] });
+    if (!learner) return res.status(404).json({ message: 'Learner not found', code: 404 });
+
+    // resolve recipient email
+    let toEmail = learner.email;
+    if (!toEmail && learner.userId) {
+      const u = await User.findById(learner.userId);
+      toEmail = u?.email || null;
+    }
+    if (!toEmail) return res.status(400).json({ message: 'Learner email not found', code: 400 });
+
+    // build an offer payload that points to the existing schedule (learner must accept)
+    const offerPayload = {
+      offerId: `${Date.now().toString()}-${Math.random().toString(36).slice(2,8)}`,
+      sessionType: 'group',
+      mentorId: String(mentor._id),
+      learnerId: String(learner._id),
+      scheduleId: String(session._id),
+      scheduleOfferId: session.offerId ? String(session.offerId) : String(session._id),
+      date: session.date instanceof Date ? session.date.toISOString().split('T')[0] : String(session.date),
+      time: session.time,
+      location: session.location,
+      subject: session.subject,
+      groupName: session.groupName || null,
+      maxParticipants: session.maxParticipants || null,
+      currentParticipants: Array.isArray(session.learners) ? session.learners.length : 0,
+      createdAt: new Date().toISOString()
+    };
+
+    const token = Buffer.from(JSON.stringify(offerPayload)).toString('base64url');
+    const appBase = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3001';
+    const acceptLink = `${appBase}/api/learner/offers/accept?token=${token}`;
+
+    const prettyDate = new Date(offerPayload.date).toLocaleDateString();
+    const emailSubject = `Group Invite: ${offerPayload.subject} - ${offerPayload.groupName || 'Group Study Session'}`;
+    const emailText = `
+Hello ${learner.name},
+
+${mentor.name} has invited you to join an existing group session${offerPayload.groupName ? `: "${offerPayload.groupName}"` : ''}.
+
+Details:
+- Subject: ${offerPayload.subject}
+- Date: ${prettyDate}
+- Time: ${offerPayload.time}
+- Location: ${offerPayload.location}
+- Current participants: ${offerPayload.currentParticipants}
+${offerPayload.maxParticipants ? `- Max participants: ${offerPayload.maxParticipants}\n` : ''}
+${req.body?.message ? `\nMessage from mentor:\n${req.body.message}\n` : ''}
+
+To accept this invite and join the session, open the link below:
+${acceptLink}
+
+If you do not wish to join, you can ignore this email.
+
+Best regards,
+MindMate Team
+    `.trim();
+
+    const emailHtml = `
+<p>Hello ${learner.name},</p>
+<p><strong>${mentor.name}</strong> has invited you to join a group session${offerPayload.groupName ? `: "<em>${offerPayload.groupName}</em>"` : ''}.</p>
+<ul>
+  <li><strong>Subject:</strong> ${offerPayload.subject}</li>
+  <li><strong>Date:</strong> ${prettyDate}</li>
+  <li><strong>Time:</strong> ${offerPayload.time}</li>
+  <li><strong>Location:</strong> ${offerPayload.location}</li>
+  <li><strong>Current participants:</strong> ${offerPayload.currentParticipants}</li>
+  ${offerPayload.maxParticipants ? `<li><strong>Max participants:</strong> ${offerPayload.maxParticipants}</li>` : ''}
+</ul>
+${req.body?.message ? `<p><strong>Message from mentor:</strong><br/>${req.body.message.replace(/\n/g, '<br/>')}</p>` : ''}
+<p>
+  <a href="${acceptLink}" style="background:#1a73e8;color:#fff;padding:10px 16px;text-decoration:none;border-radius:6px;display:inline-block;">
+    Accept Invite
+  </a>
+</p>
+<p>If you did not expect this email, you can ignore it.</p>
+<p>Best regards,<br/>MindMate Team</p>
+    `.trim();
+
+    const mailResult = await mailingController.sendEmailNotification(
+      toEmail,
+      emailSubject,
+      emailText,
+      emailHtml
+    );
+
+    if (!mailResult) {
+      return res.status(500).json({ message: 'Failed to send invite email', code: 500 });
+    }
+
+    // send pusher event to learner (best-effort)
+    try {
+      if (learner.userId) {
+        const channelName = `private-user-${String(learner.userId)}`;
+        await pusher.trigger(channelName, 'group-offer', {
+          offerId: offerPayload.offerId,
+          scheduleId: offerPayload.scheduleId,
+          sessionType: 'group',
+          mentor: { id: String(mentor._id), name: mentor.name },
+          subject: offerPayload.subject,
+          date: offerPayload.date,
+          time: offerPayload.time,
+          location: offerPayload.location,
+          groupName: offerPayload.groupName,
+          maxParticipants: offerPayload.maxParticipants,
+          currentParticipants: offerPayload.currentParticipants,
+          acceptLink
+        });
+      }
+    } catch (pushErr) {
+      console.error('Pusher emit error (sendExistingGroupSessionOffer):', pushErr);
+    }
+
+    return res.status(200).json({
+      message: 'Invite sent to learner for existing group session',
+      acceptLink,
+      scheduleId: offerPayload.scheduleId,
+      code: 200
+    });
+  } catch (error) {
+    console.error('sendExistingGroupSessionOffer error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
+
+exports.getGroupSessions = async (req, res) => {
+  const decoded = getValuesFromToken(req);
+  if (!decoded || !decoded.id) {
+      return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+  try {
+      // Find mentor by either _id or userId
+      const mentor = await Mentor.findOne({
+          $or: [
+              { _id: decoded.id },
+              { userId: decoded.id }
+          ]
+      });
+      if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
+
+      // Fetch group sessions for the mentor
+      const groupSessions = await Schedule.find({ mentorId: mentor._id, sessionType: 'group' });
+      return res.status(200).json({ message: 'Group sessions fetched', groupSessions, code: 200 });
+  } catch (error) {
+      console.error('getGroupSessions error:', error);
+      return res.status(500).json({ message: error.message, code: 500 });
+  }
+}

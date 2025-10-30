@@ -197,9 +197,7 @@ export default function LearnMore() {
             {["Peer-to-Peer Learning", "School-Specific Platform", "Flexible Learning", "Comfortable Learning"].map((text, i) => (
                 <div
                 key={i}
-                ref={(el: HTMLDivElement | null) => {
-                  iconRefs.current[i] = el;
-                }}
+                ref={el => { iconRefs.current[i] = el; /* return void */ }}
                 className={`icon-wrapper ${focusedIndex === i + faqs.length + 1 ? 'focused' : ''}`}
                 onMouseEnter={() => setActiveIcon(i + 1)}
                 onMouseLeave={() => setActiveIcon(0)}
@@ -224,7 +222,7 @@ export default function LearnMore() {
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                ref={el => { faqRefs.current[index] = el; }}
+                ref={el => { faqRefs.current[index] = el; /* return void */ }}
                 className={`faq-item ${focusedIndex === index + 1 ? 'focused' : ''}`}
                 onClick={() => toggleFaq(index)}
                 onFocus={() => setFocusedIndex(index + 1)}

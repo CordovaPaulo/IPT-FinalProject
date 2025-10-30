@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const User = require('../models/user');
 const pusher = require('../service/pusher');
 
 exports.authenticatePusher = async (req, res) => {
