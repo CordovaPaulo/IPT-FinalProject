@@ -134,6 +134,12 @@ interface ForumData {
   category: string;
 }
 
+interface ProgressData {
+  sessionsAttended: number;
+  totalSessions: number;
+  progress: number;
+}
+
 const transformSchedulesForReview = (schedules: any[]): any[] => {
   return schedules.map(schedule => ({
     id: schedule.id,
@@ -229,6 +235,13 @@ export default function LearnerPage() {
   const [isTopbarFocused, setIsTopbarFocused] = useState(false);
   const topbarRef = useRef<HTMLDivElement>(null);
 
+  // Progress Data State - Simplified to just session attendance
+  const [progressData, setProgressData] = useState<ProgressData>({
+    sessionsAttended: 0,
+    totalSessions: 0,
+    progress: 0
+  });
+
   const topbarItems = [
     { key: 'main', label: 'Mentors', icon: '/main.svg' },
     { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
@@ -306,6 +319,23 @@ export default function LearnerPage() {
     };
   }, [userData.userId]);
 
+  // Update progress based on completed sessions
+  useEffect(() => {
+    const updateProgress = () => {
+      const sessionsAttended = schedForReview.filter(session => session.has_feedback).length;
+      const totalSessions = schedForReview.length;
+      const progress = totalSessions > 0 ? (sessionsAttended / totalSessions) * 100 : 0;
+      
+      setProgressData({
+        sessionsAttended,
+        totalSessions,
+        progress
+      });
+    };
+
+    updateProgress();
+  }, [schedForReview]);
+
   const fetchForumData = async () => {
     try {
       console.log("Fetching forum data...");
@@ -324,36 +354,6 @@ export default function LearnerPage() {
       
     } catch (error) {
       console.error('Error fetching forum data:', error);
-      const mockForumData: ForumData[] = [
-        {
-          id: 1,
-          title: "Best study techniques for Algorithms?",
-          author: "Alice Johnson",
-          replies: 15,
-          views: 89,
-          lastActivity: "2 hours ago",
-          category: "Study Tips"
-        },
-        {
-          id: 2,
-          title: "How to prepare for programming exams?",
-          author: "Bob Smith",
-          replies: 23,
-          views: 156,
-          lastActivity: "5 hours ago",
-          category: "Exam Preparation"
-        },
-        {
-          id: 3,
-          title: "Mathematics problem solving strategies",
-          author: "Carol Davis",
-          replies: 8,
-          views: 67,
-          lastActivity: "1 day ago",
-          category: "Mathematics"
-        }
-      ];
-      setForumData(mockForumData);
     }
   };
 
@@ -431,59 +431,11 @@ export default function LearnerPage() {
   const mentorProfile = async () => {
     try {
       console.log("Fetching mentor profiles...");
-      setUsers([
-        {
-          id: 1,
-          userName: "Dr. Smith",
-          yearLevel: "Professor",
-          course: "Computer Science",
-          image_id: "",
-          proficiency: "Expert",
-          subjects: ["Programming", "Algorithms"],
-          availability: ["Mon", "Wed"],
-          rating_ave: 4.5,
-          bio: "Experienced professor with 10+ years in computer science education",
-          exp: "10 years",
-          prefSessDur: "1 hour",
-          teach_sty: ["Interactive", "Project-based"],
-          credentials: ["PhD in Computer Science"],
-          image_url: "https://placehold.co/600x400"
-        },
-        {
-          id: 2,
-          userName: "Prof. Johnson",
-          yearLevel: "Associate Professor",
-          course: "Software Engineering",
-          image_id: "",
-          proficiency: "Advanced",
-          subjects: ["Web Development", "Database"],
-          availability: ["Tue", "Thu"],
-          rating_ave: 4.2,
-          bio: "Industry expert with 8 years of software development experience",
-          exp: "8 years",
-          prefSessDur: "1.5 hours",
-          teach_sty: ["Practical", "Hands-on"],
-          credentials: ["MSc in Software Engineering"],
-          image_url: "https://placehold.co/600x400"
-        },
-        {
-          id: 3,
-          userName: "Dr. Wilson",
-          yearLevel: "Professor",
-          course: "Computer Science",
-          image_id: "",
-          proficiency: "Expert",
-          subjects: ["Data Structures", "Algorithms"],
-          availability: ["Mon", "Fri"],
-          rating_ave: 4.8,
-          bio: "Specialized in data structures and algorithm optimization",
-          exp: "12 years",
-          prefSessDur: "1 hour",
-          teach_sty: ["Visual", "Step-by-step"],
-          credentials: ["PhD in Computer Science"],
-          image_url: "https://placehold.co/600x400"
-        }
-      ]);
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/learner/mentors', {
+        withCredentials: true,
+      });
+      setUsers(res.data);
     } catch (error) {
       console.error('Error fetching mentors:', error);
     }
@@ -492,46 +444,11 @@ export default function LearnerPage() {
   const fetchMentFiles = async () => {
     try {
       console.log("Fetching mentor files...");
-      const mockMentorFiles: MentorFile[] = [
-        {
-          id: 1,
-          name: "Programming Guide.pdf",
-          url: "/files/programming-guide.pdf",
-          type: "PDF",
-          owner_id: 1,
-          file_id: "file1",
-          file_name: "Programming Guide.pdf"
-        },
-        {
-          id: 2,
-          name: "Algorithms Notes.docx",
-          url: "/files/algorithms-notes.docx",
-          type: "DOCX",
-          owner_id: 2,
-          file_id: "file2",
-          file_name: "Algorithms Notes.docx"
-        },
-        {
-          id: 3,
-          name: "Data Structures Tutorial.pdf",
-          url: "/files/ds-tutorial.pdf",
-          type: "PDF",
-          owner_id: 3,
-          file_id: "file3",
-          file_name: "Data Structures Tutorial.pdf"
-        },
-        {
-          id: 4,
-          name: "Mathematics Problem Sets.pdf",
-          url: "/files/math-problems.pdf",
-          type: "PDF",
-          owner_id: 4,
-          file_id: "file4",
-          file_name: "Mathematics Problem Sets.pdf"
-        }
-      ];
-      
-      setMentorFiles(mockMentorFiles);
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/learner/files', {
+        withCredentials: true,
+      });
+      setMentorFiles(res.data);
     } catch (error) {
       console.error('Error fetching mentor files:', error);
     }
@@ -648,7 +565,6 @@ export default function LearnerPage() {
       
     } catch (error) {
       console.error('Error fetching user data:', error);
-      console.log("Keeping mock data due to API error");
     } finally {
       setIsLoading(false);
     }
@@ -671,39 +587,6 @@ export default function LearnerPage() {
       
     } catch (error) {
       console.error('Error fetching mentors:', error);
-      const mockMentors: MentorFromAPI[] = [
-        {
-          id: "1",
-          name: "Dr. Smith",
-          program: "BSCS",
-          yearLevel: "Professor",
-          image: "https://placehold.co/600x400",
-          aveRating: 4.5,
-          proficiency: "Expert"
-        },
-        {
-          id: "2", 
-          name: "Prof. Johnson",
-          program: "BSIT",
-          yearLevel: "Associate Professor",
-          image: "https://placehold.co/600x400",
-          aveRating: 4.2,
-          proficiency: "Advanced"
-        },
-        {
-          id: "3",
-          name: "Dr. Wilson", 
-          program: "BSCS",
-          yearLevel: "Professor",
-          image: "https://placehold.co/600x400",
-          aveRating: 4.8,
-          proficiency: "Expert"
-        }
-      ];
-      
-      setMentors(mockMentors);
-      setTransformedMentors(transformMentorData(mockMentors));
-      
     } finally {
       setIsLoadingMentors(false);
     }
@@ -908,14 +791,30 @@ export default function LearnerPage() {
           </div>
         </div>
 
-        <div className={styles['footer-element']}>
-          <div className={styles['bio-container']}>
-            <h1>BIO</h1>
-            <div className={styles.lines}>
-              <p>{userData.bio}</p>
+        <div className={styles['progress-tracker']}>
+          <h1>Learning Progress</h1>
+          <div className={styles['progress-item']}>
+            <div className={styles['progress-header']}>
+              <span className={styles['progress-title']}>Sessions Attended</span>
+              <span className={styles['progress-percentage']}>
+                {Math.round(progressData.progress)}%
+              </span>
+            </div>
+            <div className={styles['progress-bar']}>
+              <div 
+                className={styles['progress-fill']}
+                style={{ width: `${progressData.progress}%` }}
+              ></div>
+            </div>
+            <div className={styles['progress-details']}>
+              <span className={styles['progress-count']}>
+                {progressData.sessionsAttended} / {progressData.totalSessions} sessions
+              </span>
             </div>
           </div>
+        </div>
 
+        <div className={styles['footer-element']}>
           <div className={styles.availability}>
             <h1>Availability</h1>
             <div className={styles.lines}>

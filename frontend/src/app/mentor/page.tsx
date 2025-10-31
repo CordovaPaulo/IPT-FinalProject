@@ -202,7 +202,8 @@ export default function MentorPage() {
   const [isTopbarFocused, setIsTopbarFocused] = useState(false);
   const [mentorData, setMentorData] = useState<any | null>(null);
   const [showDatePopup, setShowDatePopup] = useState(false);
-
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  
   // Refs
   const topbarRef = useRef<HTMLDivElement>(null);
   const datePopupRef = useRef<HTMLDivElement>(null);
@@ -746,6 +747,14 @@ export default function MentorPage() {
     }
   };
 
+  // Open logout confirmation modal (do not immediately perform logout)
+  const openLogoutModal = () => setShowLogoutModal(true);
+  const cancelLogout = () => setShowLogoutModal(false);
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await logout();
+  };
+  
   // Edit Information Functions
   const openEditInformation = () => {
     setShowEditInformation(true);
@@ -1124,8 +1133,8 @@ export default function MentorPage() {
             userData={userData}
             onDataRefresh={fetchAnalyticsData}
           />;
-        case 'logout': 
-          logout();
+        case 'logout':
+          // logout handled by modal; do not perform logout directly here
           return null;
         default:
           return (
@@ -1142,6 +1151,15 @@ export default function MentorPage() {
     })();
     return <>{mainContent}</>;
   };
+  
+  // If some UI sets activeComponent to 'logout' (e.g. topbar), open modal instead.
+  useEffect(() => {
+    if (activeComponent === 'logout') {
+      setShowLogoutModal(true);
+      // reset active component to previous/main so UI doesn't stay on "logout"
+      setActiveComponent('main');
+    }
+  }, [activeComponent]);
 
   // Effects
   useEffect(() => {
@@ -1211,8 +1229,16 @@ export default function MentorPage() {
           onUpdateUserData={handleUpdateUserData}
         />
       )}
-
+      
       <AccessibilityNavPad />
+      
+      {showLogoutModal && (
+        <LogoutComponent
+          userData={userData}
+          onConfirm={confirmLogout}
+          onCancel={cancelLogout}
+        />
+      )}
 
       <button 
         className={styles.accessibilityToggleBtn}
@@ -1375,7 +1401,7 @@ export default function MentorPage() {
                 <a onClick={switchRole} style={{ cursor: 'pointer' }}>
                   <img src="/switch.svg" alt="Switch" /> Switch Account Role
                 </a>
-                <a onClick={() => logout()} style={{ cursor: 'pointer' }}>
+                <a onClick={openLogoutModal} style={{ cursor: 'pointer' }}>
                   <img src="/logout.svg" alt="Logout" /> Logout
                 </a>
               </div>
