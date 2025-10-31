@@ -4,6 +4,10 @@ const mentorController = require('../controllers/mentor');
 const jwtService = require('../service/jwt');
 const uploadController = require('../controllers/upload');
 const { multerUploadsMultiple } = require('../service/multer');
+const analyticsController = require('../controllers/session-analytics');
+
+// Mentor Analytics Dashboard
+router.get('/session/analytics', jwtService.authenticateToken('mentor'), analyticsController.fetchMentorDashboard);
 
 // POST routes
 router.post('/schedule/:id', jwtService.authenticateToken('mentor'), mentorController.setSchedule);
