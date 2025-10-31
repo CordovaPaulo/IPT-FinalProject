@@ -8,22 +8,87 @@ const mailingController = require('./mailing');
 const pusher = require('../service/pusher');
 const { schedulePayload, feedbackPayload } = require('../utils/realtimePayload');
 const uploadController = require('./upload');
+const calculateMatchScore = require('../utils/matchingUtils');
 
 exports.getAllMentors = async (req, res) => {
+  const decoded = getValuesFromToken(req);
+  if (!decoded || !decoded.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+  
   try {
     const mentors = await Mentor.find();
-    if (mentors.length === 0) {
+    if (!mentors || mentors.length === 0) {
       return res.status(404).json({ message: 'No mentors found', code: 404 });
     }
-    res.status(200).json(mentors.map(mentor => ({
+
+    const learner = await Learner.findOne({
+      $or: [
+        { _id: decoded.id },
+        { userId: decoded.id }
+      ]
+    });
+    if (!learner) {
+      return res.status(404).json({ message: 'Learner not found', code: 404 });
+    }
+
+    // dynamic import of ESM util (works in CommonJS file inside async function)
+    let matchScores = null
+    try {
+      const mod = calculateMatchScore
+      matchScores = mod && mod.calculateMatchScore;
+    } catch (impErr) {
+      console.error('Could not import matchingUtils:', impErr);
+    }
+
+    // If utility not available, fallback to returning basic mentor list
+    if (typeof calculateMatchScore !== 'function') {
+      console.warn('calculateMatchScore not available — returning unscored mentor list as fallback');
+      return res.status(200).json(mentors.map(mentor => ({
         id: mentor._id,
+        name: mentor.name,
+        program: mentor.program,
+        yearLevel: mentor.yearLevel,
+        aveRating: mentor.aveRating,
+        image: mentor.image,
+        proficiency: mentor.proficiency,
+        matchScore: null
+      })));
+    }
+
+    // Score each mentor (guard against any runtime error from the scorer)
+    const scored = mentors.map(m => {
+      let score = 0;
+      try {
+        score = calculateMatchScore(learner, m) ?? 0;
+      } catch (scoreErr) {
+        console.error('Error calculating score for mentor', String(m._id), scoreErr);
+        score = 0;
+      }
+      return { mentor: m, score: Number.isFinite(score) ? score : 0 };
+    });
+
+    // Filter to only matching mentors (score > 0) and sort by descending score
+    let matched = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score);
+
+    // Fallback: if no matches, return top mentors by score (even if 0) to avoid empty result
+    if (matched.length === 0) {
+      matched = scored.sort((a, b) => b.score - a.score).slice(0, 10);
+    }
+
+    // Map to response payload
+    const response = matched.map(({ mentor, score }) => ({
+      id: mentor._id,
       name: mentor.name,
       program: mentor.program,
       yearLevel: mentor.yearLevel,
       aveRating: mentor.aveRating,
       image: mentor.image,
       proficiency: mentor.proficiency,
-    })));
+      matchScore: parseFloat((score || 0).toFixed(2))
+    }));
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ message: 'Server error', code: 500 });
   }
