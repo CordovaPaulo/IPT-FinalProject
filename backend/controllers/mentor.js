@@ -11,6 +11,23 @@ const uploadController = require('./upload');   // already present
 const pusher = require('../service/pusher');
 const { schedulePayload } = require('../utils/realtimePayload');
 const Rank = require('../models/rank');
+const Badge = require('../models/badges');
+
+// Safe helper to resolve mentor and call awardMentorBadges without relying on userData variable
+async function safeAwardMentorBadgesByUserId(userOrMentorId) {
+  try {
+    if (!userOrMentorId) return null;
+    // Try to find mentor either by _id or userId
+    const mentor = await Mentor.findOne({
+      $or: [{ _id: userOrMentorId }, { userId: userOrMentorId }]
+    }).select('_id');
+    if (!mentor) return null;
+    return await Badge.awardMentorBadges(mentor._id);
+  } catch (err) {
+    console.error('Error awarding badges:', err);
+    return null;
+  }
+}
 
 function bufferToStream(buffer) {
   const pass = new stream.PassThrough();
@@ -135,6 +152,9 @@ exports.setSchedule = async (req, res) => {
           console.error('Pusher emit error (mentor.setSchedule):', emitErr);
         }
 
+        // Safe award badges
+        await safeAwardMentorBadgesByUserId(schedule.mentor);
+
         res.status(201).json(schedule);
     } catch (error) {
         res.status(500).json({ message: 'Server error', code: 500 });
@@ -159,6 +179,10 @@ exports.getFeedbacks = async (req, res) => {
     //   if(feedbacks.length === 0){
     //     return res.status(404).json({message: 'No feedbacks found', code: 404})
     //   }
+
+      // Safe award badges
+      await safeAwardMentorBadgesByUserId(mentor._id);
+
       res.status(200).json(feedbacks);
     } catch (error) {
       res.status(500).json({message: 'Server error', code: 500})
@@ -246,6 +270,9 @@ exports.cancelSched = async (req, res) => {
         } catch (emitErr) {
           console.error('Pusher emit error (mentor.cancelSched):', emitErr);
         }
+
+        // Safe award badges
+        await safeAwardMentorBadgesByUserId(mentor._id);
 
         res.status(200).json({ message: 'Schedule canceled', mailing: mailResult, code: 200 });
     } catch (error) {
@@ -381,6 +408,9 @@ exports.reschedSched = async (req, res) => {
           console.error('Pusher emit error (mentor.reschedSched):', emitErr);
         }
 
+        // Safe award badges
+        await safeAwardMentorBadgesByUserId(mentor._id);
+
         res.status(200).json({ message: 'Schedule rescheduled', schedule, code: 200 });
     } catch (error) {
         console.error('reschedSched error:', error);
@@ -493,6 +523,9 @@ exports.getSchedules = async (req, res) => {
             }
         }
 
+        // Safe award badges
+        await safeAwardMentorBadgesByUserId(mentor._id);
+
         res.status(200).json({
             todaySchedule,
             upcomingSchedule
@@ -511,14 +544,33 @@ exports.getProfileInfo = async (req, res) => {
 
     console.log('Decoded token info:', decoded);
     try {
-        const userData = await Mentor.findOne({ userId: decoded.id });
-        const roleData = await User.findById(decoded.id).select('role altRole');
+        // load mentor + role
+        const userData = await Mentor.findOne({ userId: decoded.id }).lean();
+        const roleData = await User.findById(decoded.id).select('role altRole').lean();
 
         if (!userData || !roleData) {
             return res.status(404).json({ message: "Mentor account does not exist", token: decoded, code: 404 });
         }
 
-        res.status(200).json({ userData, roleData });
+        // ensure badges are up-to-date (best-effort)
+        await safeAwardMentorBadgesByUserId(userData._id);
+
+        // fetch persisted mentor badges
+        const earned = await Badge.MentorBadge.find({ mentor: userData._id }).sort({ awardedAt: -1 }).lean();
+
+        // resolve definitions from static catalog when available
+        const defs = (Badge.BADGES || []).reduce((m, d) => {
+          m[d.key] = d;
+          return m;
+        }, {});
+
+        const badges = earned.map(b => ({
+          badgeKey: b.badgeKey,
+          awardedAt: b.awardedAt,
+          definition: defs[b.badgeKey] || null
+        }));
+
+        res.status(200).json({ userData, roleData, badges });
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
     }
@@ -540,6 +592,9 @@ exports.getReviewer = async (req, res) => {
             return res.status(404).json({ message: 'Learner not found', code: 404 });
         }
 
+        // Safe award badges
+        await safeAwardMentorBadgesByUserId(decoded.id);
+
         res.status(200).json({ reviewer: learner.reviewer });
     } catch (error) {
         console.error('Error in getReviewer:', error);
@@ -559,6 +614,10 @@ exports.sendReminder = async (req, res) => {
     const mentor = await Mentor.findOne({ $or: [{ _id: decoded.id }, { userId: decoded.id }] });
     if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
     await mailingController.sendScheduleReminder(id, mentor._id || decoded.id);
+
+    // Safe award badges
+    await safeAwardMentorBadgesByUserId(mentor._id);
+
     res.status(200).json({ message: 'Reminder sent', code: 200 });
   } catch (error) {
     console.error('Error sending reminder (mentor):', error);
@@ -578,6 +637,10 @@ exports.getLearningMaterial = async (req, res) => {
     if (!fileId) return res.status(400).json({ message: 'fileId is required', code: 400 });
 
     const meta = await uploadController.getDriveFileMetadata(fileId);
+
+    // Safe award badges
+    await safeAwardMentorBadgesByUserId(mentor._id);
+
     return res.status(200).json(meta);
   } catch (error) {
     console.error('getLearningMaterial error:', error);
@@ -597,6 +660,10 @@ exports.deleteLearningMaterial = async (req, res) => {
     if (!fileId) return res.status(400).json({ message: 'fileId is required', code: 400 });
 
     await uploadController.deleteDriveFile(fileId);
+
+    // Safe award badges
+    await safeAwardMentorBadgesByUserId(mentor._id);
+
     return res.status(200).json({ message: 'File deleted', id: fileId, code: 200 });
   } catch (error) {
     console.error('deleteLearningMaterial error:', error);
@@ -728,6 +795,9 @@ exports.sendOffer = async (req, res) => {
         return res.status(500).json({ message: 'Failed to send offer email', code: 500 });
         }
 
+        // Safe award badges
+        await safeAwardMentorBadgesByUserId(mentor._id);
+
         return res.status(200).json({
         message: 'Offer email sent',
         acceptLink, // included for testing; remove in production if not needed
@@ -773,6 +843,9 @@ exports.uploadFiles = async (req, res) => {
         createdTime: uploaded.createdTime,
       });
     }
+
+    // Safe award badges
+    await safeAwardMentorBadgesByUserId(decoded.id);
 
     return res.status(201).json({ message: 'Files uploaded successfully', files: results, code: 201 });
   } catch (err) {
@@ -904,6 +977,9 @@ ${message ? `<p><strong>Message from mentor:</strong><br/>${message.replace(/\n/
     } catch (pushErr) {
       console.error('Pusher emit error (sendGroupSessionOffer):', pushErr);
     }
+
+    // Safe award badges
+    await safeAwardMentorBadgesByUserId(mentor._id);
 
     return res.status(200).json({
       message: 'Group offer sent',
@@ -1053,6 +1129,9 @@ ${req.body?.message ? `<p><strong>Message from mentor:</strong><br/>${req.body.m
       console.error('Pusher emit error (sendExistingGroupSessionOffer):', pushErr);
     }
 
+    // Safe award badges
+    await safeAwardMentorBadgesByUserId(mentor._id);
+
     return res.status(200).json({
       message: 'Invite sent to learner for existing group session',
       acceptLink,
@@ -1082,6 +1161,10 @@ exports.getGroupSessions = async (req, res) => {
 
       // Fetch group sessions for the mentor
       const groupSessions = await Schedule.find({ mentorId: mentor._id, sessionType: 'group' });
+
+      // Safe award badges
+      await safeAwardMentorBadgesByUserId(mentor._id);
+
       return res.status(200).json({ message: 'Group sessions fetched', groupSessions, code: 200 });
   } catch (error) {
       console.error('getGroupSessions error:', error);

@@ -115,6 +115,22 @@ interface RoleData {
   altRole: string | null;
 }
 
+interface BadgeDefinition {
+  key: string;
+  name: string;
+  description: string;
+  icon: string;     // emoji or URL
+  color: string;    // hex color
+  category: string; // experience | engagement | quality | community | trust
+}
+
+interface EarnedBadge {
+  badgeKey: string;
+  awardedAt: string;
+  metricsSnapshot?: any;
+  definition?: BadgeDefinition | null;
+}
+
 // Constants
 const TOPBAR_ITEMS = [
   { key: 'main', label: 'Learners', icon: '/main.svg' },
@@ -143,6 +159,21 @@ const StarRating = ({ rating }: { rating: number }) => {
           {i < Math.round(rating) ? '★' : '☆'}
         </span>
       ))}
+    </div>
+  );
+};
+
+// Add this helper to render badge hex icons
+const HexBadge = ({ badge }: { badge: EarnedBadge }) => {
+  const def = badge.definition || undefined;
+  const bg = def?.color || '#8B5CF6';
+  const icon = def?.icon || '🏅';
+  const title = def?.name || badge.badgeKey;
+  return (
+    <div className={styles.hexBadge} title={title} aria-label={title}>
+      <div className={styles.hexBadgeInner} style={{ background: bg }}>
+        <span className={styles.hexBadgeIcon}>{icon}</span>
+      </div>
     </div>
   );
 };
@@ -188,6 +219,7 @@ export default function MentorPage() {
   const [roleData, setRoleData] = useState<RoleData | null>(null);
   const [forumData, setForumData] = useState<any[]>([]);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [badges, setBadges] = useState<EarnedBadge[]>([]);
   
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -203,6 +235,7 @@ export default function MentorPage() {
   const [mentorData, setMentorData] = useState<any | null>(null);
   const [showDatePopup, setShowDatePopup] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showBadgesPopup, setShowBadgesPopup] = useState(false);
   
   // Refs
   const topbarRef = useRef<HTMLDivElement>(null);
@@ -309,13 +342,14 @@ export default function MentorPage() {
       
       try {
         const res = await api.get('/api/mentor/profile', {
-          timeout: 10000,
+          timeout: 50000,
           withCredentials: true,
         });
-        
+
         if (res.data && res.data.userData) {
           setUserData(res.data.userData);
           setRoleData(res.data.roleData);
+          setBadges(Array.isArray(res.data.badges) ? res.data.badges : []); // <- capture badges
           console.log("Mentor profile data:", res.data);
         } else {
           throw new Error('Invalid response format');
@@ -516,7 +550,7 @@ export default function MentorPage() {
       console.log("Fetching learners from API...");
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/learners', {
-        timeout: 10000,
+        timeout: 50000,
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -542,7 +576,7 @@ export default function MentorPage() {
       console.log("Fetching schedules from API...");
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/schedules', {
-        timeout: 10000,
+        timeout: 50000,
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -569,7 +603,7 @@ export default function MentorPage() {
       console.log("Fetching feedbacks from API...");
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/feedbacks', {
-        timeout: 10000,
+        timeout: 50000,
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -592,7 +626,7 @@ export default function MentorPage() {
       console.log("Fetching forum data...");
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/forum', {
-        timeout: 10000,
+        timeout: 50000,
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -634,7 +668,7 @@ export default function MentorPage() {
       console.log("Fetching analytics data...");
       const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/analytics', {
-        timeout: 10000,
+        timeout: 50000,
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -1240,6 +1274,64 @@ export default function MentorPage() {
         />
       )}
 
+      {/* Badges Popup */}
+      {showBadgesPopup && (
+        <div
+          className={styles.badgesOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mentor medals"
+          onClick={() => setShowBadgesPopup(false)}
+        >
+          <div
+            className={styles.badgesModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.badgesHeader}>
+              <h3>Badges</h3>
+              <button
+                className={styles.badgesClose}
+                onClick={() => setShowBadgesPopup(false)}
+                aria-label="Close medals"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* <div className={styles.badgesSubheader}>
+              <span className={styles.latestDot} /> Latest
+            </div> */}
+
+            <div className={styles.badgesGrid}>
+              {(badges || []).map((b, i) => {
+                const def = b.definition || undefined;
+                const name = def?.name || b.badgeKey;
+                const desc = def?.description || '';
+                return (
+                  <div key={`${b.badgeKey}-${i}`} className={styles.badgeCard}>
+                    <HexBadge badge={b} />
+                    <div className={styles.badgeMeta}>
+                      <div className={styles.badgeName}>{name}</div>
+                      {desc ? (
+                        <div className={styles.badgeDesc}>{desc}</div>
+                      ) : null}
+                      <div className={styles.badgeDate}>
+                        {new Date(b.awardedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {(!badges || badges.length === 0) && (
+                <div className={styles.emptyBadges}>
+                  No medals yet. Complete activities to earn medals.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <button 
         className={styles.accessibilityToggleBtn}
         onClick={() => setShowAccessibilityNav(prev => !prev)}
@@ -1383,6 +1475,31 @@ export default function MentorPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Medals section */}
+          <div className={styles.medalsSection}>
+            <div className={styles.medalsHeader}>
+              <h1>Badges</h1>
+              <button
+                className={styles.viewAllBadgesBtn}
+                onClick={() => setShowBadgesPopup(true)}
+              >
+                View All
+              </button>
+            </div>
+
+            <div className={styles.medalsLatestRow}>
+              <span className={styles.latestLabel}>Latest</span>
+              <div className={styles.badgeRow}>
+                {(badges || []).slice(0, 3).map((b, i) => (
+                  <HexBadge key={`${b.badgeKey}-${i}`} badge={b} />
+                ))}
+                {(!badges || badges.length === 0) && (
+                  <div className={styles.noBadgesText}>No medals yet</div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className={styles.accountActions}>

@@ -10,6 +10,22 @@ const { schedulePayload, feedbackPayload } = require('../utils/realtimePayload')
 const uploadController = require('./upload');
 const calculateMatchScore = require('../utils/matchingUtils');
 const Rank = require('../models/rank'); // <-- added
+const Badge = require('../models/badges'); // added
+
+// Safe helper to resolve mentor and call awardMentorBadges without relying on userData variable
+async function safeAwardMentorBadgesByUserId(userOrMentorId) {
+  try {
+    if (!userOrMentorId) return null;
+    const mentor = await Mentor.findOne({
+      $or: [{ _id: userOrMentorId }, { userId: userOrMentorId }]
+    }).select('_id');
+    if (!mentor) return null;
+    return await Badge.awardMentorBadges(mentor._id);
+  } catch (err) {
+    console.error('Error awarding badges (learner controller):', err);
+    return null;
+  }
+}
 
 exports.getAllMentors = async (req, res) => {
   const decoded = getValuesFromToken(req);
@@ -102,8 +118,32 @@ exports.getMentorById = async (req, res) => {
     if (!mentor) {
       return res.status(404).json({ message: 'Mentor not found', code: 404 });
     }
-    res.status(200).json(mentor);
+
+    // Ensure badges are up-to-date (best-effort)
+    try {
+      await safeAwardMentorBadgesByUserId(mentor._id);
+    } catch (awardErr) {
+      console.error('Error awarding badges (getMentorById):', awardErr);
+    }
+
+    // Fetch persisted badges for this mentor
+    const earned = await Badge.MentorBadge.find({ mentor: mentor._id }).sort({ awardedAt: -1 }).lean();
+
+    // Resolve definitions from static catalog when available
+    const defs = (Badge.BADGES || []).reduce((m, d) => {
+      m[d.key] = d;
+      return m;
+    }, {});
+
+    const badges = earned.map(b => ({
+      badgeKey: b.badgeKey,
+      awardedAt: b.awardedAt,
+      definition: defs[b.badgeKey] || null
+    }));
+
+    res.status(200).json({ mentor, badges });
   } catch (error) {
+    console.error('getMentorById error:', error);
     res.status(500).json({ message: 'Server error', code: 500 });
   }
 };
@@ -190,6 +230,9 @@ exports.setSchedule = async (req, res) => {
           console.error('Pusher emit error (learner.setSchedule):', emitErr);
         }
 
+        // Award badges for mentor (best-effort)
+        await safeAwardMentorBadgesByUserId(mentor._id);
+
         res.status(201).json(schedule);
     } catch (error) {
         res.status(500).json({ message: error.message, code: 500 });
@@ -251,6 +294,8 @@ exports.setFeedback = async (req, res) => {
 
         await feedback.save();
         await mentor.save();
+        // Award badges for mentor after receiving feedback
+        await safeAwardMentorBadgesByUserId(mentor._id);
 
         // update learner rank ONLY if the schedule subject is listed in learner.subjects
         try {
@@ -544,6 +589,9 @@ exports.cancelSched = async (req, res) => {
       console.error('Pusher emit error (learner.cancelSched):', emitErr);
     }
 
+    // Award badges for mentor (best-effort) after cancel
+    await safeAwardMentorBadgesByUserId(schedule.mentor);
+
     return res.status(200).json({ message: 'Schedule canceled', code: 200 });
   } catch (error) {
     console.error('cancelSched error:', error);
@@ -627,6 +675,9 @@ exports.reschedSched = async (req, res) => {
       console.error('Pusher emit error (learner.reschedSched):', emitErr);
     }
 
+    // Award badges for mentor (best-effort)
+    await safeAwardMentorBadgesByUserId(schedule.mentor);
+
     // email mentor
     try {
       await mailingController.sendRescheduleByLearner(
@@ -639,7 +690,6 @@ exports.reschedSched = async (req, res) => {
     } catch (mailErr) {
       console.error('Error sending reschedule email (learner):', mailErr);
     }
-
     return res.status(200).json({ message: 'Schedule rescheduled', schedule, code: 200 });
   } catch (error) {
     console.error('reschedSched error:', error);
@@ -793,6 +843,9 @@ MindMate Team`
           console.error('Pusher emit error (learner.acceptOffer group join - scheduleId):', emitErr);
         }
 
+        // Award badges for mentor (best-effort)
+        await safeAwardMentorBadgesByUserId(mentor._id);
+
         return res.status(200).json({ message: 'Joined group session', schedule: groupSchedule, code: 200 });
       }
 
@@ -861,6 +914,9 @@ MindMate Team`
           console.error('Pusher emit error (learner.acceptOffer group join):', emitErr);
         }
 
+        // Award badges for mentor (best-effort)
+        await safeAwardMentorBadgesByUserId(mentor._id);
+
         return res.status(200).json({ message: 'Joined group session', schedule: groupSchedule, code: 200 });
       } else {
         // No existing group schedule: create one with this first learner (existing behavior)
@@ -915,6 +971,9 @@ MindMate Team`
         } catch (emitErr) {
           console.error('Pusher emit error (learner.acceptOffer new group):', emitErr);
         }
+
+        // Award badges for mentor (best-effort)
+        await safeAwardMentorBadgesByUserId(mentor._id);
 
         return res.status(201).json({ message: 'Group session created and joined', schedule: newGroup, code: 201 });
       }
@@ -982,6 +1041,9 @@ MindMate Team`
       } catch (emitErr) {
         console.error('Pusher emit error (learner.acceptOffer):', emitErr);
       }
+
+      // Award badges for mentor (best-effort)
+      await safeAwardMentorBadgesByUserId(mentor._id);
 
       return res.status(201).json({ message: 'Offer accepted. Schedule created.', schedule, code: 201 });
     }

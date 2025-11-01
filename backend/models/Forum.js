@@ -9,5 +9,6 @@ const forumSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
-const Forum = mongoose.model('Forum', forumSchema);
+// reuse compiled model if present (prevents OverwriteModelError)
+const Forum = mongoose.models.Forum || mongoose.model('Forum', forumSchema);
 module.exports = Forum;
