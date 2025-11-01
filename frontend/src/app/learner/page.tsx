@@ -140,6 +140,14 @@ interface ProgressData {
   progress: number;
 }
 
+// Add this
+interface RankData {
+  rank: string;
+  progress: number;
+  requiredSessions: number | null;
+  sessionsToNextRank: number | null;
+}
+
 const transformSchedulesForReview = (schedules: any[]): any[] => {
   return schedules.map(schedule => ({
     id: schedule.id,
@@ -241,6 +249,9 @@ export default function LearnerPage() {
     totalSessions: 0,
     progress: 0
   });
+
+  // Add this state
+  const [rankData, setRankData] = useState<RankData | null>(null);
 
   const topbarItems = [
     { key: 'main', label: 'Mentors', icon: '/main.svg' },
@@ -561,6 +572,8 @@ export default function LearnerPage() {
         role: res.data.roleData.role,
         altRole: res.data.roleData.altRole
       });
+      // Mount rank data from payload
+      setRankData(res.data.rankData || null);
       console.log(res.data);
       
     } catch (error) {
@@ -662,6 +675,15 @@ export default function LearnerPage() {
   useEffect(() => {
     console.log("Current userData state:", userData);
   }, [userData]);
+
+  // Helper for rank progress percentage
+  const rankProgressPct = (() => {
+    if (!rankData) return 0;
+    if (rankData.requiredSessions == null) return 100; // top rank
+    const req = Math.max(Number(rankData.requiredSessions) || 0, 1);
+    const prog = Math.max(Number(rankData.progress) || 0, 0);
+    return Math.min(Math.round((prog / req) * 100), 100);
+  })();
 
   const renderComponent = () => {
     const transformedSchedForReview = transformSchedulesForReview(schedForReview);
@@ -795,20 +817,32 @@ export default function LearnerPage() {
           <h1>Learning Progress</h1>
           <div className={styles['progress-item']}>
             <div className={styles['progress-header']}>
-              <span className={styles['progress-title']}>Sessions Attended</span>
+              <span className={styles['progress-title']}>
+                <p className={styles['progress-label']}>Rank:</p>
+                {rankData ? `${rankData.rank}` : 'Sessions Attended'}
+              </span>
               <span className={styles['progress-percentage']}>
-                {Math.round(progressData.progress)}%
+                {rankData ? `${rankProgressPct}%` : `${Math.round(progressData.progress)}%`}
               </span>
             </div>
             <div className={styles['progress-bar']}>
               <div 
                 className={styles['progress-fill']}
-                style={{ width: `${progressData.progress}%` }}
+                style={{ width: `${rankData ? rankProgressPct : progressData.progress}%` }}
               ></div>
             </div>
             <div className={styles['progress-details']}>
               <span className={styles['progress-count']}>
-                {progressData.sessionsAttended} / {progressData.totalSessions} sessions
+                {rankData
+                  ? (rankData.requiredSessions == null
+                      ? 'Top rank achieved'
+                      : `${rankData.progress} / ${rankData.requiredSessions} sessions` +
+                        (typeof rankData.sessionsToNextRank === 'number'
+                          ? ` • ${rankData.sessionsToNextRank} to next rank`
+                          : '')
+                    )
+                  : `${progressData.sessionsAttended} / ${progressData.totalSessions} sessions`
+                }
               </span>
             </div>
           </div>

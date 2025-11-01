@@ -10,6 +10,7 @@ const mailingController = require('./mailing'); // added
 const uploadController = require('./upload');   // already present
 const pusher = require('../service/pusher');
 const { schedulePayload } = require('../utils/realtimePayload');
+const Rank = require('../models/rank');
 
 function bufferToStream(buffer) {
   const pass = new stream.PassThrough();
@@ -70,7 +71,8 @@ exports.getLearnerById = async (req, res) => {
     if (!learner) {
       return res.status(404).json({ message: 'Learner not found', code: 404 });
     }
-    res.status(200).json(learner);
+    const rank = await Rank.findOne({ learnerId: learner._id }).select('rank');
+    res.status(200).json({ learner, rank });
   } catch (error) {
     res.status(500).json({ message: 'Server error', code: 500 });
   }

@@ -11,6 +11,7 @@ const { setCookie } = require('./cookie');
 const mailingController = require('./mailing');
 const VerificationToken = require('../models/VerificationToken');
 const crypto = require('crypto');
+const Rank = require('../models/rank');
 // const APP_BASE = (process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/,'');
 // const API_BASE = (process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:5000').replace(/\/+$/,'');
 
@@ -20,7 +21,6 @@ async function sendRoleConfirmationEmail({ id: uid, username, email }, role, rol
     const ttlMs = 2 * 24 * 60 * 60 * 1000; // 2 days
     const expiresAt = new Date(Date.now() + ttlMs);
 
-    // Create JTIs and persist them for one-time use
     const verifyJti = crypto.randomUUID();
     const unverifyJti = crypto.randomUUID();
 
@@ -424,11 +424,14 @@ exports.mentorSignup = async (req, res) => {
       credentialsFolderUrl: credentialsFolderUrl
     });
 
+    const rank = new Rank({ learnerId: decoded.id });
+
     // Update user role
     await User.updateOne({ _id: decoded.id }, { role: 'mentor' });
     
     // Save mentor
     await mentor.save();
+    await rank.save();
 
     // Send confirmation email (after role/profile is registered)
     sendRoleConfirmationEmail(

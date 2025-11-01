@@ -9,6 +9,7 @@ const pusher = require('../service/pusher');
 const { schedulePayload, feedbackPayload } = require('../utils/realtimePayload');
 const uploadController = require('./upload');
 const calculateMatchScore = require('../utils/matchingUtils');
+const Rank = require('../models/rank'); // <-- added
 
 exports.getAllMentors = async (req, res) => {
   const decoded = getValuesFromToken(req);
@@ -250,6 +251,26 @@ exports.setFeedback = async (req, res) => {
 
         await feedback.save();
         await mentor.save();
+
+        // update learner rank ONLY if the schedule subject is listed in learner.subjects
+        try {
+          const learnerSubjects = Array.isArray(learnerDoc.subjects)
+            ? learnerDoc.subjects.map(s => String(s).trim().toLowerCase())
+            : [];
+          const scheduleSubject = String(sched.subject || '').trim().toLowerCase();
+
+          if (scheduleSubject && learnerSubjects.includes(scheduleSubject)) {
+            let rankDoc = await Rank.findOne({ learnerId: learnerDoc._id });
+            if (!rankDoc) {
+              rankDoc = new Rank({ learnerId: learnerDoc._id });
+            }
+            // increment by 1 session for this qualifying feedback schedule
+            await rankDoc.addSessions(1);
+          }
+        } catch (rankErr) {
+          console.error('Error updating learner rank:', rankErr);
+        }
+
         // Pusher: notify new feedback
         try {
           const mentorDoc = await Mentor.findById(feedback.mentor || id);
@@ -388,14 +409,30 @@ exports.getProfileInfo = async (req, res) => {
     try {
         const userData = await Learner.findOne({userId: decoded.id});
         const roleData = await User.findOne({ _id: decoded.id }).select('role altRole');
+        const rankDoc = await Rank.findOne({ learnerId: userData?.id }).select('progress rank');
 
         if(!userData || !roleData) {
-            res.status(404).json({ message: "User Account is none existent", code: 404})
+            return res.status(404).json({ message: "User Account is none existent", code: 404});
         }
 
-        res.status(200).json({userData, roleData})
+        let rankData = null;
+        if (rankDoc) {
+          const requiredSessions = rankDoc.requiredSessions ?? null; // null if at top rank
+          const sessionsToNextRank = requiredSessions == null
+            ? null
+            : Math.max(requiredSessions - (rankDoc.progress || 0), 0);
+
+          rankData = {
+            rank: rankDoc.rank,
+            progress: rankDoc.progress,
+            requiredSessions,
+            sessionsToNextRank
+          };
+        }
+
+        res.status(200).json({userData, roleData, rankData});
     } catch (error) {
-        res.status(500).json({ message: error.message, code: 500 })
+        res.status(500).json({ message: error.message, code: 500 });
     }
 }
 
