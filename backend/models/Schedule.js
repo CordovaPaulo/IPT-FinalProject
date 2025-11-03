@@ -1,27 +1,18 @@
 const mongoose = require('mongoose');
-// const Mentor = require('./Mentor');
-// const Learner = require('./Learner');
 
 const scheduleSchema = new mongoose.Schema({
-    // learners: array of Learner ObjectIds. Validation ensures
-    // - one-on-one sessions have exactly 1 learner
-    // - group sessions allow 1+ learners (first accept creates schedule; others join)
     learners: {
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Learner' }],
         required: true,
         validate: {
             validator: function (arr) {
-                // When validating, `this` refers to the document
                 const sessionType = this.sessionType;
                 if (!Array.isArray(arr)) return false;
                 if (sessionType === 'one-on-one') {
                     return arr.length === 1;
                 } else if (sessionType === 'group') {
-                    // allow creating a group schedule with 1+ learners so mentor can send offers
-                    // and learners can join incrementally
                     return arr.length >= 1;
                 }
-                // default fallback: require at least one learner
                 return arr.length >= 1;
             },
             message: props => {
@@ -34,13 +25,27 @@ const scheduleSchema = new mongoose.Schema({
     },
     mentor: { type: mongoose.Schema.Types.ObjectId, ref: 'Mentor' },
     mentorName: { type: String, required: true },
-    // store learner display names as an array to match learners[] shape
     learnerNames: { type: [String], required: true },
     date: { type: Date, required: true },
     time: { type: String, required: true },
-    location: { type: String, required: true },
+    location: { type: String, required: true }, // 'online' or physical location
     subject: { type: String, required: true },
     sessionType: { type: String, enum: ['one-on-one', 'group'], required: true },
-}, { collections: 'schedules' });
+    
+    // NEW: reference to Jitsi session (if location is 'online')
+    jitsiSessionId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Jitsi' 
+    },
+    
+    // // Optional: group session fields
+    // groupName: { type: String },
+    // maxParticipants: { type: Number },
+    // offerId: { type: String }
+    
+}, { 
+    timestamps: true,
+    collection: 'schedules' 
+});
 
 module.exports = mongoose.model('Schedule', scheduleSchema);

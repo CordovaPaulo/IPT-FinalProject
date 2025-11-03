@@ -19,6 +19,8 @@ const messageRouter = require('./routes/message')
 const adminRouter = require('./routes/admin');
 const pusherRouter = require('./routes/pusher');
 const forumRouter = require('./routes/forum');
+const jitsiRouter = require('./routes/jitsi'); // NEW
+const roleRouter = require('./routes/role');
 
 const app = express();
 
@@ -49,6 +51,8 @@ app.use('/api/message', messageRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/pusher', pusherRouter);
 app.use('/api/forum', forumRouter);
+app.use('/api/jitsi', jitsiRouter); // NEW
+app.use('/api/role', roleRouter);
 
 // 404 handler
 app.use((req, res, next) => {

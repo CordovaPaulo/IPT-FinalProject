@@ -163,7 +163,6 @@ exports.setSchedule = async (req, res) => {
     }
 
     try {
-        // Find mentor and learner
         const mentor = await Mentor.findById(id);
         const learner = await Learner.findOne({
             $or: [
@@ -180,18 +179,15 @@ exports.setSchedule = async (req, res) => {
             return res.status(404).json({ message: 'Learner not found', code: 404 });
         }
 
-        // Convert date string to Date object and validate
         const scheduleDate = new Date(date);
         if (Number.isNaN(scheduleDate.getTime())) {
           return res.status(400).json({ message: 'Invalid date', code: 400 });
         }
 
-        // Learners can only create one-on-one schedules
         const sessionType = 'one-on-one';
         const mentorName = mentor.name;
         const learnerName = learner.name;
 
-        // Prevent duplicate for same mentor/learner/date/time
         const existing = await Schedule.findOne({
           learners: learner._id,
           mentor: mentor._id,
@@ -202,7 +198,6 @@ exports.setSchedule = async (req, res) => {
           return res.status(409).json({ message: 'Schedule already exists for this slot', schedule: existing, code: 409 });
         }
 
-        // Create schedule using arrays for learners and learnerNames
         const schedule = new Schedule({
             learners: [learner._id],
             learnerNames: [learnerName],
@@ -217,7 +212,30 @@ exports.setSchedule = async (req, res) => {
 
         await schedule.save();
 
-        // Notify mentor via Pusher only (no email)
+        // NEW: If location is 'online', create Jitsi session
+        const isOnline = String(location).toLowerCase().trim() === 'online' || 
+                        String(location).toLowerCase().includes('online');
+        
+        if (isOnline) {
+          const Jitsi = require('../models/jitsi'); // make sure path is correct
+          const roomName = await Jitsi.generateRoomName(schedule._id); // ADD await
+          const jitsiSession = new Jitsi({
+            scheduleId: schedule._id,
+            roomName,
+            subject: schedule.subject,
+            mentorId: mentor._id,
+            learnerIds: [learner._id],
+            isActive: false
+          });
+          const domain = process.env.JITSI_DOMAIN || 'meet.jit.si';
+          jitsiSession.meetingUrl = jitsiSession.buildMeetingUrl(domain);
+          await jitsiSession.save();
+          
+          schedule.jitsiSessionId = jitsiSession._id;
+          await schedule.save();
+        }
+
+        // Notify mentor via Pusher
         try {
           const mentorChannelId = String(mentor.userId);
           const channelName = `private-user-${mentorChannelId}`;
@@ -230,7 +248,6 @@ exports.setSchedule = async (req, res) => {
           console.error('Pusher emit error (learner.setSchedule):', emitErr);
         }
 
-        // Award badges for mentor (best-effort)
         await safeAwardMentorBadgesByUserId(mentor._id);
 
         res.status(201).json(schedule);
@@ -1003,6 +1020,29 @@ MindMate Team`
         sessionType: 'one-on-one'
       });
       await schedule.save();
+
+      // NEW: If location is 'online', create Jitsi session
+      const isOnline = String(payload.location).toLowerCase().trim() === 'online' || 
+                      String(payload.location).toLowerCase().includes('online');
+      
+      if (isOnline) {
+        const Jitsi = require('../models/jitsi');
+        const roomName = await Jitsi.generateRoomName(schedule._id);
+        const jitsiSession = new Jitsi({
+          scheduleId: schedule._id,
+          roomName,
+          subject: schedule.subject,
+          mentorId: mentor._id,
+          learnerIds: [learner._id],
+          isActive: false
+        });
+        const domain = process.env.JITSI_DOMAIN || 'meet.jit.si';
+        jitsiSession.meetingUrl = jitsiSession.buildMeetingUrl(domain);
+        await jitsiSession.save();
+        
+        schedule.jitsiSessionId = jitsiSession._id;
+        await schedule.save();
+      }
 
       // 7) Notify mentor (best-effort)
       try {

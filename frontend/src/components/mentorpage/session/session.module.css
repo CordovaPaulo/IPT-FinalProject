@@ -266,7 +266,7 @@
   background-color: #257c89;
   color: white;
   display: flex;
-  justify-content: center;
+  justify-content: space-between; /* Changed from center to space-between */
   align-items: center;
   border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 }
@@ -277,6 +277,26 @@
   font-weight: 600;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
   color: white;
+  flex: 1; /* Allow h3 to take available space */
+}
+
+.close-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: rgb(30, 50, 73);
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .sessionModalBody {
@@ -704,4 +724,25 @@
   .sessionOptionText {
     font-size: 0.7rem;
   }
+}
+
+/* Join Meeting Button */
+.join-meeting-btn,
+.sessionJoinBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+  transition: transform 0.2s;
+}
+
+.join-meeting-btn:hover,
+.sessionJoinBtn:hover {
+  transform: scale(1.1);
+}
+
+.join-meeting-btn:active,
+.sessionJoinBtn:active {
+  transform: scale(0.95);
 }

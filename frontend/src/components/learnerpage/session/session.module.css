@@ -530,82 +530,23 @@
   background-color: #3e8e41;
 }
 
-@media (max-width: 1024px) {
-  .session-grid {
-    grid-template-columns: 1fr;
-    grid-gap: 1rem;
-  }
-
-  .lower-element {
-    height: auto;
-    padding: 0.5rem;
-  }
-
-  .session-card {
-    padding: 0 0.3rem 0.5rem 0.3rem;
-  }
-  .modal-content {
-    margin-left: 0;  /* removes the left margin for responsive */
-    width: 95%;
-  }
+/* Join Meeting Button */
+.join-meeting-btn,
+.sessionJoinBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+  transition: transform 0.2s;
 }
 
-@media (max-width: 768px) {
-  .session-wrapper {
-    width: 95%;
-    margin: 1rem auto;
-    padding: 0.3rem;
-  }
-
-  .table-header {
-    padding: 1rem;
-  }
-
-  .table-title {
-    font-size: 1.1rem;
-  }
-
-  .modal-content {
-    margin-left: 0;
-    width: 95%;
-    max-width: 400px;
-  }
-
-  .today-card,
-  .upcomming-card {
-    padding: 0.7rem 0.9rem;
-  }
-
-  .card-header h1 {
-    font-size: 0.9rem;
-  }
-
-  .info h2 {
-    font-size: 0.85rem;
-  }
+.join-meeting-btn:hover,
+.sessionJoinBtn:hover {
+  transform: scale(1.1);
 }
 
-@media (max-width: 480px) {
-  .modal-footer {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .modal-button {
-    margin-left: 0;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .session-card h1 {
-    font-size: 1rem;
-  }
-
-  .info p {
-    font-size: 0.8rem;
-  }
-
-  .action-icons {
-    gap: 0.6rem;
-  }
+.join-meeting-btn:active,
+.sessionJoinBtn:active {
+  transform: scale(0.95);
 }
