@@ -395,7 +395,8 @@ export default function Schedule({ info, onClose, onConfirm }: ScheduleProps) {
           <div className={styles.subjectSelect}>
             <h3 className={styles.subjectHeader}>Select Subject</h3>
             <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}
-              className={styles.subjectDropdown} required>
+              className={styles.subjectDropdown} required
+                aria-label="Select subject">
               <option value="" disabled>Choose a subject</option>
               {subjectOptions.map((s, index) => (<option key={`${s}-${index}`} value={s}>{s}</option>))}
             </select>
