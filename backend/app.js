@@ -21,6 +21,7 @@ const pusherRouter = require('./routes/pusher');
 const forumRouter = require('./routes/forum');
 const jitsiRouter = require('./routes/jitsi'); // NEW
 const roleRouter = require('./routes/role');
+const aiRouter = require('./routes/ai');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/pusher', pusherRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/jitsi', jitsiRouter); // NEW
 app.use('/api/role', roleRouter);
+app.use('/ai', aiRouter);
 
 // 404 handler
 app.use((req, res, next) => {
