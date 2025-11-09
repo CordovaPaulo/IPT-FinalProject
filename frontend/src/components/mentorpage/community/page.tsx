@@ -203,7 +203,7 @@ export default function CommunityForumComponent({
     
     const matchesSearch = safeTitle.includes(safeSearchQuery) || safeContent.includes(safeSearchQuery);
     const matchesCategory = selectedCategory === 'All' || post.topics === selectedCategory;
-    const matchesPostFilter = postFilter === 'all' || post.author === userData?.name; // NEW: Filter by author for my posts
+    const matchesPostFilter = postFilter === 'all' || post.authorName === userData?.name; // NEW: Filter by author for my posts
     
     return matchesSearch && matchesCategory && matchesPostFilter;
   });
