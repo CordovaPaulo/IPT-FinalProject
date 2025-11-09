@@ -2,26 +2,28 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import styles from './analytics.module.css';
+import api from '@/lib/axios';
+import { toast } from 'react-toastify';
 
 interface AnalyticsData {
+  aveRating: number;
   totalSessions: number;
   groupSessions: number;
   oneOnOneSessions: number;
   topSubjects: { subject: string; count: number }[];
-  attendanceRate: number;
-  topLearningStyles: { style: string; count: number }[];
-  recentSessions?: Session[];
+  topStyles: { style: string; count: number }[];
+  schedules: Schedule[];
 }
 
-interface Session {
+interface Schedule {
   id: string;
   date: string;
   subject: string;
-  learner: string;
-  duration: number;
-  type: 'group' | 'one-on-one';
-  status: 'completed' | 'scheduled' | 'cancelled';
-  learningStyle: string;
+  learners: string[]; // array of learner names
+  duration: string; // "120 min" format
+  type: string; // "one-on-one" | "group"
+  learningStyle: string[]; // array of learning styles
+  status: string; // "SCHEDULED" | "COMPLETED" | "CANCELLED"
 }
 
 interface SessionAnalyticsProps {
@@ -85,7 +87,6 @@ const Icons = {
       <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
-  // New SVG icons for stat cards
   TotalSessions: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M9 19V13C9 11.8954 9.89543 11 11 11H13C14.1046 11 15 11.8954 15 13V19C15 20.1046 15.8954 21 17 21H19C20.1046 21 21 20.1046 21 19V13C21 11.8954 20.1046 11 19 11H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -125,8 +126,8 @@ export default function SessionAnalyticsComponent({
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>('month');
   const [isLoading, setIsLoading] = useState(false);
-  const [sortKey, setSortKey] = useState<keyof Session | ''>('');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortKey, setSortKey] = useState<keyof Schedule | ''>('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filters, setFilters] = useState({
     status: 'all',
     type: 'all',
@@ -134,64 +135,74 @@ export default function SessionAnalyticsComponent({
     subject: 'all'
   });
 
-  // Default mock data
-  const defaultData: AnalyticsData = {
-    totalSessions: 47,
-    groupSessions: 28,
-    oneOnOneSessions: 19,
-    attendanceRate: 85,
-    topSubjects: [
-      { subject: 'Mathematics', count: 15 },
-      { subject: 'Programming', count: 12 },
-      { subject: 'Physics', count: 8 },
-      { subject: 'Algorithms', count: 7 },
-      { subject: 'Data Structures', count: 5 }
-    ],
-    topLearningStyles: [
-      { style: 'Visual', count: 18 },
-      { style: 'Kinesthetic', count: 12 },
-      { style: 'Auditory', count: 10 },
-      { style: 'Reading/Writing', count: 7 }
-    ],
-    recentSessions: [
-      { id: '1', date: '2024-01-15', subject: 'Mathematics', learner: 'Alice Johnson', duration: 60, type: 'one-on-one', status: 'completed', learningStyle: 'Visual' },
-      { id: '2', date: '2024-01-14', subject: 'Programming', learner: 'Bob Smith', duration: 45, type: 'group', status: 'completed', learningStyle: 'Kinesthetic' },
-      { id: '3', date: '2024-01-13', subject: 'Algorithms', learner: 'Carol Davis', duration: 90, type: 'one-on-one', status: 'completed', learningStyle: 'Visual' },
-      { id: '4', date: '2024-01-16', subject: 'Physics', learner: 'David Wilson', duration: 75, type: 'group', status: 'scheduled', learningStyle: 'Auditory' },
-      { id: '5', date: '2024-01-12', subject: 'Data Structures', learner: 'Eva Brown', duration: 60, type: 'one-on-one', status: 'completed', learningStyle: 'Reading/Writing' },
-      { id: '6', date: '2024-01-11', subject: 'Mathematics', learner: 'Frank Miller', duration: 120, type: 'group', status: 'cancelled', learningStyle: 'Visual' }
-    ]
-  };
-
-  useEffect(() => {
-    if (analyticsData) {
-      const validatedData: AnalyticsData = {
-        totalSessions: analyticsData.totalSessions || defaultData.totalSessions,
-        groupSessions: analyticsData.groupSessions || defaultData.groupSessions,
-        oneOnOneSessions: analyticsData.oneOnOneSessions || defaultData.oneOnOneSessions,
-        attendanceRate: analyticsData.attendanceRate || defaultData.attendanceRate,
-        topSubjects: analyticsData.topSubjects || defaultData.topSubjects,
-        topLearningStyles: analyticsData.topLearningStyles || defaultData.topLearningStyles,
-        recentSessions: analyticsData.recentSessions || defaultData.recentSessions
-      };
-      setData(validatedData);
-    } else {
-      setData(defaultData);
-    }
-  }, [analyticsData]);
-
-  const handleRefresh = async () => {
+  // Fetch analytics data from API
+  const fetchAnalyticsData = async () => {
     setIsLoading(true);
     try {
-      await onDataRefresh();
+      const response = await api.get('/api/mentor/session/analytics', { 
+        withCredentials: true 
+      });
+
+      if (response.status === 200 && response.data?.data) {
+        const apiData = response.data.data;
+        
+        // Map backend data to frontend structure
+        const mappedData: AnalyticsData = {
+          aveRating: typeof apiData.aveRating === 'number' ? apiData.aveRating : 0,
+          totalSessions: typeof apiData.totalSessions === 'number' ? apiData.totalSessions : 0,
+          groupSessions: typeof apiData.groupSessions === 'number' ? apiData.groupSessions : 0,
+          oneOnOneSessions: typeof apiData.oneOnOneSessions === 'number' ? apiData.oneOnOneSessions : 0,
+          topSubjects: Array.isArray(apiData.topSubjects) ? apiData.topSubjects.map((s: any) => ({
+            subject: s.subject || '',
+            count: typeof s.count === 'number' ? s.count : 0
+          })) : [],
+          topStyles: Array.isArray(apiData.topStyles) ? apiData.topStyles.map((s: any) => ({
+            style: s.style || '',
+            count: typeof s.count === 'number' ? s.count : 0
+          })) : [],
+          schedules: Array.isArray(apiData.schedules) ? apiData.schedules.map((s: any) => ({
+            id: s.id || '',
+            date: s.date || '',
+            subject: s.subject || '',
+            learners: Array.isArray(s.learners) ? s.learners : [],
+            duration: s.duration || 'N/A',
+            type: s.type || 'N/A',
+            learningStyle: Array.isArray(s.learningStyle) ? s.learningStyle : [],
+            status: s.status || 'SCHEDULED'
+          })) : []
+        };
+
+        setData(mappedData);
+        console.log('Analytics data loaded:', mappedData);
+      } else {
+        toast.error('Failed to load analytics data');
+      }
     } catch (error) {
-      console.error('Error refreshing data:', error);
+      console.error('Error fetching analytics data:', error);
+      toast.error('Error fetching analytics data');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSort = (key: keyof Session) => {
+  useEffect(() => {
+    if (analyticsData) {
+      // Use prop data if provided
+      setData(analyticsData);
+    } else {
+      // Fetch from API
+      fetchAnalyticsData();
+    }
+  }, [analyticsData]);
+
+  const handleRefresh = async () => {
+    await fetchAnalyticsData();
+    if (onDataRefresh) {
+      onDataRefresh();
+    }
+  };
+
+  const handleSort = (key: keyof Schedule) => {
     if (sortKey === key) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -200,7 +211,7 @@ export default function SessionAnalyticsComponent({
     }
   };
 
-  const getSortArrow = (key: keyof Session) => {
+  const getSortArrow = (key: keyof Schedule) => {
     if (sortKey !== key) return null;
     return (
       <span className={`${styles.sortArrow} ${sortOrder === 'desc' ? styles.sortArrowDesc : ''}`}>
@@ -211,12 +222,12 @@ export default function SessionAnalyticsComponent({
 
   // Filter and sort sessions
   const filteredAndSortedSessions = useMemo(() => {
-    const sessions = data?.recentSessions || [];
+    const sessions = data?.schedules || [];
     
     let filtered = sessions.filter(session => {
       if (filters.status !== 'all' && session.status !== filters.status) return false;
       if (filters.type !== 'all' && session.type !== filters.type) return false;
-      if (filters.learningStyle !== 'all' && session.learningStyle !== filters.learningStyle) return false;
+      if (filters.learningStyle !== 'all' && !session.learningStyle.includes(filters.learningStyle)) return false;
       if (filters.subject !== 'all' && session.subject !== filters.subject) return false;
       return true;
     });
@@ -228,30 +239,47 @@ export default function SessionAnalyticsComponent({
       let B: any = b[sortKey];
       
       if (sortKey === 'date') {
-        A = new Date(a[sortKey]).getTime();
-        B = new Date(b[sortKey]).getTime();
+        A = new Date(a.date).getTime();
+        B = new Date(b.date).getTime();
       }
       if (sortKey === 'duration') {
-        A = Number(A);
-        B = Number(B);
+        // Extract numeric value from "120 min" format
+        A = parseInt(a.duration) || 0;
+        B = parseInt(b.duration) || 0;
+      }
+      if (sortKey === 'learners') {
+        A = a.learners.join(', ');
+        B = b.learners.join(', ');
+      }
+      if (sortKey === 'learningStyle') {
+        A = a.learningStyle.join(', ');
+        B = b.learningStyle.join(', ');
       }
       
       if (A < B) return sortOrder === 'asc' ? -1 : 1;
       if (A > B) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data?.recentSessions, filters, sortKey, sortOrder]);
+  }, [data?.schedules, filters, sortKey, sortOrder]);
 
   // Get unique values for filter dropdowns
   const uniqueValues = useMemo(() => {
-    const sessions = data?.recentSessions || [];
+    const sessions = data?.schedules || [];
+    const allStyles = sessions.flatMap(s => s.learningStyle);
     return {
       statuses: ['all', ...new Set(sessions.map(s => s.status))],
       types: ['all', ...new Set(sessions.map(s => s.type))],
-      learningStyles: ['all', ...new Set(sessions.map(s => s.learningStyle))],
+      learningStyles: ['all', ...new Set(allStyles)],
       subjects: ['all', ...new Set(sessions.map(s => s.subject))]
     };
-  }, [data?.recentSessions]);
+  }, [data?.schedules]);
+
+  // Calculate attendance rate (completed sessions / total sessions)
+  const attendanceRate = useMemo(() => {
+    if (!data || data.totalSessions === 0) return 0;
+    const completedSessions = data.schedules.filter(s => s.status === 'COMPLETED').length;
+    return Math.round((completedSessions / data.totalSessions) * 100);
+  }, [data]);
 
   const StatCard = ({ title, value, subtitle, trend, icon, color }: any) => (
     <div className={styles.statCard}>
@@ -275,16 +303,16 @@ export default function SessionAnalyticsComponent({
     <div className={styles.progressBar}>
       <div 
         className={styles.progressFill} 
-        style={{ width: `${percentage}%`, backgroundColor: color }}
+        style={{ width: `${Math.min(percentage, 100)}%`, backgroundColor: color }}
       ></div>
     </div>
   );
 
   const getStatusBadge = (status: string) => {
     const statusClass = {
-      completed: styles.statusCompleted,
-      scheduled: styles.statusScheduled,
-      cancelled: styles.statusCancelled
+      COMPLETED: styles.statusCompleted,
+      SCHEDULED: styles.statusScheduled,
+      CANCELLED: styles.statusCancelled
     }[status] || styles.statusDefault;
     
     return <span className={`${styles.statusBadge} ${statusClass}`}>{status}</span>;
@@ -313,11 +341,11 @@ export default function SessionAnalyticsComponent({
 
   // Safe data access functions
   const getTopSubjects = () => data?.topSubjects || [];
-  const getTopLearningStyles = () => data?.topLearningStyles || [];
+  const getTopLearningStyles = () => data?.topStyles || [];
   const getMaxSubjectCount = () => Math.max(...getTopSubjects().map(s => s.count), 1);
   const getMaxLearningStyleCount = () => Math.max(...getTopLearningStyles().map(s => s.count), 1);
 
-  if (!data) {
+  if (!data && isLoading) {
     return (
       <div className={styles.analyticsLoading}>
         <div className={styles.loadingSpinner}>
@@ -338,6 +366,12 @@ export default function SessionAnalyticsComponent({
             </div>
             <h1>Session Analytics Dashboard</h1>
           </div>
+          {data?.aveRating && (
+            <div className={styles.averageRating}>
+              <span className={styles.ratingLabel}>Average Rating:</span>
+              <span className={styles.ratingValue}>{data.aveRating.toFixed(2)} ⭐</span>
+            </div>
+          )}
         </div>
 
         <div className={styles.analyticsControls}>
@@ -371,33 +405,29 @@ export default function SessionAnalyticsComponent({
       <div className={styles.statsGrid}>
         <StatCard
           title="Total Sessions"
-          value={data.totalSessions || 0}
+          value={data?.totalSessions || 0}
           subtitle="All time"
-          trend="+12%"
           icon={<Icons.TotalSessions />}
           color="#4f46e5"
         />
         <StatCard
           title="Group Sessions"
-          value={data.groupSessions || 0}
-          subtitle={`${Math.round(((data.groupSessions || 0) / (data.totalSessions || 1)) * 100)}% of total`}
-          trend="+8%"
+          value={data?.groupSessions || 0}
+          subtitle={`${Math.round(((data?.groupSessions || 0) / (data?.totalSessions || 1)) * 100)}% of total`}
           icon={<Icons.GroupSessions />}
           color="#7c3aed"
         />
         <StatCard
           title="One-on-One"
-          value={data.oneOnOneSessions || 0}
-          subtitle={`${Math.round(((data.oneOnOneSessions || 0) / (data.totalSessions || 1)) * 100)}% of total`}
-          trend="+5%"
+          value={data?.oneOnOneSessions || 0}
+          subtitle={`${Math.round(((data?.oneOnOneSessions || 0) / (data?.totalSessions || 1)) * 100)}% of total`}
           icon={<Icons.OneOnOne />}
           color="#a855f7"
         />
         <StatCard
-          title="Attendance Rate"
-          value={`${data.attendanceRate || 0}%`}
-          subtitle="Overall participation"
-          trend="+3%"
+          title="Completion Rate"
+          value={`${attendanceRate}%`}
+          subtitle="Completed sessions"
           icon={<Icons.Attendance />}
           color="#10b981"
         />
@@ -422,7 +452,7 @@ export default function SessionAnalyticsComponent({
                   </div>
                   <ProgressBar 
                     percentage={(item.count / getMaxSubjectCount()) * 100} 
-                    color={['#4f46e5', '#7c3aed', '#a855f7', '#c084fc', '#d8b4fe'][index]}
+                    color={['#4f46e5', '#7c3aed', '#a855f7', '#c084fc', '#d8b4fe'][index % 5]}
                   />
                 </div>
               ))
@@ -448,11 +478,11 @@ export default function SessionAnalyticsComponent({
                 <div key={item.style} className={styles.learningStyleItem}>
                   <div className={styles.learningStyleInfo}>
                     <span className={styles.learningStyleName}>{item.style}</span>
-                    <span className={styles.learningStyleCount}>{item.count} students</span>
+                    <span className={styles.learningStyleCount}>{item.count} occurrences</span>
                   </div>
                   <ProgressBar 
                     percentage={(item.count / getMaxLearningStyleCount()) * 100} 
-                    color={['#10b981', '#059669', '#047857', '#065f46', '#064e3b'][index]}
+                    color={['#10b981', '#059669', '#047857', '#065f46', '#064e3b'][index % 5]}
                   />
                 </div>
               ))
@@ -474,7 +504,7 @@ export default function SessionAnalyticsComponent({
               Recent Sessions
             </div>
             <div className={styles.tableInfo}>
-              Showing {filteredAndSortedSessions.length} of {data.recentSessions?.length || 0} sessions
+              Showing {filteredAndSortedSessions.length} of {data?.schedules?.length || 0} sessions
             </div>
           </div>
 
@@ -487,9 +517,10 @@ export default function SessionAnalyticsComponent({
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                 className={styles.filterSelect}
               >
-                <option value="all">All Status</option>
-                {uniqueValues.statuses.filter(s => s !== 'all').map(status => (
-                  <option key={status} value={status}>{status}</option>
+                {uniqueValues.statuses.map(status => (
+                  <option key={status} value={status}>
+                    {status === 'all' ? 'All Status' : status}
+                  </option>
                 ))}
               </select>
             </div>
@@ -500,9 +531,10 @@ export default function SessionAnalyticsComponent({
                 onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
                 className={styles.filterSelect}
               >
-                <option value="all">All Types</option>
-                {uniqueValues.types.filter(t => t !== 'all').map(type => (
-                  <option key={type} value={type}>{type}</option>
+                {uniqueValues.types.map(type => (
+                  <option key={type} value={type}>
+                    {type === 'all' ? 'All Types' : type}
+                  </option>
                 ))}
               </select>
             </div>
@@ -513,9 +545,10 @@ export default function SessionAnalyticsComponent({
                 onChange={(e) => setFilters(prev => ({ ...prev, learningStyle: e.target.value }))}
                 className={styles.filterSelect}
               >
-                <option value="all">All Styles</option>
-                {uniqueValues.learningStyles.filter(ls => ls !== 'all').map(style => (
-                  <option key={style} value={style}>{style}</option>
+                {uniqueValues.learningStyles.map(style => (
+                  <option key={style} value={style}>
+                    {style === 'all' ? 'All Styles' : style}
+                  </option>
                 ))}
               </select>
             </div>
@@ -526,9 +559,10 @@ export default function SessionAnalyticsComponent({
                 onChange={(e) => setFilters(prev => ({ ...prev, subject: e.target.value }))}
                 className={styles.filterSelect}
               >
-                <option value="all">All Subjects</option>
-                {uniqueValues.subjects.filter(s => s !== 'all').map(subject => (
-                  <option key={subject} value={subject}>{subject}</option>
+                {uniqueValues.subjects.map(subject => (
+                  <option key={subject} value={subject}>
+                    {subject === 'all' ? 'All Subjects' : subject}
+                  </option>
                 ))}
               </select>
             </div>
@@ -557,11 +591,11 @@ export default function SessionAnalyticsComponent({
                   </div>
                 </th>
                 <th 
-                  onClick={() => handleSort('learner')} 
+                  onClick={() => handleSort('learners')} 
                   className={styles.sortableHeader}
                 >
                   <div className={styles.headerContent}>
-                    LEARNER {getSortArrow('learner')}
+                    LEARNERS {getSortArrow('learners')}
                   </div>
                 </th>
                 <th 
@@ -573,7 +607,7 @@ export default function SessionAnalyticsComponent({
                   </div>
                 </th>
                 <th>TYPE</th>
-                <th>LEARNING STYLE</th>
+                <th>LEARNING STYLES</th>
                 <th>STATUS</th>
               </tr>
             </thead>
@@ -589,17 +623,25 @@ export default function SessionAnalyticsComponent({
                     <td className={styles.subjectCell}>
                       {session.subject}
                     </td>
-                    <td>{session.learner}</td>
+                    <td>
+                      <div className={styles.learnersCell}>
+                        {session.learners.join(', ')}
+                      </div>
+                    </td>
                     <td>
                       <div className={styles.durationCell}>
-                        {session.duration} min
+                        {session.duration}
                       </div>
                     </td>
                     <td>{getSessionTypeBadge(session.type)}</td>
                     <td>
-                      <span className={styles.learningStyleBadge}>
-                        {session.learningStyle}
-                      </span>
+                      <div className={styles.stylesCell}>
+                        {session.learningStyle.map((style, idx) => (
+                          <span key={idx} className={styles.learningStyleBadge}>
+                            {style}
+                          </span>
+                        ))}
+                      </div>
                     </td>
                     <td>{getStatusBadge(session.status)}</td>
                   </tr>
