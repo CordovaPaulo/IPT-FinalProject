@@ -27,8 +27,8 @@
 
 .loading-backdrop {
   background-color: rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 .sidebar {
@@ -129,7 +129,7 @@
 
 .progress-tracker h1 {
   color: rgba(255, 255, 255, 0.9);
-  font-size: 13px;
+  font-size: 15px;
   margin-bottom: 10px;
   text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
@@ -163,13 +163,13 @@
 
 .progress-title {
   color: white;
-  font-size: 25px;
+  font-size: 18px;
   font-weight: bolder;
   flex: 1;
 }
 
 .progress-label {
-  font-size: 15px !important;
+  font-size: 13px !important;
   font-weight: 100 !important;
 }
 
@@ -266,8 +266,8 @@
   overflow-x: auto;
   overflow-y: hidden;
   max-width: 100%;
-  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
   -ms-overflow-style: none;
 }
 
