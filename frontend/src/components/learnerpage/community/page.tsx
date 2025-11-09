@@ -96,6 +96,7 @@ export default function CommunityForumComponent({
   const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [postFilter, setPostFilter] = useState<'all' | 'my-posts'>('all'); // NEW: Post filter state
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [activeReply, setActiveReply] = useState<string | null>(null);
@@ -194,6 +195,7 @@ export default function CommunityForumComponent({
   //   }
   // ];
 
+  // NEW: Filter posts based on post filter (all posts vs my posts only)
   const filteredPosts = posts.filter(post => {
     const safeTitle = post.title?.toLowerCase() || '';
     const safeContent = post.content?.toLowerCase() || '';
@@ -201,7 +203,9 @@ export default function CommunityForumComponent({
     
     const matchesSearch = safeTitle.includes(safeSearchQuery) || safeContent.includes(safeSearchQuery);
     const matchesCategory = selectedCategory === 'All' || post.topics === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesPostFilter = postFilter === 'all' || post.author === userData?.name; // NEW: Filter by author for my posts
+    
+    return matchesSearch && matchesCategory && matchesPostFilter;
   });
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -560,18 +564,21 @@ export default function CommunityForumComponent({
           
           <div className={styles.commentFooter}>
             <div className={styles.voteSection}>
-              <button 
-                className={`${styles.voteButton} ${styles.upvote} ${comment.userVote === 'up' ? styles.active : ''}`}
-                onClick={() => handleVoteComment(comment.id, 'up')}
-              >
-                <Icons.Upvote />
-              </button>
+            <button 
+              className={`${styles.voteButton} ${styles.upvote} ${comment.userVote === 'up' ? styles.active : ''}`}
+              onClick={() => handleVoteComment(comment.id, 'up')}
+              aria-label="Upvote comment"
+            >
+              <Icons.Upvote />
+            </button>
+
               <span className={styles.voteCount}>
                 {getVoteScore(comment.upvotes, comment.downvotes)}
               </span>
               <button 
                 className={`${styles.voteButton} ${styles.downvote} ${comment.userVote === 'down' ? styles.active : ''}`}
                 onClick={() => handleVoteComment(comment.id, 'down')}
+                aria-label="Downvote comment"
               >
                 <Icons.Downvote />
               </button>
@@ -581,6 +588,7 @@ export default function CommunityForumComponent({
               <button 
                 className={styles.replyBtn}
                 onClick={() => setActiveReply(activeReply === comment.id ? null : comment.id)}
+                aria-label=" Reply comment"
               >
                 Reply
               </button>
@@ -611,6 +619,7 @@ export default function CommunityForumComponent({
                 <button 
                   className={styles.cancelReply}
                   onClick={() => setActiveReply(null)}
+                  aria-label="Cancel reply"
                 >
                   Cancel
                 </button>
@@ -618,6 +627,7 @@ export default function CommunityForumComponent({
                   className={styles.submitReply}
                   onClick={() => handleAddComment(replyContent[comment.id] || '', comment.id)}
                   disabled={!replyContent[comment.id]?.trim()}
+                  aria-label="Submit reply"
                 >
                   Reply
                 </button>
@@ -655,10 +665,12 @@ export default function CommunityForumComponent({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={styles.searchInput}
+                aria-label="Search discussions"
               />
             </div>
             <div className={styles.customSelect}>
               <select 
+                aria-label="Select category"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className={styles.categoryFilter}
@@ -669,11 +681,26 @@ export default function CommunityForumComponent({
               </select>
               <div className={styles.selectArrow}>▼</div>
             </div>
+            {/* NEW: Simple Post Filter Dropdown */}
+            <div className={styles.customSelect}>
+              <select 
+                aria-label="Filter posts"
+                value={postFilter}
+                onChange={(e) => setPostFilter(e.target.value as 'all' | 'my-posts')}
+                className={styles.postFilter}
+              >
+                <option value="all">All Posts</option>
+                <option value="my-posts">My Posts</option>
+              </select>
+              <div className={styles.selectArrow}>▼</div>
+            </div>
           </div>
           
           <button 
             className={styles.createPostBtn}
             onClick={() => setIsCreatingPost(true)}
+            aria-label="Create new post"
+            title="Create new post"
           >
             + Create Post
           </button>
@@ -688,6 +715,8 @@ export default function CommunityForumComponent({
               <button 
                 className={styles.closeButton}
                 onClick={() => setIsCreatingPost(false)}
+                aria-label="Close comments modal"
+
               >
                 <Icons.Close />
               </button>
@@ -729,6 +758,7 @@ export default function CommunityForumComponent({
                 <button 
                   type="submit" 
                   className={styles.submitBtn}
+                  aria-label="Submit new post"
                 >
                   Create Post
                 </button>
@@ -778,6 +808,7 @@ export default function CommunityForumComponent({
                   <button 
                     className={styles.commentsBtn}
                     onClick={() => handleOpenComments(post)}
+                    aria-label="Open comment"
                   >
                     <Icons.Comments />
                     {post.commentsCount || 0}
@@ -787,6 +818,7 @@ export default function CommunityForumComponent({
                     <button 
                       className={`${styles.voteButton} ${styles.upvote} ${post.userVote === 'up' ? styles.active : ''}`}
                       onClick={() => handleVotePost(post.id, 'up')}
+                      aria-label="Upvote post"
                     >
                       <Icons.Upvote />
                     </button>
@@ -796,6 +828,7 @@ export default function CommunityForumComponent({
                     <button 
                       className={`${styles.voteButton} ${styles.downvote} ${post.userVote === 'down' ? styles.active : ''}`}
                       onClick={() => handleVotePost(post.id, 'down')}
+                      aria-label="Downvote post"
                     >
                       <Icons.Downvote />
                     </button>
@@ -808,12 +841,17 @@ export default function CommunityForumComponent({
 
         {filteredPosts.length === 0 && (
           <div className={styles.noPosts}>
-            <p>No posts found matching your criteria.</p>
+            <p>
+              {postFilter === 'my-posts' 
+                ? "You haven't created any posts yet." 
+                : "No posts found matching your criteria."}
+            </p>
             <button 
               className={styles.createFirstPostBtn}
               onClick={() => setIsCreatingPost(true)}
+              aria-label="Create the first post"
             >
-              Create the first post!
+              {postFilter === 'my-posts' ? 'Create your first post!' : 'Create the first post!'}
             </button>
           </div>
         )}
@@ -829,6 +867,7 @@ export default function CommunityForumComponent({
               <button 
                 className={styles.closeButton}
                 onClick={() => setShowCommentsModal(false)}
+                aria-label="Close comments modal"
               >
                 <Icons.Close />
               </button>
@@ -860,6 +899,7 @@ export default function CommunityForumComponent({
                           <button 
                             className={`${styles.voteButton} ${styles.upvote} ${selectedPost.userVote === 'up' ? styles.active : ''}`}
                             onClick={() => handleVotePost(selectedPost.id, 'up')}
+                            aria-label="Upvote post"
                           >
                             <Icons.Upvote />
                           </button>
@@ -869,6 +909,7 @@ export default function CommunityForumComponent({
                           <button 
                             className={`${styles.voteButton} ${styles.downvote} ${selectedPost.userVote === 'down' ? styles.active : ''}`}
                             onClick={() => handleVotePost(selectedPost.id, 'down')}
+                            aria-label="Downvote post"
                           >
                             <Icons.Downvote />
                           </button>
@@ -893,6 +934,7 @@ export default function CommunityForumComponent({
                       className={styles.commentSubmit}
                       onClick={() => handleAddComment(newComment)}
                       disabled={!newComment.trim()}
+                      aria-label="Post comment"
                     >
                       Post Comment
                     </button>

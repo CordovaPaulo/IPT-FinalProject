@@ -16,7 +16,6 @@ import styles from './mentor.module.css';
 import { toast } from 'react-toastify';
 import Pusher from 'pusher-js';
 
-// Interfaces
 interface User {
   id: number | null;
   name: string;
@@ -119,9 +118,9 @@ interface BadgeDefinition {
   key: string;
   name: string;
   description: string;
-  icon: string;     // emoji or URL
-  color: string;    // hex color
-  category: string; // experience | engagement | quality | community | trust
+  icon: string;
+  color: string;
+  category: string;
 }
 
 interface EarnedBadge {
@@ -157,7 +156,6 @@ const TOPBAR_ITEMS = [
   { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' }
 ];
 
-// Helper Functions
 function getCookie(name: string) {
   if (typeof document === 'undefined') return null;
   const value = `; ${document.cookie}`;
@@ -178,7 +176,6 @@ const StarRating = ({ rating }: { rating: number }) => {
   );
 };
 
-// Add this helper to render badge hex icons
 const HexBadge = ({ badge }: { badge: EarnedBadge }) => {
   const def = badge.definition || undefined;
   const bg = def?.color || '#8B5CF6';
@@ -196,7 +193,6 @@ const HexBadge = ({ badge }: { badge: EarnedBadge }) => {
 export default function MentorPage() {
   const router = useRouter();
   
-  // State Declarations
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingLearners, setIsLoadingLearners] = useState(false);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
@@ -252,11 +248,9 @@ export default function MentorPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showBadgesPopup, setShowBadgesPopup] = useState(false);
   
-  // Refs
   const topbarRef = useRef<HTMLDivElement>(null);
   const datePopupRef = useRef<HTMLDivElement>(null);
 
-  // Computed Properties
   const subjects = userData?.subjects || [];
   const displayedCourses = subjects.slice(0, 5);
   const remainingCoursesCount = Math.max(subjects.length - 5, 0);
@@ -271,7 +265,6 @@ export default function MentorPage() {
     );
   });
 
-  // Close date popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (datePopupRef.current && !datePopupRef.current.contains(event.target as Node)) {
@@ -285,7 +278,6 @@ export default function MentorPage() {
     };
   }, []);
 
-  // Pusher setup for real-time updates
   useEffect(() => {
     if (!userData?.userId) return;
 
@@ -346,7 +338,6 @@ export default function MentorPage() {
     };
   }, [userData.userId]);
 
-  // API Functions
   const fetchUserData = async () => {
     setIsLoading(true);
     setApiError(null);
@@ -364,7 +355,7 @@ export default function MentorPage() {
         if (res.data && res.data.userData) {
           setUserData(res.data.userData);
           setRoleData(res.data.roleData);
-          setBadges(Array.isArray(res.data.badges) ? res.data.badges : []); // <- capture badges
+          setBadges(Array.isArray(res.data.badges) ? res.data.badges : []);
           console.log("Mentor profile data:", res.data);
         } else {
           throw new Error('Invalid response format');
@@ -704,7 +695,6 @@ export default function MentorPage() {
     }
   };
 
-  // Component Functions
   const switchComponent = (component: string) => {
     console.log('Switching to component:', component);
     if (activeComponent !== component) {
@@ -725,7 +715,6 @@ export default function MentorPage() {
     console.log('New state should be:', !showAllCourses);
   };
 
-  // Account Functions
   const registerLearnerRole = async () => {
     try {
       if(roleData?.altRole !== null && roleData?.altRole === 'learner') {
@@ -779,7 +768,6 @@ export default function MentorPage() {
     }
   };
 
-  // Open logout confirmation modal (do not immediately perform logout)
   const openLogoutModal = () => setShowLogoutModal(true);
   const cancelLogout = () => setShowLogoutModal(false);
   const confirmLogout = async () => {
@@ -787,7 +775,6 @@ export default function MentorPage() {
     await logout();
   };
   
-  // Edit Information Functions
   const openEditInformation = () => {
     setShowEditInformation(true);
   };
@@ -812,7 +799,6 @@ export default function MentorPage() {
     setShowOffer(false);
   };
 
-  // UI Functions
   const toggleSidebar = () => {
     setIsSidebarVisible(!isSidebarVisible);
   };
@@ -829,11 +815,9 @@ export default function MentorPage() {
     }
   };
 
-  // Loading Functions
   const startLoading = () => setIsLoading(true);
   const stopLoading = () => setIsLoading(false);
 
-  // Keyboard Navigation Functions
   const handleTopbarKeyDown = (e: React.KeyboardEvent) => {
     if (!isTopbarFocused) return;
 
@@ -885,7 +869,6 @@ export default function MentorPage() {
     setFocusedTopbarIndex(currentIndex >= 0 ? currentIndex : 0);
   };
 
-  // Components
   const ErrorDisplay = () => {
     if (!apiError) return null;
     
@@ -905,6 +888,7 @@ export default function MentorPage() {
     );
   };
 
+  /*
   const AccessibilityNavPad = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [focusedNavIndex, setFocusedNavIndex] = useState(0);
@@ -1100,6 +1084,7 @@ export default function MentorPage() {
       </>
     );
   };
+  */
 
   const renderComponent = () => {
     const MainComp: any = MainComponent;
@@ -1166,7 +1151,6 @@ export default function MentorPage() {
             onDataRefresh={fetchAnalyticsData}
           />;
         case 'logout':
-          // logout handled by modal; do not perform logout directly here
           return null;
         default:
           return (
@@ -1184,16 +1168,13 @@ export default function MentorPage() {
     return <>{mainContent}</>;
   };
   
-  // If some UI sets activeComponent to 'logout' (e.g. topbar), open modal instead.
   useEffect(() => {
     if (activeComponent === 'logout') {
       setShowLogoutModal(true);
-      // reset active component to previous/main so UI doesn't stay on "logout"
       setActiveComponent('main');
     }
   }, [activeComponent]);
 
-  // Effects
   useEffect(() => {
     const initializeData = async () => {
       startLoading();
@@ -1262,7 +1243,7 @@ export default function MentorPage() {
         />
       )}
       
-      <AccessibilityNavPad />
+      {/* <AccessibilityNavPad /> */}
       
       {showLogoutModal && (
         <LogoutComponent
@@ -1272,7 +1253,6 @@ export default function MentorPage() {
         />
       )}
 
-      {/* Badges Popup */}
       {showBadgesPopup && (
         <div
           className={styles.badgesOverlay}
@@ -1284,6 +1264,13 @@ export default function MentorPage() {
           <div
             className={styles.badgesModal}
             onClick={(e) => e.stopPropagation()}
+            style={{
+              margin: 'auto',
+              position: 'relative',
+              maxHeight: '80vh',
+              width: 'min(920px, 92vw)',
+              overflow: 'auto'
+            }}
           >
             <div className={styles.badgesHeader}>
               <h3>Badges</h3>
@@ -1296,9 +1283,9 @@ export default function MentorPage() {
               </button>
             </div>
 
-            {/* <div className={styles.badgesSubheader}>
+            <div className={styles.badgesSubheader}>
               <span className={styles.latestDot} /> Latest
-            </div> */}
+            </div>
 
             <div className={styles.badgesGrid}>
               {(badges || []).map((b, i) => {
@@ -1330,6 +1317,7 @@ export default function MentorPage() {
         </div>
       )}
 
+      {/*
       <button 
         className={styles.accessibilityToggleBtn}
         onClick={() => setShowAccessibilityNav(prev => !prev)}
@@ -1338,6 +1326,7 @@ export default function MentorPage() {
       >
         <i className="fas fa-universal-access"></i>
       </button>
+      */}
 
       {isMobileView && (
         <button className={styles.sidebarToggle} onClick={toggleSidebar}>
@@ -1378,18 +1367,49 @@ export default function MentorPage() {
           <div>
             <h2>{userData.name}</h2>
             <i><p>{userData.yearLevel}</p></i>
-            <StarRating rating={4.5} />
+            <p style={{ marginBottom: '-1.5rem' }}>{courseAbbreviation}</p>
           </div>
         </div>
 
         <div className={styles.footerElement}>
-          <div className={styles.userInformation}>
-            <h1>User Information</h1>
+          <div className={styles.medalsSection} style={{ 
+            marginTop: '0.1rem',
+            marginBottom: '0.5rem' 
+          }}>
+            <div className={styles.medalsHeader}>
+              <h1 style={{ 
+                fontSize: '1rem', 
+                marginBottom: '0.1rem'
+              }}>Badges</h1>
+              <button
+                className={styles.viewAllBadgesBtn}
+                onClick={() => setShowBadgesPopup(true)}
+                style={{ 
+                  fontSize: '0.8rem',
+                  padding: '2px 8px',
+                  height: 'auto'
+                }}
+              >
+                View All
+              </button>
+            </div>
 
-            <div className={styles.lines}>
-              <h3>Program:</h3>
-              <div>
-                <p>{courseAbbreviation}</p>
+            <div className={styles.medalsLatestRow} style={{ marginTop: '0.2rem' }}>
+              <span className={styles.latestLabel} style={{ 
+                fontSize: '0.8rem',
+                marginBottom: '0.1rem'
+              }}>Latest</span>
+              <div className={styles.badgeRow} style={{ 
+                transform: 'scale(0.8)', 
+                transformOrigin: 'left',
+                marginTop: '0.1rem'
+              }}>
+                {(badges || []).slice(0, 3).map((b, i) => (
+                  <HexBadge key={`${b.badgeKey}-${i}`} badge={b} />
+                ))}
+                {(!badges || badges.length === 0) && (
+                  <div className={styles.noBadgesText}>No medals yet</div>
+                )}
               </div>
             </div>
           </div>
@@ -1475,31 +1495,6 @@ export default function MentorPage() {
             )}
           </div>
 
-          {/* Medals section */}
-          <div className={styles.medalsSection}>
-            <div className={styles.medalsHeader}>
-              <h1>Badges</h1>
-              <button
-                className={styles.viewAllBadgesBtn}
-                onClick={() => setShowBadgesPopup(true)}
-              >
-                View All
-              </button>
-            </div>
-
-            <div className={styles.medalsLatestRow}>
-              <span className={styles.latestLabel}>Latest</span>
-              <div className={styles.badgeRow}>
-                {(badges || []).slice(0, 3).map((b, i) => (
-                  <HexBadge key={`${b.badgeKey}-${i}`} badge={b} />
-                ))}
-                {(!badges || badges.length === 0) && (
-                  <div className={styles.noBadgesText}>No medals yet</div>
-                )}
-              </div>
-            </div>
-          </div>
-
           <div className={styles.accountActions}>
             <div className={styles.accountDropdown}>
               <button className={styles.accountDropbtn}>
@@ -1551,7 +1546,6 @@ export default function MentorPage() {
           ))}
         </div>
         
-        {/* Calendar Icon with Date Popup */}
         <div className={styles.dateContainer} ref={datePopupRef}>
           <button 
             className={styles.calendarIconBtn}
@@ -1600,20 +1594,22 @@ export default function MentorPage() {
           <div className={styles.popupContainer}>
             <h3>Make Offer to Student</h3>
             <div className={styles.formGroup}>
-              <label>Subject:</label>
-              <select>
-                {subjects.map((subject, index) => (
-                  <option key={index} value={subject}>{subject}</option>
-                ))}
-              </select>
-            </div>
+                <label htmlFor="subject-select">Subject:</label>
+                <select id="subject-select">
+                  {subjects.map((subject, index) => (
+                    <option key={index} value={subject}>
+                      {subject}
+                    </option>
+                  ))}
+                </select>
+              </div>
             <div className={styles.formGroup}>
               <label>Date:</label>
-              <input type="date" />
+              <input type="date" aria-label="Date" />
             </div>
             <div className={styles.formGroup}>
               <label>Time:</label>
-              <input type="time" />
+              <input type="time" aria-label="Time" />
             </div>
             <div className={styles.formActions}>
               <button onClick={() => setShowOffer(false)}>Cancel</button>

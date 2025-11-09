@@ -80,10 +80,10 @@
 
 .customSelect {
   position: relative;
-  min-width: 160px;
+  min-width: 140px;
 }
 
-.categoryFilter {
+.categoryFilter, .postFilter {
   width: 100%;
   padding: 10px 16px;
   padding-right: 40px;
@@ -99,7 +99,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.categoryFilter:focus {
+.categoryFilter:focus, .postFilter:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -515,8 +515,8 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .commentsModal .modalContent {
@@ -1323,5 +1323,3 @@
     animation: none;
   }
 }
-
-
