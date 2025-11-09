@@ -130,6 +130,22 @@ interface EarnedBadge {
   definition?: BadgeDefinition | null;
 }
 
+interface ForumData {
+  id: string;
+  title: string;
+  content?: string;
+  author?: string;
+  authorName?: string;
+  createdAt?: string;
+  upvotes?: number;
+  downvotes?: number;
+  commentsCount?: number;
+  topics?: string;
+  tags?: string[];
+  userVote?: 'up' | 'down' | null;
+}
+
+// Constants
 const TOPBAR_ITEMS = [
   { key: 'main', label: 'Learners', icon: '/main.svg' },
   { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
@@ -614,72 +630,55 @@ export default function MentorPage() {
   const fetchForumData = async () => {
     try {
       console.log("Fetching forum data...");
-      const token = getCookie('MindMateToken');
-      const res = await api.get('/api/mentor/forum', {
+      const res = await api.get('/api/forum/posts', {
         timeout: 50000,
         withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
       });
       
       console.log("Forum API Response:", res.data);
-      setForumData(res.data);
+      // normalize to expected ForumData[]
+      if (Array.isArray(res.data)) {
+        const mapped = res.data.map((p: any) => ({
+          id: p.id || p._id || '',
+          title: p.title || '',
+          content: p.content || '',
+          author: typeof p.author === 'string' ? p.author : (p.author?.toString?.() || ''),
+          authorName: p.authorName || '',
+          createdAt: p.createdAt || new Date().toISOString(),
+          upvotes: typeof p.upvotes === 'number' ? p.upvotes : 0,
+          downvotes: typeof p.downvotes === 'number' ? p.downvotes : 0,
+          commentsCount: typeof p.commentsCount === 'number' ? p.commentsCount : (p.commentsCount ?? 0),
+          topics: p.topics || 'General',
+          tags: p.tags || [],
+          userVote: null
+        }));
+        setForumData(mapped);
+      } else {
+        setForumData([]);
+      }
       
     } catch (error) {
       console.error('Error fetching forum data:', error);
-      const mockForumData = [
-        {
-          id: 1,
-          title: "Best practices for teaching Algorithms?",
-          author: "Alice Johnson",
-          replies: 12,
-          views: 45,
-          lastActivity: "2 hours ago",
-          category: "Teaching Methods"
-        },
-        {
-          id: 2,
-          title: "How to handle difficult students?",
-          author: "Bob Smith",
-          replies: 8,
-          views: 32,
-          lastActivity: "5 hours ago",
-          category: "Student Management"
-        }
-      ];
-      setForumData(mockForumData);
+      setForumData([]);
     }
   };
 
   const fetchAnalyticsData = async () => {
     try {
       console.log("Fetching analytics data...");
-      const token = getCookie('MindMateToken');
-      const res = await api.get('/api/mentor/analytics', {
+      const res = await api.get('/api/mentor/session/analytics', {
         timeout: 50000,
         withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
       });
       
       console.log("Analytics API Response:", res.data);
-      setAnalyticsData(res.data);
+      if (res.data?.data) {
+        setAnalyticsData(res.data.data);
+      }
       
     } catch (error) {
       console.error('Error fetching analytics data:', error);
-      const mockAnalyticsData = {
-        totalSessions: 24,
-        participationRate: 85,
-        averageRating: 4.7,
-        popularSubjects: ["Mathematics", "Programming", "Algorithms"],
-        weeklyTrend: [12, 19, 15, 17, 14, 16, 18],
-        learnerEngagement: 78
-      };
-      setAnalyticsData(mockAnalyticsData);
+      toast.error('Error fetching analytics data');
     }
   };
 
@@ -1248,8 +1247,8 @@ export default function MentorPage() {
       
       {showLogoutModal && (
         <LogoutComponent
-          userData={userData}
-          onConfirm={confirmLogout}
+          // userData={userData}
+          // onConfirm={confirmLogout}
           onCancel={cancelLogout}
         />
       )}

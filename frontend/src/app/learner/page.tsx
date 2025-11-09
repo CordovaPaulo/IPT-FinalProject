@@ -125,13 +125,18 @@ interface TransformedMentor {
 }
 
 interface ForumData {
-  id: number;
+  id: string; // MongoDB ObjectId as string
   title: string;
-  author: string;
-  replies: number;
-  views: number;
-  lastActivity: string;
-  category: string;
+  content: string;
+  author: string; // MongoDB ObjectId as string
+  authorName: string;
+  createdAt: string;
+  upvotes: number;
+  downvotes: number;
+  commentsCount: number; // backend uses commentsCount, not commentCount
+  topics?: string; // backend uses topics, not category
+  tags?: string[];
+  userVote?: 'up' | 'down' | null;
 }
 
 interface ProgressData {
@@ -351,13 +356,9 @@ export default function LearnerPage() {
     try {
       console.log("Fetching forum data...");
       const token = getCookie('MindMateToken');
-      const res = await api.get('/api/learner/forum', {
+      const res = await api.get('/api/forum/posts', {
         timeout: 10000,
         withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
       });
       
       console.log("Forum API Response:", res.data);

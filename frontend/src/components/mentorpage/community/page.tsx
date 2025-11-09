@@ -2,36 +2,41 @@
 
 import { useState, useEffect } from 'react';
 import styles from './community.module.css';
+import api from '@/lib/axios'
+import { toast } from 'react-toastify';
 
 interface Post {
-  id: number;
+  id: string; // MongoDB ObjectId as string
   title: string;
   content: string;
-  author: string;
+  author: string; // MongoDB ObjectId as string
+  authorName: string;
   createdAt: string;
   upvotes: number;
   downvotes: number;
-  commentCount: number;
-  category?: string;
+  commentsCount: number; // backend uses commentsCount, not commentCount
+  topics?: string; // backend uses topics, not category
   tags?: string[];
   userVote?: 'up' | 'down' | null;
 }
 
 interface Comment {
-  id: number;
+  id: string; // MongoDB ObjectId as string
   content: string;
-  author: string;
+  author: string; // MongoDB ObjectId as string
+  authorName: string;
   createdAt: string;
   upvotes: number;
   downvotes: number;
-  postId: number;
-  parentCommentId?: number;
+  commentsCount: number; // replies count
+  postId?: string;
+  parentCommentId?: string;
   replies?: Comment[];
   userVote?: 'up' | 'down' | null;
 }
 
 interface CommunityForumProps {
-  forumData: Post[];
+  forumData?: Post[];
   userData: any;
   onForumUpdate: () => void;
 }
@@ -86,115 +91,109 @@ export default function CommunityForumComponent({
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newPost, setNewPost] = useState({ title: '', content: '', category: 'General' });
+  const [newPost, setNewPost] = useState({ title: '', content: '', topics: 'General' });
   const [newComment, setNewComment] = useState('');
-  const [replyContent, setReplyContent] = useState<{ [key: number]: string }>({});
+  const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [postFilter, setPostFilter] = useState<'all' | 'my-posts'>('all'); // NEW: Post filter state
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
-  const [activeReply, setActiveReply] = useState<number | null>(null);
+  const [activeReply, setActiveReply] = useState<string | null>(null);
 
   const categories = ['All', 'Teaching Methods', 'Student Management', 'Curriculum', 'Technology', 'General'];
 
+  const fetchForumPosts = async () => {
+    try {
+      const response = await api.get('/api/forum/posts', { withCredentials: true });
+      
+      if (response.status === 200 && Array.isArray(response.data)) {
+        // Map backend response exactly as it comes
+        const mapped: Post[] = response.data.map((p: any) => ({
+          id: p.id || '', // backend already sends 'id' not '_id'
+          title: p.title || '',
+          content: p.content || '',
+          author: p.author || '',
+          authorName: p.authorName || 'Anonymous',
+          createdAt: p.createdAt || new Date().toISOString(),
+          upvotes: typeof p.upvotes === 'number' ? p.upvotes : 0,
+          downvotes: typeof p.downvotes === 'number' ? p.downvotes : 0,
+          commentsCount: typeof p.commentsCount === 'number' ? p.commentsCount : 0,
+          topics: p.topics || 'General',
+          tags: p.tags || [],
+          userVote: null
+        }));
+        setPosts(mapped);
+      } else {
+        toast.error('Failed to load forum posts');
+      }
+    } catch (error) {
+      console.error('Error fetching forum posts:', error);
+      toast.error('Error fetching forum posts');
+    }
+  }
+
   useEffect(() => {
+    // if forumData prop provided by parent, use it; otherwise fetch from API
     if (forumData && forumData.length > 0) {
       const validatedPosts = forumData.map(post => ({
-        id: post.id || 0,
-        title: post.title || 'Untitled Post',
+        id: post.id || '',
+        title: post.title || '',
         content: post.content || '',
-        author: post.author || 'Anonymous',
+        author: post.author || '',
+        authorName: post.authorName || 'Anonymous',
         createdAt: post.createdAt || new Date().toISOString(),
-        upvotes: post.upvotes || 0,
-        downvotes: post.downvotes || 0,
-        commentCount: post.commentCount || 0,
-        category: post.category || 'General',
+        upvotes: typeof post.upvotes === 'number' ? post.upvotes : 0,
+        downvotes: typeof post.downvotes === 'number' ? post.downvotes : 0,
+        commentsCount: typeof post.commentsCount === 'number' ? post.commentsCount : 0,
+        topics: post.topics || 'General',
         tags: post.tags || [],
         userVote: post.userVote || null
       }));
       setPosts(validatedPosts);
-    } else {
-      setPosts([
-        {
-          id: 1,
-          title: "Best practices for teaching Algorithms?",
-          content: "I'm looking for effective ways to teach algorithm concepts to beginners. Any proven methods or resources you'd recommend?",
-          author: "Alice Johnson",
-          createdAt: "2024-01-15T10:30:00Z",
-          upvotes: 15,
-          downvotes: 2,
-          commentCount: 8,
-          category: "Teaching Methods",
-          tags: ["algorithms", "teaching", "beginners"],
-          userVote: null
-        },
-        {
-          id: 2,
-          title: "How to handle difficult students?",
-          content: "Some students seem disengaged during sessions. What strategies have worked for you to maintain engagement?",
-          author: "Bob Smith",
-          createdAt: "2024-01-14T14:20:00Z",
-          upvotes: 23,
-          downvotes: 1,
-          commentCount: 12,
-          category: "Student Management",
-          tags: ["engagement", "management", "motivation"],
-          userVote: null
-        },
-        {
-          id: 3,
-          title: "Recommended tools for online tutoring",
-          content: "What digital tools and platforms are you finding most effective for online mentoring sessions?",
-          author: "Carol Davis",
-          createdAt: "2024-01-13T09:15:00Z",
-          upvotes: 31,
-          downvotes: 3,
-          commentCount: 15,
-          category: "Technology",
-          tags: ["technology", "online", "tools"],
-          userVote: null
-        }
-      ]);
+      return;
     }
+
+    // no forumData prop -> fetch from backend on mount
+    fetchForumPosts();
   }, [forumData]);
 
-  // Enhanced mock comments with nested replies
-  const mockComments: Comment[] = [
-    {
-      id: 1,
-      content: "I've found that starting with visual representations of algorithms really helps beginners grasp the concepts faster. Using tools like flowchart diagrams before diving into code makes a huge difference.",
-      author: "David Wilson",
-      createdAt: "2024-01-15T11:00:00Z",
-      upvotes: 8,
-      downvotes: 0,
-      postId: 1,
-      userVote: null,
-      replies: [
-        {
-          id: 11,
-          content: "Completely agree! I use Miro for creating interactive flowcharts that students can collaborate on in real-time.",
-          author: "Eva Brown",
-          createdAt: "2024-01-15T11:30:00Z",
-          upvotes: 4,
-          downvotes: 0,
-          postId: 1,
-          parentCommentId: 1,
-          userVote: null
-        }
-      ]
-    },
-    {
-      id: 2,
-      content: "Using platforms like Miro for visual collaboration and CodePen for live coding has worked wonders for my sessions. The real-time collaboration features are particularly helpful.",
-      author: "Grace Lee",
-      createdAt: "2024-01-15T12:30:00Z",
-      upvotes: 12,
-      downvotes: 1,
-      postId: 1,
-      userVote: null
-    }
-  ];
+  // // Enhanced mock comments with nested replies
+  // const mockComments: Comment[] = [
+  //   {
+  //     id: 1,
+  //     content: "I've found that starting with visual representations of algorithms really helps beginners grasp the concepts faster. Using tools like flowchart diagrams before diving into code makes a huge difference.",
+  //     author: "David Wilson",
+  //     createdAt: "2024-01-15T11:00:00Z",
+  //     upvotes: 8,
+  //     downvotes: 0,
+  //     postId: 1,
+  //     userVote: null,
+  //     replies: [
+  //       {
+  //         id: 11,
+  //         content: "Completely agree! I use Miro for creating interactive flowcharts that students can collaborate on in real-time.",
+  //         author: "Eva Brown",
+  //         createdAt: "2024-01-15T11:30:00Z",
+  //         upvotes: 4,
+  //         downvotes: 0,
+  //         postId: 1,
+  //         parentCommentId: 1,
+  //         userVote: null
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: 2,
+  //     content: "Using platforms like Miro for visual collaboration and CodePen for live coding has worked wonders for my sessions. The real-time collaboration features are particularly helpful.",
+  //     author: "Grace Lee",
+  //     createdAt: "2024-01-15T12:30:00Z",
+  //     upvotes: 12,
+  //     downvotes: 1,
+  //     postId: 1,
+  //     userVote: null
+  //   }
+  // ];
 
   // UPDATED: Filter posts based on post filter (all posts vs my posts only)
   const filteredPosts = posts.filter(post => {
@@ -202,9 +201,8 @@ export default function CommunityForumComponent({
     const safeContent = post.content?.toLowerCase() || '';
     const safeSearchQuery = searchQuery.toLowerCase();
     
-    const matchesSearch = safeTitle.includes(safeSearchQuery) ||
-                         safeContent.includes(safeSearchQuery);
-    const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
+    const matchesSearch = safeTitle.includes(safeSearchQuery) || safeContent.includes(safeSearchQuery);
+    const matchesCategory = selectedCategory === 'All' || post.topics === selectedCategory;
     const matchesPostFilter = postFilter === 'all' || post.author === userData?.name; // NEW: Filter by author for my posts
     
     return matchesSearch && matchesCategory && matchesPostFilter;
@@ -212,181 +210,332 @@ export default function CommunityForumComponent({
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPost.title && newPost.content) {
-      try {
+    if (!newPost.title || !newPost.content) return;
+
+    try {
+      const payload = {
+        title: newPost.title,
+        content: newPost.content,
+        topics: newPost.topics
+      };
+
+      const response = await api.post('/api/forum/posts', payload, { withCredentials: true });
+
+      if (response.status === 201) {
+        const created = response.data;
+
+        // Map the created post exactly as backend returns it
         const newPostData: Post = {
-          id: posts.length + 1,
-          title: newPost.title,
-          content: newPost.content,
-          author: userData?.name || 'Anonymous',
-          createdAt: new Date().toISOString(),
+          id: created._id || created.id || '',
+          title: created.title || newPost.title,
+          content: created.content || newPost.content,
+          author: created.author || '',
+          authorName: created.authorName || userData?.name || 'Anonymous',
+          createdAt: created.createdAt || new Date().toISOString(),
           upvotes: 0,
           downvotes: 0,
-          commentCount: 0,
-          category: newPost.category,
+          commentsCount: 0,
+          topics: created.topics || newPost.topics,
           tags: [],
           userVote: null
         };
-        
+
         setPosts(prev => [newPostData, ...prev]);
-        setNewPost({ title: '', content: '', category: 'General' });
+        setNewPost({ title: '', content: '', topics: 'General' });
         setIsCreatingPost(false);
+        toast.success('Post created successfully!');
         onForumUpdate();
-      } catch (error) {
-        console.error('Error creating post:', error);
       }
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast.error('Error creating post');
     }
   };
 
-  const handleVotePost = async (postId: number, voteType: 'up' | 'down') => {
-    try {      
-      setPosts(prev => prev.map(post => {
-        if (post.id === postId) {
-          const currentVote = post.userVote;
-          let upvotes = post.upvotes || 0;
-          let downvotes = post.downvotes || 0;
+  const handleVotePost = async (postId: string, voteType: 'up' | 'down') => {
+    try {
+      const endpoint = voteType === 'up' 
+        ? `/api/forum/posts/upvote/${postId}` 
+        : `/api/forum/posts/downvote/${postId}`;
+      
+      const response = await api.post(endpoint, {}, { withCredentials: true });
 
-          if (currentVote === voteType) {
-            if (voteType === 'up') upvotes--;
-            else downvotes--;
-            return { ...post, upvotes, downvotes, userVote: null };
-          } else if (currentVote) {
-            if (currentVote === 'up') upvotes--;
-            else downvotes--;
-            if (voteType === 'up') upvotes++;
-            else downvotes++;
-            return { ...post, upvotes, downvotes, userVote: voteType };
-          } else {
-            if (voteType === 'up') upvotes++;
-            else downvotes++;
-            return { ...post, upvotes, downvotes, userVote: voteType };
+      if (response.status === 200) {
+        setPosts(prev => prev.map(post => {
+          if (post.id === postId) {
+            const currentVote = post.userVote;
+            let upvotes = post.upvotes;
+            let downvotes = post.downvotes;
+
+            if (currentVote === voteType) {
+              // Undo vote
+              if (voteType === 'up') upvotes = Math.max(0, upvotes - 1);
+              else downvotes = Math.max(0, downvotes - 1);
+              return { ...post, upvotes, downvotes, userVote: null };
+            } else if (currentVote) {
+              // Change vote
+              if (currentVote === 'up') upvotes = Math.max(0, upvotes - 1);
+              else downvotes = Math.max(0, downvotes - 1);
+              if (voteType === 'up') upvotes++;
+              else downvotes++;
+              return { ...post, upvotes, downvotes, userVote: voteType };
+            } else {
+              // New vote
+              if (voteType === 'up') upvotes++;
+              else downvotes++;
+              return { ...post, upvotes, downvotes, userVote: voteType };
+            }
           }
-        }
-        return post;
-      }));
+          return post;
+        }));
+      }
     } catch (error) {
       console.error('Error voting:', error);
+      toast.error('Error voting on post');
     }
   };
 
-  const handleOpenComments = (post: Post) => {
+  const handleOpenComments = async (post: Post) => {
     setSelectedPost(post);
-    setComments(mockComments.filter(comment => comment.postId === post.id));
     setShowCommentsModal(true);
+    
+    try {
+      const response = await api.get(`/api/forum/posts/comments/${post.id}`, { withCredentials: true });
+      
+      if (response.status === 200 && Array.isArray(response.data)) {
+        // Map backend comment response exactly as it comes
+        const mapped: Comment[] = response.data.map((c: any) => ({
+          id: c.id || '',
+          content: c.content || '',
+          author: c.author || '',
+          authorName: c.authorName || 'Anonymous',
+          createdAt: c.createdAt || new Date().toISOString(),
+          upvotes: typeof c.upvotes === 'number' ? c.upvotes : 0,
+          downvotes: typeof c.downvotes === 'number' ? c.downvotes : 0,
+          commentsCount: typeof c.commentsCount === 'number' ? c.commentsCount : 0,
+          postId: post.id,
+          userVote: null,
+          replies: []
+        }));
+        setComments(mapped);
+
+        // Fetch replies for comments that indicate they have replies
+        mapped.forEach(comment => {
+          if (comment.commentsCount && comment.commentsCount > 0) {
+            fetchRepliesForComment(comment.id, post.id);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      toast.error('Error fetching comments');
+    }
   };
 
-  const handleAddComment = async (content: string, parentCommentId?: number) => {
+  const handleAddComment = async (content: string, parentCommentId?: string) => {
     if (!content.trim() || !selectedPost) return;
 
     try {
-      const newCommentData: Comment = {
-        id: Math.max(...comments.map(c => c.id), ...comments.flatMap(c => c.replies || []).map(r => r.id)) + 1,
-        content,
-        author: userData?.name || 'Anonymous',
-        createdAt: new Date().toISOString(),
-        upvotes: 0,
-        downvotes: 0,
-        postId: selectedPost.id,
-        parentCommentId,
-        userVote: null
-      };
+      const endpoint = parentCommentId 
+        ? `/api/forum/comments/${parentCommentId}`
+        : `/api/forum/posts/comment/${selectedPost.id}`;
+      
+      const response = await api.post(endpoint, { content }, { withCredentials: true });
 
-      if (parentCommentId) {
+      if (response.status === 201) {
+        const created = response.data;
+        const newCommentData: Comment = {
+          id: created._id || created.id || '',
+          content: created.content || content,
+          author: created.author || '',
+          authorName: created.authorName || userData?.name || 'Anonymous',
+          createdAt: created.createdAt || new Date().toISOString(),
+          upvotes: 0,
+          downvotes: 0,
+          commentsCount: 0,
+          postId: selectedPost.id,
+          parentCommentId,
+          userVote: null,
+          replies: []
+        };
+
+        if (parentCommentId) {
+          // Add as reply to existing comment
+          setComments(prev => prev.map(comment => {
+            if (comment.id === parentCommentId) {
+              return {
+                ...comment,
+                replies: [...(comment.replies || []), newCommentData],
+                commentsCount: comment.commentsCount + 1
+              };
+            }
+            return comment;
+          }));
+          setReplyContent(prev => ({ ...prev, [parentCommentId]: '' }));
+          setActiveReply(null);
+        } else {
+          // Add as top-level comment
+          setComments(prev => [newCommentData, ...prev]);
+          setNewComment('');
+        }
+
+        // Update post comment count
+        setPosts(prev => prev.map(post => 
+          post.id === selectedPost.id 
+            ? { ...post, commentsCount: post.commentsCount + 1 }
+            : post
+        ));
+
+        setSelectedPost(prev => prev ? { ...prev, commentsCount: prev.commentsCount + 1 } : null);
+        toast.success('Comment added successfully!');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast.error('Error adding comment');
+    }
+  };
+
+  const handleVoteComment = async (commentId: string, voteType: 'up' | 'down') => {
+    try {
+      const endpoint = voteType === 'up' 
+        ? `/api/forum/comments/upvote/${commentId}`
+        : `/api/forum/comments/downvote/${commentId}`;
+      
+      const response = await api.post(endpoint, {}, { withCredentials: true });
+
+      if (response.status === 200) {
         setComments(prev => prev.map(comment => {
-          if (comment.id === parentCommentId) {
+          if (comment.id === commentId) {
+            return updateCommentVote(comment, voteType);
+          }
+          if (comment.replies) {
             return {
               ...comment,
-              replies: [...(comment.replies || []), newCommentData]
+              replies: comment.replies.map(reply =>
+                reply.id === commentId ? updateCommentVote(reply, voteType) : reply
+              )
             };
           }
           return comment;
         }));
-      } else {
-        setComments(prev => [newCommentData, ...prev]);
       }
-
-      if (parentCommentId) {
-        setReplyContent(prev => ({ ...prev, [parentCommentId]: '' }));
-        setActiveReply(null);
-      } else {
-        setNewComment('');
-      }
-
-      setPosts(prev => prev.map(post => 
-        post.id === selectedPost.id 
-          ? { ...post, commentCount: (post.commentCount || 0) + 1 }
-          : post
-      ));
-
-      setSelectedPost(prev => prev ? { ...prev, commentCount: (prev.commentCount || 0) + 1 } : null);
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    }
-  };
-
-  const handleVoteComment = async (commentId: number, voteType: 'up' | 'down') => {
-    try {
-      setComments(prev => prev.map(comment => {
-        if (comment.id === commentId) {
-          return updateCommentVote(comment, voteType);
-        }
-        if (comment.replies) {
-          return {
-            ...comment,
-            replies: comment.replies.map(reply => 
-              reply.id === commentId ? updateCommentVote(reply, voteType) : reply
-            )
-          };
-        }
-        return comment;
-      }));
     } catch (error) {
       console.error('Error voting comment:', error);
+      toast.error('Error voting on comment');
     }
   };
 
   const updateCommentVote = (comment: Comment, voteType: 'up' | 'down') => {
     const currentVote = comment.userVote;
-    let upvotes = comment.upvotes || 0;
-    let downvotes = comment.downvotes || 0;
+    let upvotes = comment.upvotes;
+    let downvotes = comment.downvotes;
 
     if (currentVote === voteType) {
-      if (voteType === 'up') upvotes--;
-      else downvotes--;
+      // Undo vote
+      if (voteType === 'up') upvotes = Math.max(0, upvotes - 1);
+      else downvotes = Math.max(0, downvotes - 1);
       return { ...comment, upvotes, downvotes, userVote: null };
     } else if (currentVote) {
-      if (currentVote === 'up') upvotes--;
-      else downvotes--;
+      // Change vote
+      if (currentVote === 'up') upvotes = Math.max(0, upvotes - 1);
+      else downvotes = Math.max(0, downvotes - 1);
       if (voteType === 'up') upvotes++;
       else downvotes++;
       return { ...comment, upvotes, downvotes, userVote: voteType };
     } else {
+      // New vote
       if (voteType === 'up') upvotes++;
       else downvotes++;
       return { ...comment, upvotes, downvotes, userVote: voteType };
     }
   };
 
-  const handleDeletePost = async (postId: number) => {
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+
     try {
-      setPosts(prev => prev.filter(post => post.id !== postId));
-      if (selectedPost?.id === postId) {
-        setSelectedPost(null);
-        setShowCommentsModal(false);
+      const response = await api.delete(`/api/forum/posts/${postId}`, { withCredentials: true });
+      
+      if (response.status === 200) {
+        setPosts(prev => prev.filter(post => post.id !== postId));
+        if (selectedPost?.id === postId) {
+          setSelectedPost(null);
+          setShowCommentsModal(false);
+        }
+        toast.success('Post deleted successfully!');
+        onForumUpdate();
       }
     } catch (error) {
       console.error('Error deleting post:', error);
+      toast.error('Error deleting post');
+    }
+  };
+
+  // helper to remove a comment (or reply) recursively
+  const removeCommentRecursive = (list: Comment[], targetId: string): Comment[] => {
+    return list.reduce<Comment[]>((acc, c) => {
+      if (c.id === targetId) return acc;
+      const newReplies = c.replies && c.replies.length ? removeCommentRecursive(c.replies, targetId) : c.replies;
+      acc.push({ ...c, replies: newReplies });
+      return acc;
+    }, []);
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      const response = await api.delete(`/api/forum/comments/${commentId}`, { withCredentials: true });
+      if (response.status === 200) {
+        // remove from comments state
+        setComments(prev => removeCommentRecursive(prev, commentId));
+        // decrement post comment counts if selectedPost exists
+        setPosts(prev => prev.map(p => p.id === selectedPost?.id ? { ...p, commentsCount: Math.max(0, p.commentsCount - 1) } : p));
+        setSelectedPost(prev => prev ? { ...prev, commentsCount: Math.max(0, prev.commentsCount - 1) } : prev);
+        toast.success('Comment deleted');
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast.error('Error deleting comment');
+    }
+  };
+
+  const fetchRepliesForComment = async (commentId: string, postId?: string) => {
+    try {
+      const targetPostId = postId || selectedPost?.id;
+      if (!targetPostId) return;
+
+      const response = await api.get(`/api/forum/comments/replies/${commentId}`, { withCredentials: true });
+      if (response.status === 200 && Array.isArray(response.data)) {
+        const replies: Comment[] = response.data.map((r: any) => ({
+          id: r.id || r._id || '',
+          content: r.content || '',
+          author: r.author || '',
+          authorName: r.authorName || 'Anonymous',
+          createdAt: r.createdAt || new Date().toISOString(),
+          upvotes: typeof r.upvotes === 'number' ? r.upvotes : 0,
+          downvotes: typeof r.downvotes === 'number' ? r.downvotes : 0,
+          commentsCount: typeof r.commentsCount === 'number' ? r.commentsCount : 0,
+          postId: targetPostId,
+          userVote: null,
+          replies: []
+        }));
+
+        // inject replies into the correct comment
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, replies } : c));
+      }
+    } catch (error) {
+      console.error('Error fetching replies:', error);
     }
   };
 
   const formatTimeAgo = (dateString: string) => {
-    if (!dateString) return 'recently';
+    if (!dateString) return 'Unknown time';
     
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
-    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
@@ -394,7 +543,7 @@ export default function CommunityForumComponent({
   };
 
   const getVoteScore = (upvotes: number, downvotes: number) => {
-    return (upvotes || 0) - (downvotes || 0);
+    return upvotes - downvotes;
   };
 
   // Recursive component for nested comments
@@ -405,7 +554,7 @@ export default function CommunityForumComponent({
       <div className={`${styles.comment} ${isReply ? styles.reply : ''}`} style={{ marginLeft: depth * 20 }}>
         <div className={styles.commentContent}>
           <div className={styles.commentHeader}>
-            <span className={styles.commentAuthor}>{comment.author}</span>
+            <span className={styles.commentAuthor}>{comment.authorName}</span>
             <span className={styles.commentTime}>
               {formatTimeAgo(comment.createdAt)}
             </span>
@@ -447,9 +596,7 @@ export default function CommunityForumComponent({
                   <button className={styles.editBtn}>
                     Edit
                   </button>
-                  <button className={styles.deleteBtn}>
-                    Delete
-                  </button>
+                  <button className={styles.deleteBtn} onClick={() => handleDeleteComment(comment.id)}>Delete</button>
                 </>
               )}
             </div>
@@ -578,8 +725,8 @@ export default function CommunityForumComponent({
                 className={styles.titleInput}
               />
               <select
-                value={newPost.category}
-                onChange={(e) => setNewPost(prev => ({ ...prev, category: e.target.value }))}
+                value={newPost.topics}
+                onChange={(e) => setNewPost(prev => ({ ...prev, topics: e.target.value }))}
                 className={styles.categorySelect}
                 aria-label='Category Select'                
               >
@@ -622,8 +769,8 @@ export default function CommunityForumComponent({
             <div className={styles.postContent}>
               <div className={styles.postHeader}>
                 <div className={styles.postMeta}>
-                  <span className={styles.postCategory}>{post.category || 'General'}</span>
-                  <span className={styles.postAuthor}>by {post.author}</span>
+                  <span className={styles.postCategory}>{post.topics || 'General'}</span>
+                  <span className={styles.postAuthor}>by {post.authorName}</span>
                   <span className={styles.postTime}>{formatTimeAgo(post.createdAt)}</span>
                 </div>
                 <h3 className={styles.postTitle}>{post.title}</h3>
@@ -659,7 +806,7 @@ export default function CommunityForumComponent({
                     aria-label='Open Comments Modal'
                   >
                     <Icons.Comments />
-                    {post.commentCount || 0}
+                    {post.commentsCount || 0}
                   </button>
                   
                   <div className={styles.voteSection}>
@@ -727,8 +874,8 @@ export default function CommunityForumComponent({
                 <div className={styles.postCardDetailed}>
                   <div className={styles.postHeader}>
                     <div className={styles.postMeta}>
-                      <span className={styles.postCategory}>{selectedPost.category || 'General'}</span>
-                      <span className={styles.postAuthor}>by {selectedPost.author}</span>
+                      <span className={styles.postCategory}>{selectedPost.topics || 'General'}</span>
+                      <span className={styles.postAuthor}>by {selectedPost.authorName}</span>
                       <span className={styles.postTime}>{formatTimeAgo(selectedPost.createdAt)}</span>
                     </div>
                   </div>
@@ -742,7 +889,7 @@ export default function CommunityForumComponent({
                     <div className={styles.statGroup}>
                       <div className={styles.statItem}>
                         <Icons.Comments />
-                        <span>{selectedPost.commentCount || 0} comments</span>
+                        <span>{selectedPost.commentsCount || 0} comments</span>
                         <div className={styles.voteSection}>
                           <button 
                             className={`${styles.voteButton} ${styles.upvote} ${selectedPost.userVote === 'up' ? styles.active : ''}`}

@@ -1,5 +1,5 @@
 const User = require('../models/user');
-const Forum = require('../models/forum');
+const Forum = require('../models/Forum');
 const ForumComment = require('../models/ForumComment');
 const ForumMetrics = require('../models/ForumMetrics');
 const { getValuesFromToken } =  require('../service/jwt');
@@ -7,7 +7,7 @@ const { getValuesFromToken } =  require('../service/jwt');
 
 exports.createPost = async (req, res) => {
     try {
-        const { title, content } = req.body;
+        const { title, content, topics } = req.body;
         const decoded = getValuesFromToken(req);
 
         if(!title || !content) {
@@ -18,7 +18,8 @@ exports.createPost = async (req, res) => {
             title,
             content,
             author: decoded.id,
-            authorName: decoded.username
+            authorName: decoded.username,
+            topics
         });
 
         const postMetric = new ForumMetrics({
@@ -37,7 +38,7 @@ exports.createPost = async (req, res) => {
 
 exports.getPosts = async (req, res) => {
     try {
-        const posts = await Forum.find();
+        const posts = await Forum.find().sort({ createdAt: -1 });
         const metrics = await ForumMetrics.find({ target: { $in: posts.map(p => p._id) }, onModel: 'Forum' });
         res.status(200).json(posts.map(post => ({
             id: post._id,
