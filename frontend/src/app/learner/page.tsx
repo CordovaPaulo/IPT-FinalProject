@@ -9,6 +9,7 @@ import ReviewsComponent from '@/components/learnerpage/reviews/page';
 import EditInformation from '@/components/learnerpage/information/page';
 import LogoutComponent from '@/components/learnerpage/logout/page';
 import CommunityForumComponent from '@/components/learnerpage/community/page';
+import SessionAnalyticsComponent from '@/components/learnerpage/analytics/page'; // Add this import
 import api from "@/lib/axios";
 import styles from './learner.module.css';
 import { toast } from 'react-toastify';
@@ -153,6 +154,28 @@ interface RankData {
   sessionsToNextRank: number | null;
 }
 
+// Add AnalyticsData interface
+interface AnalyticsData {
+  totalSessions: number;
+  groupSessions: number;
+  oneOnOneSessions: number;
+  topSubjects: { subject: string; count: number }[];
+  attendanceRate: number;
+  topLearningStyles: { style: string; count: number }[];
+  recentSessions?: Session[];
+}
+
+interface Session {
+  id: string;
+  date: string;
+  subject: string;
+  learner: string;
+  duration: number;
+  type: 'group' | 'one-on-one';
+  status: 'completed' | 'scheduled' | 'cancelled';
+  learningStyle: string;
+}
+
 const transformSchedulesForReview = (schedules: any[]): any[] => {
   return schedules.map(schedule => ({
     id: schedule.id,
@@ -230,6 +253,7 @@ export default function LearnerPage() {
   const [transformedMentors, setTransformedMentors] = useState<TransformedMentor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [forumData, setForumData] = useState<ForumData[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null); // Add analytics data state
   const [isLoadingMentors, setIsLoadingMentors] = useState(false);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   
@@ -258,11 +282,13 @@ export default function LearnerPage() {
   // Add this state
   const [rankData, setRankData] = useState<RankData | null>(null);
 
+  // Update topbarItems to include Analytics
   const topbarItems = [
     { key: 'main', label: 'Mentors', icon: '/main.svg' },
     { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
     { key: 'records', label: 'Reviews', icon: '/records.svg' },
-    { key: 'community', label: 'Community', icon: '/community.svg' }
+    { key: 'community', label: 'Community', icon: '/community.svg' },
+    { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' } // Add Analytics
   ];
 
   useEffect(() => {
@@ -366,6 +392,27 @@ export default function LearnerPage() {
       
     } catch (error) {
       console.error('Error fetching forum data:', error);
+    }
+  };
+
+  // Add fetchAnalyticsData function
+  const fetchAnalyticsData = async () => {
+    try {
+      console.log("Fetching analytics data...");
+      const token = getCookie('MindMateToken');
+      const res = await api.get('/api/learner/session/analytics', {
+        timeout: 50000,
+        withCredentials: true,
+      });
+      
+      console.log("Analytics API Response:", res.data);
+      if (res.data?.data) {
+        setAnalyticsData(res.data.data);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      toast.error('Error fetching analytics data');
     }
   };
 
@@ -655,7 +702,8 @@ export default function LearnerPage() {
           fetchMentFiles(),
           fetchMentors(),
           fetchSchedules(),
-          fetchForumData()
+          fetchForumData(),
+          fetchAnalyticsData() // Add analytics data fetch
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -757,6 +805,14 @@ export default function LearnerPage() {
             forumData={forumData}
             userData={userData}
             onForumUpdate={fetchForumData}
+          />
+        );
+      case 'analytics': // Add analytics case
+        return (
+          <SessionAnalyticsComponent 
+            analyticsData={analyticsData}
+            userData={userData}
+            onDataRefresh={fetchAnalyticsData}
           />
         );
       default:
