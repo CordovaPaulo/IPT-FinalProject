@@ -154,26 +154,25 @@ interface RankData {
   sessionsToNextRank: number | null;
 }
 
-// Add AnalyticsData interface
+// Update the AnalyticsData interface to match the backend response exactly
 interface AnalyticsData {
   totalSessions: number;
-  groupSessions: number;
   oneOnOneSessions: number;
-  topSubjects: { subject: string; count: number }[];
-  attendanceRate: number;
-  topLearningStyles: { style: string; count: number }[];
-  recentSessions?: Session[];
+  groupSessions: number;
+  subjectsOfInterest: { subject: string; count: number }[];
+  schedules: AnalyticsSchedule[];
 }
 
-interface Session {
+interface AnalyticsSchedule {
   id: string;
   date: string;
+  time: string;
   subject: string;
-  learner: string;
-  duration: number;
-  type: 'group' | 'one-on-one';
-  status: 'completed' | 'scheduled' | 'cancelled';
-  learningStyle: string;
+  mentor: string;
+  duration: string;
+  type: string;
+  location: string;
+  status: string;
 }
 
 const transformSchedulesForReview = (schedules: any[]): any[] => {
@@ -399,14 +398,14 @@ export default function LearnerPage() {
   const fetchAnalyticsData = async () => {
     try {
       console.log("Fetching analytics data...");
-      const token = getCookie('MindMateToken');
-      const res = await api.get('/api/learner/session/analytics', {
+      const res = await api.get('/api/learner/analytics', {
         timeout: 50000,
         withCredentials: true,
       });
       
       console.log("Analytics API Response:", res.data);
       if (res.data?.data) {
+        // Mount the data exactly as received from backend
         setAnalyticsData(res.data.data);
       }
       

@@ -5,23 +5,22 @@ import styles from './analytics.module.css';
 
 interface AnalyticsData {
   totalSessions: number;
-  groupSessions: number;
   oneOnOneSessions: number;
-  topSubjects: { subject: string; count: number }[];
-  attendanceRate: number;
-  topLearningStyles: { style: string; count: number }[];
-  recentSessions?: Session[];
+  groupSessions: number;
+  subjectsOfInterest: { subject: string; count: number }[];
+  schedules: AnalyticsSchedule[];
 }
 
-interface Session {
+interface AnalyticsSchedule {
   id: string;
   date: string;
+  time: string;
   subject: string;
-  learner: string;
-  duration: number;
-  type: 'group' | 'one-on-one';
-  status: 'completed' | 'scheduled' | 'cancelled';
-  learningStyle: string;
+  mentor: string;
+  duration: string;
+  type: string;
+  location: string;
+  status: string;
 }
 
 interface SessionAnalyticsProps {
@@ -125,12 +124,11 @@ export default function SessionAnalyticsComponent({
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>('month');
   const [isLoading, setIsLoading] = useState(false);
-  const [sortKey, setSortKey] = useState<keyof Session | ''>('');
+  const [sortKey, setSortKey] = useState<keyof AnalyticsSchedule | ''>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filters, setFilters] = useState({
     status: 'all',
     type: 'all',
-    learningStyle: 'all',
     subject: 'all'
   });
 
@@ -139,42 +137,27 @@ export default function SessionAnalyticsComponent({
     totalSessions: 47,
     groupSessions: 28,
     oneOnOneSessions: 19,
-    attendanceRate: 85,
-    topSubjects: [
+    subjectsOfInterest: [
       { subject: 'Mathematics', count: 15 },
       { subject: 'Programming', count: 12 },
       { subject: 'Physics', count: 8 },
       { subject: 'Algorithms', count: 7 },
       { subject: 'Data Structures', count: 5 }
     ],
-    topLearningStyles: [
-      { style: 'Visual', count: 18 },
-      { style: 'Kinesthetic', count: 12 },
-      { style: 'Auditory', count: 10 },
-      { style: 'Reading/Writing', count: 7 }
-    ],
-    recentSessions: [
-      { id: '1', date: '2024-01-15', subject: 'Mathematics', learner: 'Alice Johnson', duration: 60, type: 'one-on-one', status: 'completed', learningStyle: 'Visual' },
-      { id: '2', date: '2024-01-14', subject: 'Programming', learner: 'Bob Smith', duration: 45, type: 'group', status: 'completed', learningStyle: 'Kinesthetic' },
-      { id: '3', date: '2024-01-13', subject: 'Algorithms', learner: 'Carol Davis', duration: 90, type: 'one-on-one', status: 'completed', learningStyle: 'Visual' },
-      { id: '4', date: '2024-01-16', subject: 'Physics', learner: 'David Wilson', duration: 75, type: 'group', status: 'scheduled', learningStyle: 'Auditory' },
-      { id: '5', date: '2024-01-12', subject: 'Data Structures', learner: 'Eva Brown', duration: 60, type: 'one-on-one', status: 'completed', learningStyle: 'Reading/Writing' },
-      { id: '6', date: '2024-01-11', subject: 'Mathematics', learner: 'Frank Miller', duration: 120, type: 'group', status: 'cancelled', learningStyle: 'Visual' }
+    schedules: [
+      { id: '1', date: '2024-01-15', time: '10:00', subject: 'Mathematics', mentor: 'Alice Johnson', duration: '60', type: 'one-on-one', location: 'Room 101', status: 'completed' },
+      { id: '2', date: '2024-01-14', time: '14:00', subject: 'Programming', mentor: 'Bob Smith', duration: '45', type: 'group', location: 'Room 102', status: 'completed' },
+      { id: '3', date: '2024-01-13', time: '09:00', subject: 'Algorithms', mentor: 'Carol Davis', duration: '90', type: 'one-on-one', location: 'Room 103', status: 'completed' },
+      { id: '4', date: '2024-01-16', time: '11:00', subject: 'Physics', mentor: 'David Wilson', duration: '75', type: 'group', location: 'Room 104', status: 'scheduled' },
+      { id: '5', date: '2024-01-12', time: '13:00', subject: 'Data Structures', mentor: 'Eva Brown', duration: '60', type: 'one-on-one', location: 'Room 105', status: 'completed' },
+      { id: '6', date: '2024-01-11', time: '15:00', subject: 'Mathematics', mentor: 'Frank Miller', duration: '120', type: 'group', location: 'Room 106', status: 'cancelled' }
     ]
   };
 
   useEffect(() => {
     if (analyticsData) {
-      const validatedData: AnalyticsData = {
-        totalSessions: analyticsData.totalSessions || defaultData.totalSessions,
-        groupSessions: analyticsData.groupSessions || defaultData.groupSessions,
-        oneOnOneSessions: analyticsData.oneOnOneSessions || defaultData.oneOnOneSessions,
-        attendanceRate: analyticsData.attendanceRate || defaultData.attendanceRate,
-        topSubjects: analyticsData.topSubjects || defaultData.topSubjects,
-        topLearningStyles: analyticsData.topLearningStyles || defaultData.topLearningStyles,
-        recentSessions: analyticsData.recentSessions || defaultData.recentSessions
-      };
-      setData(validatedData);
+      // Use the data directly as received from backend
+      setData(analyticsData);
     } else {
       setData(defaultData);
     }
@@ -191,7 +174,7 @@ export default function SessionAnalyticsComponent({
     }
   };
 
-  const handleSort = (key: keyof Session) => {
+  const handleSort = (key: keyof AnalyticsSchedule) => {
     if (sortKey === key) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -200,7 +183,7 @@ export default function SessionAnalyticsComponent({
     }
   };
 
-  const getSortArrow = (key: keyof Session) => {
+  const getSortArrow = (key: keyof AnalyticsSchedule) => {
     if (sortKey !== key) return null;
     return (
       <span className={`${styles.sortArrow} ${sortOrder === 'desc' ? styles.sortArrowDesc : ''}`}>
@@ -209,14 +192,13 @@ export default function SessionAnalyticsComponent({
     );
   };
 
-  // Filter and sort sessions
+  // Filter and sort sessions - removed learningStyle filter
   const filteredAndSortedSessions = useMemo(() => {
-    const sessions = data?.recentSessions || [];
+    const sessions = data?.schedules || [];
     
     let filtered = sessions.filter(session => {
-      if (filters.status !== 'all' && session.status !== filters.status) return false;
+      if (filters.status !== 'all' && session.status.toLowerCase() !== filters.status.toLowerCase()) return false;
       if (filters.type !== 'all' && session.type !== filters.type) return false;
-      if (filters.learningStyle !== 'all' && session.learningStyle !== filters.learningStyle) return false;
       if (filters.subject !== 'all' && session.subject !== filters.subject) return false;
       return true;
     });
@@ -232,26 +214,26 @@ export default function SessionAnalyticsComponent({
         B = new Date(b[sortKey]).getTime();
       }
       if (sortKey === 'duration') {
-        A = Number(A);
-        B = Number(B);
+        // Extract numeric value from "120 min" format
+        A = parseInt(A) || 0;
+        B = parseInt(B) || 0;
       }
       
       if (A < B) return sortOrder === 'asc' ? -1 : 1;
       if (A > B) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data?.recentSessions, filters, sortKey, sortOrder]);
+  }, [data?.schedules, filters, sortKey, sortOrder]);
 
   // Get unique values for filter dropdowns
   const uniqueValues = useMemo(() => {
-    const sessions = data?.recentSessions || [];
+    const sessions = data?.schedules || [];
     return {
       statuses: ['all', ...Array.from(new Set(sessions.map(s => s.status)))],
       types: ['all', ...Array.from(new Set(sessions.map(s => s.type)))],
-      learningStyles: ['all', ...Array.from(new Set(sessions.map(s => s.learningStyle)))],
       subjects: ['all', ...Array.from(new Set(sessions.map(s => s.subject)))]
     };
-  }, [data?.recentSessions]);
+  }, [data?.schedules]);
 
   const StatCard = ({ title, value, subtitle, trend, icon, color }: any) => (
     <div className={styles.statCard}>
@@ -282,9 +264,9 @@ export default function SessionAnalyticsComponent({
 
   const getStatusBadge = (status: string) => {
     const statusClass = {
-      completed: styles.statusCompleted,
-      scheduled: styles.statusScheduled,
-      cancelled: styles.statusCancelled
+      COMPLETED: styles.statusCompleted,
+      SCHEDULED: styles.statusScheduled,
+      CANCELLED: styles.statusCancelled
     }[status] || styles.statusDefault;
     
     return <span className={`${styles.statusBadge} ${statusClass}`}>{status}</span>;
@@ -312,7 +294,7 @@ export default function SessionAnalyticsComponent({
   };
 
   // Safe data access functions
-  const getTopSubjects = () => data?.topSubjects || [];
+  const getTopSubjects = () => data?.subjectsOfInterest || [];
   const getMaxSubjectCount = () => Math.max(...getTopSubjects().map(s => s.count), 1);
 
   if (!data) {
@@ -371,33 +353,29 @@ export default function SessionAnalyticsComponent({
       <div className={styles.statsGrid}>
         <StatCard
           title="Total Sessions"
-          value={data.totalSessions || 0}
+          value={data.totalSessions}
           subtitle="All time"
-          trend="+12%"
           icon={<Icons.TotalSessions />}
           color="#4f46e5"
         />
         <StatCard
           title="Group Sessions"
-          value={data.groupSessions || 0}
-          subtitle={`${Math.round(((data.groupSessions || 0) / (data.totalSessions || 1)) * 100)}% of total`}
-          trend="+8%"
+          value={data.groupSessions}
+          subtitle={`${Math.round((data.groupSessions / Math.max(data.totalSessions, 1)) * 100)}% of total`}
           icon={<Icons.GroupSessions />}
           color="#7c3aed"
         />
         <StatCard
           title="One-on-One"
-          value={data.oneOnOneSessions || 0}
-          subtitle={`${Math.round(((data.oneOnOneSessions || 0) / (data.totalSessions || 1)) * 100)}% of total`}
-          trend="+5%"
+          value={data.oneOnOneSessions}
+          subtitle={`${Math.round((data.oneOnOneSessions / Math.max(data.totalSessions, 1)) * 100)}% of total`}
           icon={<Icons.OneOnOne />}
           color="#a855f7"
         />
         <StatCard
-          title="Attendance Rate"
-          value={`${data.attendanceRate || 0}%`}
-          subtitle="Overall participation"
-          trend="+3%"
+          title="Completed Sessions"
+          value={data.schedules.filter(s => s.status === 'COMPLETED').length}
+          subtitle="Successfully finished"
           icon={<Icons.Attendance />}
           color="#10b981"
         />
@@ -409,7 +387,7 @@ export default function SessionAnalyticsComponent({
           <div className={styles.chartHeader}>
             <div className={styles.chartTitle}>
               <Icons.Book />
-              Number of Schedules per Subject
+              Completed Sessions per Subject of Interest
             </div>
           </div>
           <div className={styles.subjectsList}>
@@ -418,11 +396,11 @@ export default function SessionAnalyticsComponent({
                 <div key={item.subject} className={styles.subjectItem}>
                   <div className={styles.subjectInfo}>
                     <span className={styles.subjectName}>{item.subject}</span>
-                    <span className={styles.subjectCount}>{item.count} schedules</span>
+                    <span className={styles.subjectCount}>{item.count} completed</span>
                   </div>
                   <ProgressBar 
-                    percentage={(item.count / getMaxSubjectCount()) * 100} 
-                    color={['#4f46e5', '#7c3aed', '#a855f7', '#c084fc', '#d8b4fe'][index]}
+                    percentage={getMaxSubjectCount() > 0 ? (item.count / getMaxSubjectCount()) * 100 : 0} 
+                    color={['#4f46e5', '#7c3aed', '#a855f7', '#c084fc', '#d8b4fe'][index % 5]}
                   />
                 </div>
               ))
@@ -444,11 +422,11 @@ export default function SessionAnalyticsComponent({
               Recent Sessions
             </div>
             <div className={styles.tableInfo}>
-              Showing {filteredAndSortedSessions.length} of {data.recentSessions?.length || 0} sessions
+              Showing {filteredAndSortedSessions.length} of {data.schedules.length} sessions
             </div>
           </div>
 
-          {/* Table Filters */}
+          {/* Table Filters - removed learningStyle filter */}
           <div className={styles.tableFilters}>
             <div className={styles.filterGroup}>
               <Icons.Filter />
@@ -456,7 +434,7 @@ export default function SessionAnalyticsComponent({
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                 className={styles.filterSelect}
-                aria-label='Filter for table'
+                aria-label='Filter by status'
               >
                 <option value="all">All Status</option>
                 {uniqueValues.statuses.filter(s => s !== 'all').map(status => (
@@ -470,7 +448,7 @@ export default function SessionAnalyticsComponent({
                 value={filters.type}
                 onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
                 className={styles.filterSelect}
-                aria-label='Filter for table'
+                aria-label='Filter by type'
               >
                 <option value="all">All Types</option>
                 {uniqueValues.types.filter(t => t !== 'all').map(type => (
@@ -481,24 +459,10 @@ export default function SessionAnalyticsComponent({
 
             <div className={styles.filterGroup}>
               <select 
-                value={filters.learningStyle}
-                onChange={(e) => setFilters(prev => ({ ...prev, learningStyle: e.target.value }))}
-                className={styles.filterSelect}
-                aria-label='Filter for table'
-              >
-                <option value="all">All Styles</option>
-                {uniqueValues.learningStyles.filter(ls => ls !== 'all').map(style => (
-                  <option key={style} value={style}>{style}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <select 
                 value={filters.subject}
                 onChange={(e) => setFilters(prev => ({ ...prev, subject: e.target.value }))}
                 className={styles.filterSelect}
-                aria-label='Filter for table'
+                aria-label='Filter by subject'
               >
                 <option value="all">All Subjects</option>
                 {uniqueValues.subjects.filter(s => s !== 'all').map(subject => (
@@ -513,41 +477,34 @@ export default function SessionAnalyticsComponent({
           <table className={styles.dataTable}>
             <thead>
               <tr>
-                <th 
-                  onClick={() => handleSort('date')} 
-                  className={styles.sortableHeader}
-                >
+                <th onClick={() => handleSort('date')} className={styles.sortableHeader}>
                   <div className={styles.headerContent}>
                     <Icons.Calendar />
                     DATE {getSortArrow('date')}
                   </div>
                 </th>
-                <th 
-                  onClick={() => handleSort('subject')} 
-                  className={styles.sortableHeader}
-                >
+                <th onClick={() => handleSort('time')} className={styles.sortableHeader}>
+                  <div className={styles.headerContent}>
+                    TIME {getSortArrow('time')}
+                  </div>
+                </th>
+                <th onClick={() => handleSort('subject')} className={styles.sortableHeader}>
                   <div className={styles.headerContent}>
                     SUBJECT {getSortArrow('subject')}
                   </div>
                 </th>
-                <th 
-                  onClick={() => handleSort('learner')} 
-                  className={styles.sortableHeader}
-                >
+                <th onClick={() => handleSort('mentor')} className={styles.sortableHeader}>
                   <div className={styles.headerContent}>
-                    LEARNER {getSortArrow('learner')}
+                    MENTOR {getSortArrow('mentor')}
                   </div>
                 </th>
-                <th 
-                  onClick={() => handleSort('duration')} 
-                  className={styles.sortableHeader}
-                >
+                <th onClick={() => handleSort('duration')} className={styles.sortableHeader}>
                   <div className={styles.headerContent}>
                     DURATION {getSortArrow('duration')}
                   </div>
                 </th>
                 <th>TYPE</th>
-                <th>LEARNING STYLE</th>
+                <th>LOCATION</th>
                 <th>STATUS</th>
               </tr>
             </thead>
@@ -560,27 +517,24 @@ export default function SessionAnalyticsComponent({
                         {formatDate(session.date)}
                       </div>
                     </td>
+                    <td>{session.time}</td>
                     <td className={styles.subjectCell}>
                       {session.subject}
                     </td>
-                    <td>{session.learner}</td>
+                    <td>{session.mentor}</td>
                     <td>
                       <div className={styles.durationCell}>
-                        {session.duration} min
+                        {session.duration}
                       </div>
                     </td>
                     <td>{getSessionTypeBadge(session.type)}</td>
-                    <td>
-                      <span className={styles.learningStyleBadge}>
-                        {session.learningStyle}
-                      </span>
-                    </td>
+                    <td>{session.location}</td>
                     <td>{getStatusBadge(session.status)}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className={styles.noSessions}>
+                  <td colSpan={8} className={styles.noSessions}>
                     <div className={styles.noSessionsContent}>
                       <Icons.Book />
                       No sessions match the current filters

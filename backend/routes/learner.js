@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const learnerController = require('../controllers/learner');
 const jwtService = require('../service/jwt');
+const analyticsController = require('../controllers/session-analytics');
 
 // POST routes
 router.post('/schedule/:id', jwtService.authenticateToken('learner'), learnerController.setSchedule);
@@ -23,5 +24,7 @@ router.post('/offers/accept', learnerController.acceptOffer);
 
 // PATCH routes
 router.patch('/profile/edit', jwtService.authenticateToken('learner'), learnerController.editProfile);
+
+router.get('/analytics', jwtService.authenticateToken('learner'), analyticsController.fetchLearnerDashboard);
 
 module.exports = router;
