@@ -197,22 +197,21 @@ export default function EditInformationComponent({
   const getPlaceholder = (field: string, section: 'personal' | 'profile') => {
     const mappings: Record<string, Record<string, any>> = {
       personal: {
-        'Full Name': userData?.user?.name,
-        'Year Level': userData?.ment?.year,
-        'Program': userData?.ment?.course,
-        'Address': userData?.ment?.address,
-        'Contact Number': userData?.ment?.phoneNum,
-        'Sex at Birth': capitalizeFirstLetter(userData?.ment?.gender || ''),
+        'Year Level': userData?.ment?.year || 'Select your year level',
+        'Program': userData?.ment?.course || 'Select your program',
+        'Address': userData?.ment?.address || 'Enter your complete address',
+        'Contact Number': userData?.ment?.phoneNum || 'Enter your 11-digit contact number',
+        'Sex at Birth': capitalizeFirstLetter(userData?.ment?.gender || 'Select your gender'),
       },
       profile: {
-        'Teaching Modality': userData?.ment?.learn_modality,
-        'Days of Availability': userData?.ment?.availability?.join(', '),
-        'Proficiency Level': userData?.ment?.proficiency,
-        'Teaching Style': userData?.ment?.teach_sty?.join(', ') || '',
-        'Preferred Session Duration': userData?.ment?.prefSessDur,
-        'Course Offered': userData?.ment?.subjects?.join(', '),
-        'Short Bio': userData?.ment?.bio,
-        'Tutoring Experience': userData?.ment?.exp,
+        'Teaching Modality': userData?.ment?.learn_modality || 'Select preferred teaching modality',
+        'Days of Availability': userData?.ment?.availability?.join(', ') || 'Select available days',
+        'Proficiency Level': userData?.ment?.proficiency || 'Select your proficiency level',
+        'Teaching Style': userData?.ment?.teach_sty?.join(', ') || 'Select teaching styles',
+        'Preferred Session Duration': userData?.ment?.prefSessDur || 'Select session duration',
+        'Course Offered': userData?.ment?.subjects?.join(', ') || 'Select courses you can teach',
+        'Short Bio': userData?.ment?.bio || 'Tell us about yourself and your teaching approach',
+        'Tutoring Experience': userData?.ment?.exp || 'Describe your tutoring experience and background',
       },
     };
 
@@ -889,7 +888,7 @@ export default function EditInformationComponent({
       <div className={styles.editInformationModal} ref={dropdownRef}>
         <div className={styles.editInformation}>
           <div className={styles.upperElement}>
-            <h1>Edit Information</h1>
+            <h1 className={styles.upperElementH1}>Edit Information</h1>
             <img 
               src="/exit.svg" 
               alt="exit" 
@@ -899,11 +898,11 @@ export default function EditInformationComponent({
           </div>
           <div className={styles.lowerElement}>
             <div className={styles.personalInformation}>
-              <h1>I. PERSONAL INFORMATION</h1>
+              <h1 className={styles.sectionH1}>I. PERSONAL INFORMATION</h1>
               <div className={styles.inputWrapper}>
                 {inputFieldPersonalInformation.map((item, index) => (
                   <div key={index} className={styles.inputFields}>
-                    <label>{item.field}</label>
+                    <label className={styles.label}>{item.field}</label>
 
                     {item.type === 'text' ? (
                       <>
@@ -918,7 +917,7 @@ export default function EditInformationComponent({
                           }}
                           onFocus={() => setFocusedIndex(index)}
                           className={`${styles.standardInput} ${validationErrors[toCamelCase(item.field)] ? styles.inputError : ''}`}
-                          placeholder={getPlaceholder(item.field, 'personal') || `Enter your ${item.field.toLowerCase()}`}
+                          placeholder={getPlaceholder(item.field, 'personal')}
                         />
                         {validationErrors[toCamelCase(item.field)] && (
                           <span className={styles.errorMessage}>
@@ -938,11 +937,11 @@ export default function EditInformationComponent({
                           <input
                             type="text"
                             value={personalData[toCamelCase(item.field) as keyof typeof personalData] as string}
-                            placeholder={getPlaceholder(item.field, 'personal') || `Select ${item.field.toLowerCase()}`}
+                            placeholder={getPlaceholder(item.field, 'personal')}
                             readOnly
                             className={styles.standardInput}
                           />
-                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
+                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}>▼</i>
                         </div>
                         {dropdownOpen[toCamelCase(item.field)] && (
                           <div className={styles.dropdownOptions}>
@@ -952,6 +951,7 @@ export default function EditInformationComponent({
                               return (
                                 <div
                                   key={val + '-' + i}
+                                  className={styles.dropdownOption}
                                   role="option"
                                   onClick={() => selectOption(toCamelCase(item.field), val, 'personal')}
                                   ref={el => { dropdownOptionRefs.current[i] = el; }}
@@ -970,54 +970,52 @@ export default function EditInformationComponent({
 
                 {/* Gender Dropdown */}
                 <div className={styles.inputFields}>
-                  <label>Sex at Birth</label>
-                  <div className={styles.genderSection}>
-                    <div className={styles.genderDropdown}>
-                      <div
-                        ref={el => { inputRefs.current[inputFieldPersonalInformation.length] = el as HTMLDivElement | null; }}
-                        className={styles.dropdownContainer}
-                        onClick={() => toggleDropdown('gender')}
-                        onFocus={() => setFocusedIndex(inputFieldPersonalInformation.length)}
-                        tabIndex={0}
-                      >
-                        <input
-                          type="text"
-                          value={personalData.gender}
-                          placeholder={capitalizeFirstLetter(userData?.ment?.gender || '') || 'Select your sex at birth'}
-                          className={styles.standardInput}
-                          readOnly
-                        />
-                        <i className={`${styles.dropdownIcon} ${dropdownOpen.gender ? styles.open : ''}`}>▼</i>
-                      </div>
-                      {dropdownOpen.gender && (
-                        <div className={`${styles.dropdownOptions} ${styles.genderOptions}`}>
-                          {genderOptions.map((option, i) => (
-                            <div
-                              key={i}
-                              ref={el => { dropdownOptionRefs.current[i] = el; }}
-                              className={`${styles.dropdownOption} ${dropdownFocusedIndex === i ? styles.dropdownFocused : ''}`}
-                              onClick={() => selectGender(option)}
-                              tabIndex={-1}
-                            >
-                              {option}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                  <label className={styles.label}>Sex at Birth</label>
+                  <div className={styles.customDropdown}>
+                    <div
+                      ref={el => { inputRefs.current[inputFieldPersonalInformation.length] = el as HTMLDivElement | null; }}
+                      className={styles.dropdownContainer}
+                      onClick={() => toggleDropdown('gender')}
+                      onFocus={() => setFocusedIndex(inputFieldPersonalInformation.length)}
+                      tabIndex={0}
+                    >
+                      <input
+                        type="text"
+                        value={personalData.gender}
+                        placeholder={getPlaceholder('Sex at Birth', 'personal')}
+                        className={styles.standardInput}
+                        readOnly
+                      />
+                      <i className={`${styles.dropdownIcon} ${dropdownOpen.gender ? styles.dropdownIconOpen : ''}`}>▼</i>
                     </div>
+                    {dropdownOpen.gender && (
+                      <div className={styles.dropdownOptions}>
+                        {genderOptions.map((option, i) => (
+                          <div
+                            key={i}
+                            ref={el => { dropdownOptionRefs.current[i] = el; }}
+                            className={styles.dropdownOption}
+                            onClick={() => selectGender(option)}
+                            tabIndex={-1}
+                          >
+                            {option}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
             <div className={styles.profileInformation}>
-              <h1>II. PROFILE INFORMATION</h1>
+              <h1 className={styles.sectionH1}>II. PROFILE INFORMATION</h1>
               <div className={styles.inputWrapper}>
                 {inputFieldProfileInformation.map((item, index) => {
                   const globalIndex = inputFieldPersonalInformation.length + 1 + index;
                   return (
                     <div key={index} className={styles.inputFields}>
-                      <label>{item.field}</label>
+                      <label className={styles.label}>{item.field}</label>
 
                       {item.type === 'select' && item.field !== 'Course Offered' ? (
                         <div className={styles.customDropdown}>
@@ -1031,11 +1029,11 @@ export default function EditInformationComponent({
                             <input
                               type="text"
                               value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
-                              placeholder={getPlaceholder(item.field, 'profile') || `Select ${item.field.toLowerCase()}`}
+                              placeholder={getPlaceholder(item.field, 'profile')}
                               readOnly
                               className={styles.standardInput}
                             />
-                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
+                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}>▼</i>
                           </div>
                           {dropdownOpen[toCamelCase(item.field)] && (
                             <div className={styles.dropdownOptions}>
@@ -1045,6 +1043,7 @@ export default function EditInformationComponent({
                                 return (
                                   <div
                                     key={val + '-' + i}
+                                    className={styles.dropdownOption}
                                     role="option"
                                     onClick={() => selectOption(toCamelCase(item.field), val)}
                                     ref={el => { dropdownOptionRefs.current[i] = el; }}
@@ -1073,57 +1072,60 @@ export default function EditInformationComponent({
                               readOnly
                               className={styles.standardInput}
                             />
-                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
+                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}>▼</i>
                           </div>
                           {dropdownOpen[toCamelCase(item.field)] && (
                             <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
                               {availableSubjects.coreSubjects.length > 0 && (
                                 <div className={styles.categorySection}>
-                                  <h4>Core Subjects</h4>
+                                  <h4 className={styles.categoryH4}>Core Subjects</h4>
                                   {availableSubjects.coreSubjects.map((option, i) => (
                                     <div key={`core-${i}`} className={styles.checkboxOption}>
                                       <input
                                         type="checkbox"
                                         id={`core-${i}`}
+                                        className={styles.checkboxInput}
                                         value={option}
                                         checked={profileData.courseOffered.includes(option)}
                                         onChange={() => handleCourseOfferedChange(option)}
                                       />
-                                      <label htmlFor={`core-${i}`}>{option}</label>
+                                      <label htmlFor={`core-${i}`} className={styles.checkboxLabel}>{option}</label>
                                     </div>
                                   ))}
                                 </div>
                               )}
                               {availableSubjects.gecSubjects.length > 0 && (
                                 <div className={styles.categorySection}>
-                                  <h4>GEC Subjects</h4>
+                                  <h4 className={styles.categoryH4}>GEC Subjects</h4>
                                   {availableSubjects.gecSubjects.map((option, i) => (
                                     <div key={`gec-${i}`} className={styles.checkboxOption}>
                                       <input
                                         type="checkbox"
                                         id={`gec-${i}`}
+                                        className={styles.checkboxInput}
                                         value={option}
                                         checked={profileData.courseOffered.includes(option)}
                                         onChange={() => handleCourseOfferedChange(option)}
                                       />
-                                      <label htmlFor={`gec-${i}`}>{option}</label>
+                                      <label htmlFor={`gec-${i}`} className={styles.checkboxLabel}>{option}</label>
                                     </div>
                                   ))}
                                 </div>
                               )}
                               {availableSubjects.peNstpSubjects.length > 0 && (
                                 <div className={styles.categorySection}>
-                                  <h4>NSTP & PE Subjects</h4>
+                                  <h4 className={styles.categoryH4}>NSTP & PE Subjects</h4>
                                   {availableSubjects.peNstpSubjects.map((option, i) => (
                                     <div key={`pe-${i}`} className={styles.checkboxOption}>
                                       <input
                                         type="checkbox"
                                         id={`pe-${i}`}
+                                        className={styles.checkboxInput}
                                         value={option}
                                         checked={profileData.courseOffered.includes(option)}
                                         onChange={() => handleCourseOfferedChange(option)}
                                       />
-                                      <label htmlFor={`pe-${i}`}>{option}</label>
+                                      <label htmlFor={`pe-${i}`} className={styles.checkboxLabel}>{option}</label>
                                     </div>
                                   ))}
                                 </div>
@@ -1147,7 +1149,7 @@ export default function EditInformationComponent({
                               readOnly
                               className={styles.standardInput}
                             />
-                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.open : ''}`}>▼</i>
+                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}>▼</i>
                           </div>
                           {dropdownOpen[toCamelCase(item.field)] && (
                             <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
@@ -1159,17 +1161,18 @@ export default function EditInformationComponent({
                                   <div 
                                     key={i} 
                                     ref={el => { dropdownOptionRefs.current[i] = el; }}
-                                    className={`${styles.checkboxOption} ${dropdownFocusedIndex === i ? styles.dropdownFocused : ''}`}
+                                    className={styles.checkboxOption}
                                     tabIndex={-1}
                                   >
                                     <input
                                       type="checkbox"
                                       id={`${toCamelCase(item.field)}-${i}`}
+                                      className={styles.checkboxInput}
                                       value={val}
                                       checked={(profileData[toCamelCase(item.field) as keyof typeof profileData] as string[]).includes(val)}
                                       onChange={() => selectOption(toCamelCase(item.field), val)}
                                     />
-                                    <label htmlFor={`${toCamelCase(item.field)}-${i}`}>
+                                    <label htmlFor={`${toCamelCase(item.field)}-${i}`} className={styles.checkboxLabel}>
                                       {label}
                                     </label>
                                   </div>
@@ -1185,13 +1188,13 @@ export default function EditInformationComponent({
               </div>
             </div>
 
-            <div className={styles.bioExperienceWrapper}>
-              <div className={styles.bioExperienceGrid}>
+            <div className={styles.bioGoalsWrapper}>
+              <div className={styles.bioGoalsGrid}>
                 {bioAndExperienceFields.map((item, index) => {
                   const globalIndex = inputFieldPersonalInformation.length + 1 + inputFieldProfileInformation.length + index;
                   return (
                     <div key={`bio-${index}`} className={styles.inputFields}>
-                      <label>{item.field}</label>
+                      <label className={styles.label}>{item.field}</label>
                       <textarea
                         ref={el => { inputRefs.current[globalIndex] = el as HTMLTextAreaElement | null; }}
                         value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
@@ -1202,8 +1205,7 @@ export default function EditInformationComponent({
                         }}
                         onFocus={() => setFocusedIndex(globalIndex)}
                         className={`${styles.fixedTextarea} ${validationErrors[toCamelCase(item.field)] ? styles.inputError : ''}`}
-                        placeholder={getPlaceholder(item.field, 'profile') || 
-                          (item.field === 'Short Bio' ? 'Tell us about yourself' : 'Describe your tutoring experience')}
+                        placeholder={getPlaceholder(item.field, 'profile')}
                       />
                       {validationErrors[toCamelCase(item.field)] && (
                         <span className={styles.errorMessage}>
