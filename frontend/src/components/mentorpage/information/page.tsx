@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from './information.module.css';
 
+// =============================================================================
+// TYPES AND INTERFACES
+// =============================================================================
+
 interface User {
   id: number | null;
   name: string;
@@ -36,21 +40,97 @@ interface UserData {
 }
 
 type EditInformationComponentProps = {
-  userData: any; // allow flexible shape to avoid duplicate-type collisions across files
+  userData: any;
   onSave: (updatedData: any) => void;
   onCancel: () => void;
-  // Optional: parent can receive partial updates as user edits (keeps parent in sync)
   onUpdateUserData?: (updatedData: Partial<any>) => void;
 };
 
 type OptionItem = string | { label: string; value: string };
 
+// =============================================================================
+// CONSTANTS AND OPTIONS
+// =============================================================================
+
+const yearLevelOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+const programOptions = [
+  'Bachelor of Science in Information Technology (BSIT)',
+  'Bachelor of Science in Computer Science (BSCS)',
+  'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)',
+];
+const genderOptions = ['Male', 'Female'];
+const teachingModalityOptions = ['Online', 'In-person', 'Hybrid'];
+const proficiencyOptions = ['Beginner', 'Intermediate', 'Advanced'];
+const durationOptions = ['1 hour', '2 hours', '3 hours'];
+
+const daysOptions = [
+  { label: 'Monday', value: 'Monday' },
+  { label: 'Tuesday', value: 'Tuesday' },
+  { label: 'Wednesday', value: 'Wednesday' },
+  { label: 'Thursday', value: 'Thursday' },
+  { label: 'Friday', value: 'Friday' },
+  { label: 'Saturday', value: 'Saturday' },
+  { label: 'Sunday', value: 'Sunday' },
+];
+
+const teachingStyleOptions = [
+  { label: 'Lecture-Based', value: 'Lecture-Based' },
+  { label: 'Interactive Discussion', value: 'Interactive Discussion' },
+  { label: 'Q&A Session', value: 'Q&A Session' },
+  { label: 'Demonstration', value: 'Demonstration' },
+  { label: 'Project-based', value: 'Project-based' },
+  { label: 'Step-by-step process', value: 'Step-by-step process' },
+];
+
+const inputFieldPersonalInformation = [
+  { field: 'Year Level', type: 'select', options: yearLevelOptions },
+  { field: 'Program', type: 'select', options: programOptions },
+  { field: 'Address', type: 'text' },
+  { field: 'Contact Number', type: 'text' },
+];
+
+const inputFieldProfileInformation = [
+  { field: 'Teaching Modality', type: 'select', options: teachingModalityOptions },
+  { field: 'Days of Availability', type: 'checkbox', options: daysOptions },
+  { field: 'Proficiency Level', type: 'select', options: proficiencyOptions },
+  { field: 'Teaching Style', type: 'checkbox', options: teachingStyleOptions },
+  { field: 'Preferred Session Duration', type: 'select', options: durationOptions },
+  { field: 'Course Offered', type: 'select' },
+];
+
+const bioAndExperienceFields = [
+  { field: 'Short Bio', column: 1 },
+  { field: 'Tutoring Experience', column: 2 },
+];
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
 function normalizeOptionValue(opt: OptionItem): string {
   return typeof opt === 'string' ? opt : (opt as { value: string }).value;
 }
+
 function normalizeOptionLabel(opt: OptionItem): string {
   return typeof opt === 'string' ? opt : (opt as { label: string }).label;
 }
+
+const capitalizeFirstLetter = (str: string) => {
+  if (!str) return 'Not specified';
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+const toCamelCase = (str: string) => {
+  return str
+    .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
+      return index === 0 ? word.toLowerCase() : word.toUpperCase();
+    })
+    .replace(/\s+/g, '');
+};
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
 
 export default function EditInformationComponent({
   userData,
@@ -58,6 +138,10 @@ export default function EditInformationComponent({
   onCancel,
   onUpdateUserData,
 }: EditInformationComponentProps) {
+  // =============================================================================
+  // STATE HOOKS
+  // =============================================================================
+
   const [personalData, setPersonalData] = useState({
     gender: '',
     otherGender: '',
@@ -89,84 +173,28 @@ export default function EditInformationComponent({
   const [dropdownFocusedIndex, setDropdownFocusedIndex] = useState<number>(-1);
   const [currentDropdown, setCurrentDropdown] = useState<string>('');
 
+  // =============================================================================
+  // REF HOOKS
+  // =============================================================================
+
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const inputRefs = useRef<(HTMLInputElement | HTMLTextAreaElement | HTMLDivElement | HTMLButtonElement | null)[]>([]);
   const dropdownOptionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Options
-  const yearLevelOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-  const programOptions = [
-    'Bachelor of Science in Information Technology (BSIT)',
-    'Bachelor of Science in Computer Science (BSCS)',
-    'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)',
-  ];
-  const genderOptions = ['Male', 'Female'];
-  const teachingModalityOptions = ['Online', 'In-person', 'Hybrid'];
-  const proficiencyOptions = ['Beginner', 'Intermediate', 'Advanced'];
-  const durationOptions = ['1 hour', '2 hours', '3 hours'];
-  
-  const daysOptions = [
-    { label: 'Monday', value: 'Monday' },
-    { label: 'Tuesday', value: 'Tuesday' },
-    { label: 'Wednesday', value: 'Wednesday' },
-    { label: 'Thursday', value: 'Thursday' },
-    { label: 'Friday', value: 'Friday' },
-    { label: 'Saturday', value: 'Saturday' },
-    { label: 'Sunday', value: 'Sunday' },
-  ];
-  
-  const teachingStyleOptions = [
-    { label: 'Lecture-Based', value: 'Lecture-Based' },
-    { label: 'Interactive Discussion', value: 'Interactive Discussion' },
-    { label: 'Q&A Session', value: 'Q&A Session' },
-    { label: 'Demonstration', value: 'Demonstration' },
-    { label: 'Project-based', value: 'Project-based' },
-    { label: 'Step-by-step process', value: 'Step-by-step process' },
-  ];
+  // =============================================================================
+  // CALCULATED VALUES
+  // =============================================================================
 
-  const inputFieldPersonalInformation = [
-    { field: 'Year Level', type: 'select', options: yearLevelOptions },
-    { field: 'Program', type: 'select', options: programOptions },
-    { field: 'Address', type: 'text' },
-    { field: 'Contact Number', type: 'text' },
-  ];
-
-  const inputFieldProfileInformation = [
-    { field: 'Teaching Modality', type: 'select', options: teachingModalityOptions },
-    { field: 'Days of Availability', type: 'checkbox', options: daysOptions },
-    { field: 'Proficiency Level', type: 'select', options: proficiencyOptions },
-    { field: 'Teaching Style', type: 'checkbox', options: teachingStyleOptions },
-    { field: 'Preferred Session Duration', type: 'select', options: durationOptions },
-    { field: 'Course Offered', type: 'select' },
-  ];
-
-  const bioAndExperienceFields = [
-    { field: 'Short Bio', column: 1 },
-    { field: 'Tutoring Experience', column: 2 },
-  ];
-
-  // Calculate total number of focusable elements
   const totalFocusableElements = inputFieldPersonalInformation.length + 1 + // +1 for gender
                                 inputFieldProfileInformation.length + 
                                 bioAndExperienceFields.length + 
                                 1; // +1 for save button
 
-  // Helper functions
-  const capitalizeFirstLetter = (str: string) => {
-    if (!str) return 'Not specified';
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-  };
-
-  const toCamelCase = (str: string) => {
-    return str
-      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
-        return index === 0 ? word.toLowerCase() : word.toUpperCase();
-      })
-      .replace(/\s+/g, '');
-  };
+  // =============================================================================
+  // DATA HELPERS
+  // =============================================================================
 
   const getPlaceholder = (field: string, section: 'personal' | 'profile') => {
-    // use flexible lookup to avoid TS index signature issues
     const mappings: Record<string, Record<string, any>> = {
       personal: {
         'Full Name': userData?.user?.name,
@@ -192,7 +220,7 @@ export default function EditInformationComponent({
   };
 
   const updateAvailableSubjects = (program: string) => {
-    const selectedProgram = program || userData.ment.course;
+    const selectedProgram = program || userData?.ment?.course;
 
     switch (selectedProgram) {
       case 'Bachelor of Science in Information Technology (BSIT)':
@@ -381,54 +409,6 @@ export default function EditInformationComponent({
     }
   };
 
-  // Initialize data
-  useEffect(() => {
-    updateAvailableSubjects(userData.ment.course);
-    
-    // Set personal data from props
-    setPersonalData({
-      gender: userData.ment.gender || '',
-      otherGender: '',
-      yearLevel: userData.ment.year || '',
-      program: userData.ment.course || '',
-      address: userData.ment.address || '',
-      contactNumber: userData.ment.phoneNum || '',
-    });
-    
-    // Set profile data from props
-    setProfileData(prev => ({
-      ...prev,
-      courseOffered: userData.ment.subjects || [],
-      daysOfAvailability: userData.ment.availability || [],
-      teachingStyle: userData.ment.teach_sty || [],
-      teachingModality: userData.ment.learn_modality || '',
-      proficiencyLevel: userData.ment.proficiency || '',
-      preferredSessionDuration: userData.ment.prefSessDur || '',
-      shortBio: userData.ment.bio || '',
-      tutoringExperience: userData.ment.exp || '',
-    }));
-  }, [userData]);
-
-  // Watch for program changes
-  useEffect(() => {
-    if (personalData.program) {
-      updateAvailableSubjects(personalData.program);
-    }
-  }, [personalData.program]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        closeAllDropdowns();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Get dropdown options for a specific field
   const getDropdownOptions = (field: string) => {
     if (field === 'gender') {
       return genderOptions;
@@ -447,11 +427,31 @@ export default function EditInformationComponent({
     return [];
   };
 
-  // Get checkbox options for a specific field
   const getCheckboxOptions = (field: string) => {
     const profileField = inputFieldProfileInformation.find(f => toCamelCase(f.field) === field);
     return profileField?.options || [];
   };
+
+  const getDisplayValue = (field: string) => {
+    const value = profileData[field as keyof typeof profileData];
+    
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        if (field === 'daysOfAvailability') {
+          return userData?.ment?.availability?.join(', ') || '';
+        }
+        if (field === 'teachingStyle') {
+          return userData?.ment?.teach_sty?.join(', ') || '';
+        }
+      }
+      return value.join(', ');
+    }
+    return value || '';
+  };
+
+  // =============================================================================
+  // DROPDOWN HANDLERS
+  // =============================================================================
 
   const closeAllDropdowns = () => {
     setDropdownOpen({});
@@ -539,22 +539,206 @@ export default function EditInformationComponent({
     });
   };
 
-  const getDisplayValue = (field: string) => {
-    const value = profileData[field as keyof typeof profileData];
-    
-    if (Array.isArray(value)) {
-      if (value.length === 0) {
-        if (field === 'daysOfAvailability') {
-          return userData.ment.availability?.join(', ') || '';
-        }
-        if (field === 'teachingStyle') {
-          return userData.ment.teach_sty?.join(', ') || '';
-        }
-      }
-      return value.join(', ');
+  // =============================================================================
+  // VALIDATION
+  // =============================================================================
+
+  const validateField = (field: string, value: string) => {
+    const trimmedValue = value.trim();
+
+    if (trimmedValue === '') {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+      return;
     }
-    return value || '';
+
+    let error = '';
+    switch (field) {
+      case 'shortBio':
+        if (trimmedValue.length < 20) {
+          error = 'Short Bio should be at least 20 characters.';
+        }
+        break;
+      case 'tutoringExperience':
+        if (trimmedValue.length < 10) {
+          error = 'Tutoring Experience should be at least 10 characters.';
+        }
+        break;
+      case 'contactNumber':
+        if (trimmedValue.length !== 11) {
+          error = 'Contact Number should be 11 digits.';
+        } else if (!/^\d+$/.test(trimmedValue)) {
+          error = 'Contact Number should contain only digits.';
+        }
+        break;
+      case 'address':
+        if (trimmedValue.length < 10) {
+          error = 'Address should be at least 10 characters.';
+        }
+        break;
+      default:
+        break;
+    }
+
+    setValidationErrors(prev => ({
+      ...prev,
+      [field]: error
+    }));
   };
+
+  // =============================================================================
+  // SAVE AND CLOSE HANDLERS
+  // =============================================================================
+
+  const saveChanges = async () => {
+    // Validate all fields
+    Object.keys(personalData).forEach(key => {
+      validateField(key, personalData[key as keyof typeof personalData]);
+    });
+    Object.keys(profileData).forEach(key => {
+      if (typeof profileData[key as keyof typeof profileData] === 'string') {
+        validateField(key, profileData[key as keyof typeof profileData] as string);
+      }
+    });
+
+    // Check if there are any validation errors
+    if (Object.values(validationErrors).some(error => error)) {
+      alert('Please fix validation errors before saving.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/mentor/edit', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          name: userData?.user?.name,
+          gender: capitalizeFirstLetter(personalData.gender || userData?.ment?.gender || ''),
+          phoneNum: personalData.contactNumber || userData?.ment?.phoneNum,
+          address: personalData.address || userData?.ment?.address,
+          course: personalData.program || userData?.ment?.course,
+          department: 'College of Computer Studies',
+          year: personalData.yearLevel || userData?.ment?.year,
+          subjects: JSON.stringify(profileData.courseOffered.length ? profileData.courseOffered : userData?.ment?.subjects || []),
+          proficiency: profileData.proficiencyLevel || userData?.ment?.proficiency,
+          learn_modality: profileData.teachingModality || userData?.ment?.learn_modality,
+          teach_sty: JSON.stringify((profileData.teachingStyle?.length ? profileData.teachingStyle : userData?.ment?.teach_sty || []).filter(Boolean)),
+          availability: JSON.stringify((profileData.daysOfAvailability?.length ? profileData.daysOfAvailability : userData?.ment?.availability || []).filter(Boolean)),
+          prefSessDur: profileData.preferredSessionDuration || userData?.ment?.prefSessDur,
+          bio: profileData.shortBio || userData?.ment?.bio,
+          exp: profileData.tutoringExperience || userData?.ment?.exp,
+        }),
+      });
+
+      if (response.ok) {
+        alert('Changes saved successfully!');
+        
+        // Update the user data with new values
+        const updatedUserData: UserData = {
+          ...userData,
+          user: {
+            ...userData.user,
+            name: userData.user.name, // Name remains the same
+          },
+          ment: {
+            ...userData.ment,
+            gender: capitalizeFirstLetter(personalData.gender || userData?.ment?.gender || ''),
+            phoneNum: personalData.contactNumber || userData?.ment?.phoneNum,
+            address: personalData.address || userData?.ment?.address,
+            course: personalData.program || userData?.ment?.course,
+            year: personalData.yearLevel || userData?.ment?.year,
+            subjects: profileData.courseOffered.length ? profileData.courseOffered : userData?.ment?.subjects || [],
+            proficiency: profileData.proficiencyLevel || userData?.ment?.proficiency,
+            learn_modality: profileData.teachingModality || userData?.ment?.learn_modality,
+            teach_sty: profileData.teachingStyle?.length ? profileData.teachingStyle : userData?.ment?.teach_sty || [],
+            availability: profileData.daysOfAvailability?.length ? profileData.daysOfAvailability : userData?.ment?.availability || [],
+            prefSessDur: profileData.preferredSessionDuration || userData?.ment?.prefSessDur,
+            bio: profileData.shortBio || userData?.ment?.bio,
+            exp: profileData.tutoringExperience || userData?.ment?.exp,
+          },
+        };
+        
+        // notify parent about full save
+        onSave(updatedUserData);
+        // also provide partial update callback if parent supplied it (keeps parent state in sync without forcing types)
+        try {
+          onUpdateUserData?.({
+            ment: updatedUserData.ment,
+          });
+        } catch (e) {
+          // swallow; optional callback
+        }
+      } else {
+        alert('An error occurred while saving changes.');
+      }
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      alert('An error occurred while saving changes.');
+    }
+  };
+
+  const closeEditInformation = () => {
+    onCancel();
+  };
+
+  // =============================================================================
+  // EFFECT HOOKS
+  // =============================================================================
+
+  // Initialize data
+  useEffect(() => {
+    if (userData?.ment?.course) {
+      updateAvailableSubjects(userData.ment.course);
+    }
+    
+    // Set personal data from props with safe access
+    setPersonalData({
+      gender: userData?.ment?.gender || '',
+      otherGender: '',
+      yearLevel: userData?.ment?.year || '',
+      program: userData?.ment?.course || '',
+      address: userData?.ment?.address || '',
+      contactNumber: userData?.ment?.phoneNum || '',
+    });
+    
+    // Set profile data from props with safe access
+    setProfileData(prev => ({
+      ...prev,
+      courseOffered: userData?.ment?.subjects || [],
+      daysOfAvailability: userData?.ment?.availability || [],
+      teachingStyle: userData?.ment?.teach_sty || [],
+      teachingModality: userData?.ment?.learn_modality || '',
+      proficiencyLevel: userData?.ment?.proficiency || '',
+      preferredSessionDuration: userData?.ment?.prefSessDur || '',
+      shortBio: userData?.ment?.bio || '',
+      tutoringExperience: userData?.ment?.exp || '',
+    }));
+  }, [userData]);
+
+  // Watch for program changes
+  useEffect(() => {
+    if (personalData.program) {
+      updateAvailableSubjects(personalData.program);
+    }
+  }, [personalData.program]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        closeAllDropdowns();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Keyboard navigation handler
   useEffect(() => {
@@ -685,152 +869,16 @@ export default function EditInformationComponent({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [dropdownOpen, focusedIndex, dropdownFocusedIndex, currentDropdown, totalFocusableElements]);
 
-  const validateField = (field: string, value: string) => {
-    const trimmedValue = value.trim();
-
-    if (trimmedValue === '') {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-      return;
-    }
-
-    let error = '';
-    switch (field) {
-      case 'shortBio':
-        if (trimmedValue.length < 20) {
-          error = 'Short Bio should be at least 20 characters.';
-        }
-        break;
-      case 'tutoringExperience':
-        if (trimmedValue.length < 10) {
-          error = 'Tutoring Experience should be at least 10 characters.';
-        }
-        break;
-      case 'contactNumber':
-        if (trimmedValue.length !== 11) {
-          error = 'Contact Number should be 11 digits.';
-        } else if (!/^\d+$/.test(trimmedValue)) {
-          error = 'Contact Number should contain only digits.';
-        }
-        break;
-      case 'address':
-        if (trimmedValue.length < 10) {
-          error = 'Address should be at least 10 characters.';
-        }
-        break;
-      default:
-        break;
-    }
-
-    setValidationErrors(prev => ({
-      ...prev,
-      [field]: error
-    }));
-  };
-
-  const saveChanges = async () => {
-    // Validate all fields
-    Object.keys(personalData).forEach(key => {
-      validateField(key, personalData[key as keyof typeof personalData]);
-    });
-    Object.keys(profileData).forEach(key => {
-      if (typeof profileData[key as keyof typeof profileData] === 'string') {
-        validateField(key, profileData[key as keyof typeof profileData] as string);
-      }
-    });
-
-    // Check if there are any validation errors
-    if (Object.values(validationErrors).some(error => error)) {
-      alert('Please fix validation errors before saving.');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/mentor/edit', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          name: userData.user.name,
-          gender: capitalizeFirstLetter(personalData.gender || userData.ment.gender || ''),
-          phoneNum: personalData.contactNumber || userData.ment.phoneNum,
-          address: personalData.address || userData.ment.address,
-          course: personalData.program || userData.ment.course,
-          department: 'College of Computer Studies',
-          year: personalData.yearLevel || userData.ment.year,
-          subjects: JSON.stringify(profileData.courseOffered.length ? profileData.courseOffered : userData.ment.subjects || []),
-          proficiency: profileData.proficiencyLevel || userData.ment.proficiency,
-          learn_modality: profileData.teachingModality || userData.ment.learn_modality,
-          teach_sty: JSON.stringify((profileData.teachingStyle?.length ? profileData.teachingStyle : userData.ment.teach_sty || []).filter(Boolean)),
-          availability: JSON.stringify((profileData.daysOfAvailability?.length ? profileData.daysOfAvailability : userData.ment.availability || []).filter(Boolean)),
-          prefSessDur: profileData.preferredSessionDuration || userData.ment.prefSessDur,
-          bio: profileData.shortBio || userData.ment.bio,
-          exp: profileData.tutoringExperience || userData.ment.exp,
-        }),
-      });
-
-      if (response.ok) {
-        alert('Changes saved successfully!');
-        
-        // Update the user data with new values
-        const updatedUserData: UserData = {
-          ...userData,
-          user: {
-            ...userData.user,
-            name: userData.user.name, // Name remains the same
-          },
-          ment: {
-            ...userData.ment,
-            gender: capitalizeFirstLetter(personalData.gender || userData.ment.gender || ''),
-            phoneNum: personalData.contactNumber || userData.ment.phoneNum,
-            address: personalData.address || userData.ment.address,
-            course: personalData.program || userData.ment.course,
-            year: personalData.yearLevel || userData.ment.year,
-            subjects: profileData.courseOffered.length ? profileData.courseOffered : userData.ment.subjects || [],
-            proficiency: profileData.proficiencyLevel || userData.ment.proficiency,
-            learn_modality: profileData.teachingModality || userData.ment.learn_modality,
-            teach_sty: profileData.teachingStyle?.length ? profileData.teachingStyle : userData.ment.teach_sty || [],
-            availability: profileData.daysOfAvailability?.length ? profileData.daysOfAvailability : userData.ment.availability || [],
-            prefSessDur: profileData.preferredSessionDuration || userData.ment.prefSessDur,
-            bio: profileData.shortBio || userData.ment.bio,
-            exp: profileData.tutoringExperience || userData.ment.exp,
-          },
-        };
-        
-        // notify parent about full save
-        onSave(updatedUserData);
-        // also provide partial update callback if parent supplied it (keeps parent state in sync without forcing types)
-        try {
-          onUpdateUserData?.({
-            ment: updatedUserData.ment,
-          });
-        } catch (e) {
-          // swallow; optional callback
-        }
-      } else {
-        alert('An error occurred while saving changes.');
-      }
-    } catch (error) {
-      console.error('Error saving changes:', error);
-      alert('An error occurred while saving changes.');
-    }
-  };
-
-  const closeEditInformation = () => {
-    onCancel();
-  };
-
   // Reset dropdown refs when dropdown changes
   useEffect(() => {
     dropdownOptionRefs.current = dropdownOptionRefs.current.slice(0, 
       getDropdownOptions(currentDropdown).length || getCheckboxOptions(currentDropdown).length
     );
   }, [currentDropdown, dropdownOpen]);
+
+  // =============================================================================
+  // RENDER
+  // =============================================================================
 
   return (
     <>
@@ -906,7 +954,7 @@ export default function EditInformationComponent({
                                   key={val + '-' + i}
                                   role="option"
                                   onClick={() => selectOption(toCamelCase(item.field), val, 'personal')}
-                                  ref={el => { dropdownOptionRefs.current[i] = el; }} // ensure callback returns void
+                                  ref={el => { dropdownOptionRefs.current[i] = el; }}
                                   tabIndex={0}
                                 >
                                   {label}
@@ -935,7 +983,7 @@ export default function EditInformationComponent({
                         <input
                           type="text"
                           value={personalData.gender}
-                          placeholder={capitalizeFirstLetter(userData.ment.gender || '') || 'Select your sex at birth'}
+                          placeholder={capitalizeFirstLetter(userData?.ment?.gender || '') || 'Select your sex at birth'}
                           className={styles.standardInput}
                           readOnly
                         />
@@ -999,7 +1047,7 @@ export default function EditInformationComponent({
                                     key={val + '-' + i}
                                     role="option"
                                     onClick={() => selectOption(toCamelCase(item.field), val)}
-                                    ref={el => { dropdownOptionRefs.current[i] = el; }} // return void
+                                    ref={el => { dropdownOptionRefs.current[i] = el; }}
                                     tabIndex={0}
                                   >
                                     {label}
@@ -1110,7 +1158,7 @@ export default function EditInformationComponent({
                                 return (
                                   <div 
                                     key={i} 
-                                    ref={el => { dropdownOptionRefs.current[i] = el; }} // return void
+                                    ref={el => { dropdownOptionRefs.current[i] = el; }}
                                     className={`${styles.checkboxOption} ${dropdownFocusedIndex === i ? styles.dropdownFocused : ''}`}
                                     tabIndex={-1}
                                   >
@@ -1174,6 +1222,7 @@ export default function EditInformationComponent({
               className={styles.saveButton} 
               onClick={saveChanges}
               onFocus={() => setFocusedIndex(totalFocusableElements - 1)}
+              aria-label='Button for saving'
             >
               Save Changes
             </button>

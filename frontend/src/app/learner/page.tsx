@@ -1077,7 +1077,14 @@ export default function LearnerPage() {
         <div className={styles['edit-information-popup']}>
           <EditInformation 
             userData={userData}
-            onClose={() => setIsEdit(false)}
+            onCancel={() => setIsEdit(false)}
+            onSave={(updatedData) => {
+              console.log('Data saved:', updatedData);
+              // Update the user data with the saved changes
+              handleUpdateUserData(updatedData);
+              // Close the modal
+              setIsEdit(false);
+            }}
             onUpdateUserData={handleUpdateUserData}
           />
         </div>
