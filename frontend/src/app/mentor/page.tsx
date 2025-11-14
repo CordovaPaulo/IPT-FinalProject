@@ -15,6 +15,7 @@ import api from "@/lib/axios";
 import styles from './mentor.module.css';
 import { toast } from 'react-toastify';
 import Pusher from 'pusher-js';
+import ChatbotWidget from '@/components/ChatbotWidget';
 
 interface User {
   id: number | null;
@@ -1618,6 +1619,8 @@ export default function MentorPage() {
           </div>
         </div>
       )}
+
+      <ChatbotWidget />
     </div>
   );
 }

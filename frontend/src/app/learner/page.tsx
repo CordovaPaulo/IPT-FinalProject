@@ -14,6 +14,7 @@ import api from "@/lib/axios";
 import styles from './learner.module.css';
 import { toast } from 'react-toastify';
 import Pusher from 'pusher-js';
+import ChatbotWidget from '@/components/ChatbotWidget';
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {
@@ -1086,6 +1087,8 @@ export default function LearnerPage() {
       {confirmLogout && (
         <LogoutComponent onCancel={handleCancelLogout} />
       )}
+
+      <ChatbotWidget />
     </>
   );
 }

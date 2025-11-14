@@ -12,8 +12,8 @@ const mailingController = require('./mailing');
 const VerificationToken = require('../models/VerificationToken');
 const crypto = require('crypto');
 const Rank = require('../models/rank');
-// const APP_BASE = (process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/,'');
-// const API_BASE = (process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:5000').replace(/\/+$/,'');
+const APP_BASE = (process.env.FRONTEND_URL).replace(/\/+$/,'');
+const API_BASE = (process.env.BACKEND_URL).replace(/\/+$/,'');
 
 // Helper: send role confirmation email with verify/unverify links
 async function sendRoleConfirmationEmail({ id: uid, username, email }, role, roleDocId) {
@@ -40,8 +40,8 @@ async function sendRoleConfirmationEmail({ id: uid, username, email }, role, rol
       { expiresIn: '2d' }
     );
 
-    const verifyUrl = `http://localhost:3001/api/auth/role/verify?token=${encodeURIComponent(verifyToken)}`;
-    const unverifyUrl = `http://localhost:3001/api/auth/role/unverify?token=${encodeURIComponent(unverifyToken)}`;
+    const verifyUrl = `${API_BASE}/api/auth/role/verify?token=${encodeURIComponent(verifyToken)}`;
+    const unverifyUrl = `${API_BASE}/api/auth/role/unverify?token=${encodeURIComponent(unverifyToken)}`;
 
     const subj = `Confirm your ${role === 'mentor' ? 'Mentor' : 'Learner'} account`;
     const text = `
@@ -525,7 +525,12 @@ exports.login = async (req, res) => {
 };
 
 // Helper: escape regex
-function escRegex(s = '') { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function escRegex(s) {
+    // ensure s is a string; default to empty string to avoid .replace errors
+    if (s === undefined || s === null) s = '';
+    if (typeof s !== 'string') s = String(s);
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // Helper: first 9 digits from the local-part of email
 function firstNineDigitsFromEmail(email = '') {
@@ -612,14 +617,10 @@ exports.forgotPassword = async (req, res) => {
       { expiresIn: '30m' }
     );
 
-    const appBase =
-      process.env.FRONTEND_URL ||
-      process.env.APP_URL ||
-      'http://localhost:3000';
+    const appBase = process.env.FRONTEND_URL;
 
     const resetLink = `${appBase.replace(/\/+$/, '')}/auth/reset-password/${encodeURIComponent(resetToken)}`;
 
-    // Brand palette aligned to frontend (indigo + clean light UI)
     const brand = {
       name: process.env.APP_NAME || 'MindMate',
       url: appBase.replace(/\/+$/, ''),

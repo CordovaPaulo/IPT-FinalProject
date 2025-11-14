@@ -726,10 +726,7 @@ exports.sendOffer = async (req, res) => {
         if (!toEmail) return res.status(400).json({ message: 'Learner email not found', code: 400 });
 
         // build accept offer link (tokenized payload in query)
-        const appBase =
-        process.env.FRONTEND_URL ||
-        process.env.APP_URL ||
-        'http://localhost:3001';
+        const apiBase = process.env.BACKEND_URL;
         const offerPayload = {
         offerId: Date.now().toString(), // simple unique id; replace with DB id if you persist offers
         mentorId: String(mentor._id),
@@ -740,7 +737,7 @@ exports.sendOffer = async (req, res) => {
         subject
         };
         const token = Buffer.from(JSON.stringify(offerPayload)).toString('base64url');
-        const acceptLink = `${appBase}/api/learner/offers/accept?token=${token}`;
+        const acceptLink = `${apiBase}/api/learner/offers/accept?token=${token}`;
 
         // email contents
         const emailSubject = `Offer: ${subject} with ${mentor.name}`;
@@ -884,7 +881,7 @@ exports.sendGroupSessionOffer = async (req, res) => {
     }
     if (!toEmail) return res.status(400).json({ message: 'Learner email not found', code: 400 });
 
-    const appBase = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3001';
+    const appBase = process.env.FRONTEND_URL;
     // explicitly mark this offer as a group offer (sessionType = 'group')
     const offerPayload = {
       // hyphenated id helps earlier heuristics detect group offers; also include explicit sessionType
@@ -1046,8 +1043,8 @@ exports.sendExistingGroupSessionOffer = async (req, res) => {
     };
 
     const token = Buffer.from(JSON.stringify(offerPayload)).toString('base64url');
-    const appBase = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3001';
-    const acceptLink = `${appBase}/api/learner/offers/accept?token=${token}`;
+    const apiBase = process.env.BACKEND_URL;
+    const acceptLink = `${apiBase}/api/learner/offers/accept?token=${token}`;
 
     const prettyDate = new Date(offerPayload.date).toLocaleDateString();
     const emailSubject = `Group Invite: ${offerPayload.subject} - ${offerPayload.groupName || 'Group Study Session'}`;
