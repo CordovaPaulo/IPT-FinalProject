@@ -34,18 +34,15 @@ const rankSchema = new mongoose.Schema({
     rank: { type: String, enum: RANKS, default: 'Beginner III' }
 }, { collection: 'ranks' });
 
-// virtual: how many sessions are required to reach the next rank from current rank
 rankSchema.virtual('requiredSessions').get(function() {
   return THRESHOLDS[this.rank] === Infinity ? null : THRESHOLDS[this.rank];
 });
 
-// instance method: add sessions, update progress/total and promote rank when needed
 rankSchema.methods.addSessions = async function(count = 1) {
   if (!Number.isInteger(count) || count <= 0) count = 1;
   this.totalSessions += count;
   this.progress += count;
 
-  // try to promote while enough progress and not at top rank
   let currentThreshold = THRESHOLDS[this.rank] || Infinity;
   while (this.progress >= currentThreshold && this.rank !== 'Professional') {
     this.progress -= currentThreshold;
