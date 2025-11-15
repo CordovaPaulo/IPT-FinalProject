@@ -12,7 +12,6 @@ const calculateMatchScore = require('../utils/matchingUtils');
 const Rank = require('../models/rank'); // <-- added
 const Badge = require('../models/badges'); // added
 
-// Safe helper to resolve mentor and call awardMentorBadges without relying on userData variable
 async function safeAwardMentorBadgesByUserId(userOrMentorId) {
   try {
     if (!userOrMentorId) return null;
