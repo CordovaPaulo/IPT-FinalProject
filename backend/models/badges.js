@@ -8,10 +8,6 @@ const Forum = require('./Forum');
 const ForumComment = require('./ForumComment');
 const ForumMetrics = require('./ForumMetrics');
 
-/**
- * Seedable mentor badge catalog (static definitions used by UI and award logic).
- * Keep these keys stable.
- */
 const BADGES = [
   {
     key: 'first_session',

@@ -13,11 +13,9 @@ const { schedulePayload } = require('../utils/realtimePayload');
 const Rank = require('../models/rank');
 const Badge = require('../models/badges');
 
-// Safe helper to resolve mentor and call awardMentorBadges without relying on userData variable
 async function safeAwardMentorBadgesByUserId(userOrMentorId) {
   try {
     if (!userOrMentorId) return null;
-    // Try to find mentor either by _id or userId
     const mentor = await Mentor.findOne({
       $or: [{ _id: userOrMentorId }, { userId: userOrMentorId }]
     }).select('_id');
