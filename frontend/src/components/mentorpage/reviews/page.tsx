@@ -60,20 +60,27 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           withCredentials: true,
-        }).then(res => ({
-          id: fb.learner,
-          name: res.data.name,
-          course: res.data.program,
-          year: res.data.yearLevel,
-          image: res.data.image,
-        }))
-        .catch(() => ({
-          id: fb.learner,
-          name: 'Unknown',
-          course: 'N/A',
-          year: 'N/A',
-          image: '',
-        }))
+        }).then(res => {
+          // Backend returns { learner, rank }, so we need to access res.data.learner
+          const learnerData = res.data.learner || res.data;
+          return {
+            id: fb.learner,
+            name: learnerData.name,
+            course: learnerData.program,
+            year: learnerData.yearLevel,
+            image: learnerData.image,
+          };
+        })
+        .catch((error) => {
+          console.error(`Error fetching learner ${fb.learner}:`, error);
+          return {
+            id: fb.learner,
+            name: 'Unknown',
+            course: 'N/A',
+            year: 'N/A',
+            image: '',
+          };
+        })
       );
 
       const reviewersData = await Promise.all(reviewerPromises);

@@ -461,7 +461,7 @@ exports.getSchedules = async (req, res) => {
             
             console.log('Processing schedule:', schedule._id);
             console.log('Mentor ID:', schedule.mentor);
-            console.log('Learner ID:', schedule.learner);
+            console.log('Learners IDs:', schedule.learners);
             
             // Try different approaches to find mentor and learner
             let schedMentor = await Mentor.findById(schedule.mentor);
@@ -472,12 +472,20 @@ exports.getSchedules = async (req, res) => {
                 schedMentor = await Mentor.findOne({ _id: schedule.mentor });
             }
             
-            let learner = await Learner.findById(schedule.learner);
-            if (!learner) {
-                learner = await Learner.findOne({ userId: schedule.learner });
-            }
-            if (!learner) {
-                learner = await Learner.findOne({ _id: schedule.learner });
+            // Get the first learner from the learners array (for one-on-one sessions)
+            const learnerId = Array.isArray(schedule.learners) && schedule.learners.length > 0 
+                ? schedule.learners[0] 
+                : null;
+            
+            let learner = null;
+            if (learnerId) {
+                learner = await Learner.findById(learnerId);
+                if (!learner) {
+                    learner = await Learner.findOne({ userId: learnerId });
+                }
+                if (!learner) {
+                    learner = await Learner.findOne({ _id: learnerId });
+                }
             }
             
             console.log('Found mentor:', schedMentor?.name || 'Not found');
@@ -509,7 +517,7 @@ exports.getSchedules = async (req, res) => {
                 
                 // Learner information (name, program, year level)
                 learner: {
-                    id: learner?._id || schedule.learner, // Added learner id for consistency
+                    id: learner?._id || learnerId, // Use learnerId as fallback
                     name: learner?.name || 'Unknown Learner',
                     program: learner?.program || 'N/A',
                     yearLevel: learner?.yearLevel || 'N/A',
