@@ -1081,3 +1081,92 @@
     gap: 0.75rem;
   }
 }
+
+/* Group Session Styles */
+.offerSessionTypeSection {
+  margin-bottom: 1.5rem;
+}
+
+.offerSessionTypeHeader {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.75rem;
+}
+
+.offerSessionTypeButtons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.offerSessionTypeBtn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  background: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.offerSessionTypeBtn:hover {
+  border-color: #2b737e;
+  background: #f7fafc;
+}
+
+.offerSessionTypeActive {
+  background: linear-gradient(135deg, #2b737e, #0b2b31);
+  color: white;
+  border-color: #2b737e;
+}
+
+.offerSessionTypeActive:hover {
+  background: linear-gradient(135deg, #1e5761, #081f24);
+}
+
+.offerGroupOptions {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.offerGroupField {
+  margin-bottom: 1rem;
+}
+
+.offerGroupField:last-child {
+  margin-bottom: 0;
+}
+
+.offerGroupLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.offerGroupInput {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 2px solid #cbd5e0;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  color: #2d3748;
+  transition: all 0.2s;
+}
+
+.offerGroupInput:focus {
+  outline: none;
+  border-color: #2b737e;
+  box-shadow: 0 0 0 3px rgba(43, 115, 126, 0.1);
+}
+
+.offerGroupInput::placeholder {
+  color: #a0aec0;
+}

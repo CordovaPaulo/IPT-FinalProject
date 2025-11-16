@@ -496,6 +496,7 @@ exports.getSchedules = async (req, res) => {
                 time: schedule.time,
                 location: schedule.location,
                 subject: schedule.subject,
+                type: schedule.type,
                 
                 // Mentor information (include id)
                 mentor: {
@@ -884,7 +885,7 @@ exports.sendGroupSessionOffer = async (req, res) => {
     }
     if (!toEmail) return res.status(400).json({ message: 'Learner email not found', code: 400 });
 
-    const appBase = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3001';
+    const appBase = process.env.BACKEND_URL || process.env.APP_URL || 'http://localhost:3001';
     // explicitly mark this offer as a group offer (sessionType = 'group')
     const offerPayload = {
       // hyphenated id helps earlier heuristics detect group offers; also include explicit sessionType
@@ -1046,7 +1047,7 @@ exports.sendExistingGroupSessionOffer = async (req, res) => {
     };
 
     const token = Buffer.from(JSON.stringify(offerPayload)).toString('base64url');
-    const appBase = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3001';
+    const appBase = process.env.BACKEND_URL || process.env.APP_URL || 'http://localhost:3001';
     const acceptLink = `${appBase}/api/learner/offers/accept?token=${token}`;
 
     const prettyDate = new Date(offerPayload.date).toLocaleDateString();
@@ -1159,13 +1160,45 @@ exports.getGroupSessions = async (req, res) => {
       });
       if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
 
-      // Fetch group sessions for the mentor
-      const groupSessions = await Schedule.find({ mentorId: mentor._id, sessionType: 'group' });
+      // Fetch group sessions for the mentor (use 'mentor' field, not 'mentorId')
+      const groupSessions = await Schedule.find({ 
+          mentor: mentor._id, 
+          sessionType: 'group' 
+      });
+
+      // Transform sessions to include learner details
+      const transformedSessions = [];
+      for (const session of groupSessions) {
+          const learnerDetails = [];
+          if (Array.isArray(session.learners)) {
+              for (const learnerId of session.learners) {
+                  const learner = await Learner.findById(learnerId);
+                  if (learner) {
+                      learnerDetails.push({
+                          _id: learner._id,
+                          name: learner.name || 'Unknown'
+                      });
+                  }
+              }
+          }
+
+          transformedSessions.push({
+              _id: session._id,
+              subject: session.subject,
+              date: session.date,
+              time: session.time,
+              location: session.location,
+              sessionType: session.sessionType,
+              groupName: session.groupName || null,
+              maxParticipants: session.maxParticipants || null,
+              learners: learnerDetails
+          });
+      }
 
       // Safe award badges
       await safeAwardMentorBadgesByUserId(mentor._id);
 
-      return res.status(200).json({ message: 'Group sessions fetched', groupSessions, code: 200 });
+      return res.status(200).json({ message: 'Group sessions fetched', groupSessions: transformedSessions, code: 200 });
   } catch (error) {
       console.error('getGroupSessions error:', error);
       return res.status(500).json({ message: error.message, code: 500 });

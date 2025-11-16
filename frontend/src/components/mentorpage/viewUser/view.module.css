@@ -448,6 +448,32 @@
   transform: translateY(-1px);
 }
 
+.viewGroupInviteBtn {
+  background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.viewGroupInviteBtn:hover {
+  background: linear-gradient(135deg, #45a049, #27632a);
+  transform: translateY(-1px);
+}
+
+.viewGroupInviteBtn i {
+  font-size: 1rem;
+}
+
 /* Loading Styles */
 .viewLoadingContainer {
   display: flex;
