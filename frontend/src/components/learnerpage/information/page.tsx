@@ -2,197 +2,151 @@
 
 import { useState, useEffect, useRef } from 'react';
 import styles from './information.module.css';
-import api from '@/lib/axios';
-import { toast } from 'react-toastify';
 
-interface User {
-  id: number | null;
+interface IUserData {
+  _id: string;
+  userId: string;
   name: string;
   email: string;
-  role: string;
-}
-
-interface Mentor {
   address: string;
-  proficiency: string;
-  year: string;
-  course: string;
+  yearLevel: string;
+  program: string;
   availability: string[];
-  prefSessDur: string;
+  sessionDur: string;
   bio: string;
   subjects: string[];
   image: string;
-  phoneNum: string;
-  teach_sty: string[];
-  credentials: string[];
-  exp: string;
-  rating_ave: number;
-  gender?: string;
-  learn_modality?: string;
+  phoneNumber: string;
+  style: string[];
+  goals: string;
+  sex: string;
+  status: string;
+  modality: string;
+  createdAt: string;
+  __v: number;
+  // added to match usage in component (server returns nested learn object)
+  learn?: any;
 }
 
-interface UserData {
-  user: User;
-  ment: Mentor;
-  image_url: string | null;
+interface EditInformationProps {
+  userData: IUserData;
+  onClose: () => void;
+  onUpdateUserData: (updatedData: Partial<IUserData>) => void;
 }
 
-type EditInformationComponentProps = {
-  userData: any;
-  onSave: (updatedData: any) => void;
-  onCancel?: () => void;
-  onUpdateUserData?: (updatedData: Partial<any>) => void;
-};
-
-type OptionItem = string | { label: string; value: string };
-
-const yearLevelOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-const programOptions = [
-  'Bachelor of Science in Information Technology (BSIT)',
-  'Bachelor of Science in Computer Science (BSCS)',
-  'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)',
-];
-const genderOptions = ['Male', 'Female'];
-const teachingModalityOptions = ['Online', 'In-person', 'Hybrid'];
-const proficiencyOptions = ['Beginner', 'Intermediate', 'Advanced'];
-const durationOptions = ['1 hour', '2 hours', '3 hours'];
-
-const daysOptions = [
-  { label: 'Monday', value: 'Monday' },
-  { label: 'Tuesday', value: 'Tuesday' },
-  { label: 'Wednesday', value: 'Wednesday' },
-  { label: 'Thursday', value: 'Thursday' },
-  { label: 'Friday', value: 'Friday' },
-  { label: 'Saturday', value: 'Saturday' },
-  { label: 'Sunday', value: 'Sunday' },
-];
-
-const teachingStyleOptions = [
-  { label: 'Lecture-Based', value: 'Lecture-Based' },
-  { label: 'Interactive Discussion', value: 'Interactive Discussion' },
-  { label: 'Q&A Session', value: 'Q&A Session' },
-  { label: 'Demonstration', value: 'Demonstration' },
-  { label: 'Project-based', value: 'Project-based' },
-  { label: 'Step-by-step process', value: 'Step-by-step process' },
-];
-
-const inputFieldPersonalInformation = [
-  { field: 'Year Level', type: 'select', options: yearLevelOptions, placeholder: 'Select your current year level' },
-  { field: 'Program', type: 'select', options: programOptions, placeholder: 'Choose your degree program' },
-  { field: 'Address', type: 'text', placeholder: 'Enter your complete residential address' },
-  { field: 'Contact Number', type: 'text', placeholder: 'Enter your 11-digit phone number' },
-];
-
-const inputFieldProfileInformation = [
-  { field: 'Teaching Modality', type: 'select', options: teachingModalityOptions, placeholder: 'Select preferred teaching method' },
-  { field: 'Days of Availability', type: 'checkbox', options: daysOptions, placeholder: 'Choose days you are available' },
-  { field: 'Proficiency Level', type: 'select', options: proficiencyOptions, placeholder: 'Select your expertise level' },
-  { field: 'Teaching Style', type: 'checkbox', options: teachingStyleOptions, placeholder: 'Choose your teaching approaches' },
-  { field: 'Preferred Session Duration', type: 'select', options: durationOptions, placeholder: 'Select session length preference' },
-  { field: 'Course Offered', type: 'select', placeholder: 'Select subjects you can teach' },
-];
-
-const bioAndExperienceFields = [
-  { field: 'Short Bio', column: 1, placeholder: 'Tell us about yourself, your background, and teaching philosophy...' },
-  { field: 'Tutoring Experience', column: 2, placeholder: 'Describe your previous tutoring or teaching experiences...' },
-];
-
-function normalizeOptionValue(opt: OptionItem): string {
-  return typeof opt === 'string' ? opt : (opt as { value: string }).value;
+interface InputField {
+  field: string;
+  type: string;
+  options?: string[] | { label: string; value: string }[];
 }
 
-function normalizeOptionLabel(opt: OptionItem): string {
-  return typeof opt === 'string' ? opt : (opt as { label: string }).label;
+interface AvailableSubjects {
+  coreSubjects: string[];
+  gecSubjects: string[];
+  peNstpSubjects: string[];
 }
 
-const capitalizeFirstLetter = (str: string) => {
-  if (!str) return 'Not specified';
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-};
+interface PersonalData {
+  [key: string]: string;
+}
 
-const toCamelCase = (str: string) => {
-  return str
-    .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
-      return index === 0 ? word.toLowerCase() : word.toUpperCase();
-    })
-    .replace(/\s+/g, '');
-};
+interface ProfileData {
+  [key: string]: string | string[] | undefined; // allow undefined for indexed properties
+  courseOffered: string[];
+  shortBio: string;
+  learningGoals: string;
+  modality?: string;
+  availability?: string[];
+  style?: string[];
+  sessionDur?: string;
+}
 
-export default function EditInformationComponent({
-  userData,
-  onSave,
-  onCancel = () => {},
-  onUpdateUserData,
-}: EditInformationComponentProps) {
-  const [personalData, setPersonalData] = useState({
-    gender: userData?.sex || '',
-    otherGender: '',
-    yearLevel: userData?.yearLevel || '',
-    program: userData?.program || '',
-    address: userData?.address || '',
-    contactNumber: userData?.phoneNumber || '',
+interface ValidationErrors {
+  [key: string]: string;
+}
+
+export default function EditInformation({ userData, onClose, onUpdateUserData }: EditInformationProps) {
+  const [personalData, setPersonalData] = useState<PersonalData>({});
+  const [profileData, setProfileData] = useState<ProfileData>({
+    courseOffered: [],
+    shortBio: userData?.learn?.bio || '',
+    learningGoals: userData?.learn?.goals || '',
+    modality: '',
+    availability: [],
+    style: [],
+    sessionDur: '',
   });
-  
-  const [profileData, setProfileData] = useState({
-    courseOffered: userData?.subjects || [] as string[],
-    shortBio: userData?.bio || '',
-    tutoringExperience: userData?.goals || '',
-    teachingModality: userData?.modality || '',
-    daysOfAvailability: userData?.availability || [] as string[],
-    proficiencyLevel: '',
-    teachingStyle: userData?.style || [] as string[],
-    preferredSessionDuration: userData?.sessionDur || '',
+  const [dropdownOpen, setDropdownOpen] = useState<{ [key: string]: boolean }>({});
+  const [availableSubjects, setAvailableSubjects] = useState<AvailableSubjects>({
+    coreSubjects: [],
+    gecSubjects: [],
+    peNstpSubjects: [],
   });
-  
-  const [dropdownOpen, setDropdownOpen] = useState<Record<string, boolean>>({});
-  const [availableSubjects, setAvailableSubjects] = useState({
-    coreSubjects: [] as string[],
-    gecSubjects: [] as string[],
-    peNstpSubjects: [] as string[],
-  });
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-  const [dropdownFocusedIndex, setDropdownFocusedIndex] = useState<number>(-1);
-  const [currentDropdown, setCurrentDropdown] = useState<string>('');
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const inputRefs = useRef<(HTMLInputElement | HTMLTextAreaElement | HTMLDivElement | HTMLButtonElement | null)[]>([]);
-  const dropdownOptionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const totalFocusableElements = inputFieldPersonalInformation.length + 1 +
-                                inputFieldProfileInformation.length + 
-                                bioAndExperienceFields.length + 
-                                1;
+  const yearLevelOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+  const programOptions = [
+    'Bachelor of Science in Information Technology (BSIT)',
+    'Bachelor of Science in Computer Science (BSCS)',
+    'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)',
+  ];
+  const learningModalityOptions = ['Online', 'In-person', 'Hybrid'];
+  const durationOptions = ['1 hour', '2 hours', '3 hours'];
 
-  const getPlaceholder = (field: string, section: 'personal' | 'profile') => {
-    const mappings: Record<string, Record<string, any>> = {
-      personal: {
-        'Full Name': userData?.name,
-        'Year Level': userData?.yearLevel,
-        'Program': userData?.program,
-        'Address': userData?.address,
-        'Contact Number': userData?.phoneNumber,
-        'Sex at Birth': capitalizeFirstLetter(userData?.sex || ''),
-      },
-      profile: {
-        'Teaching Modality': userData?.modality,
-        'Days of Availability': userData?.availability?.join(', '),
-        'Proficiency Level': '',
-        'Teaching Style': userData?.style?.join(', ') || '',
-        'Preferred Session Duration': userData?.sessionDur,
-        'Course Offered': userData?.subjects?.join(', '),
-        'Short Bio': userData?.bio,
-        'Tutoring Experience': userData?.goals,
-      },
-    };
+  const daysOptions = [
+    { label: 'Monday', value: 'Monday' },
+    { label: 'Tuesday', value: 'Tuesday' },
+    { label: 'Wednesday', value: 'Wednesday' },
+    { label: 'Thursday', value: 'Thursday' },
+    { label: 'Friday', value: 'Friday' },
+    { label: 'Saturday', value: 'Saturday' },
+    { label: 'Sunday', value: 'Sunday' },
+  ];
 
-    return (mappings[section] as any)[field];
+  const learningStyleOptions = [
+    { label: 'Lecture-Based', value: 'Lecture-Based' },
+    { label: 'Interactive Discussion', value: 'Interactive Discussion' },
+    { label: 'Q&A Session', value: 'Q&A Session' },
+    { label: 'Demonstration', value: 'Demonstration' },
+    { label: 'Project-based', value: 'Project-based' },
+    { label: 'Step-by-step process', value: 'Step-by-step process' },
+  ];
+
+  const inputFieldPersonalInformation: InputField[] = [
+    { field: 'Year Level', type: 'select', options: yearLevelOptions },
+    { field: 'Program', type: 'select', options: programOptions },
+    { field: 'Address', type: 'text' },
+    { field: 'Contact Number', type: 'text' },
+  ];
+
+  const inputFieldProfileInformation: InputField[] = [
+    {
+      field: 'Learning Modality',
+      type: 'select',
+      options: learningModalityOptions,
+    },
+    { field: 'Days of Availability', type: 'checkbox', options: daysOptions },
+    { field: 'Learning Style', type: 'checkbox', options: learningStyleOptions },
+    {
+      field: 'Preferred Session Duration',
+      type: 'select',
+      options: durationOptions,
+    },
+    { field: 'Subject of Interest', type: 'select' },
+  ];
+
+  const toCamelCase = (str: string): string => {
+    return str
+      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
+        return index === 0 ? word.toLowerCase() : word.toUpperCase();
+      })
+      .replace(/\s+/g, '');
   };
 
   const updateAvailableSubjects = (program: string) => {
-    const selectedProgram = program || userData?.program;
-
-    switch (selectedProgram) {
+    switch (program) {
       case 'Bachelor of Science in Information Technology (BSIT)':
         setAvailableSubjects({
           coreSubjects: [
@@ -379,134 +333,73 @@ export default function EditInformationComponent({
     }
   };
 
-  const getDropdownOptions = (field: string) => {
-    if (field === 'gender') {
-      return genderOptions;
+  const getCSubjectInterestDisplay = (): string => {
+    if (!profileData.courseOffered || profileData.courseOffered.length === 0) {
+      return '';
     }
-    
-    const personalField = inputFieldPersonalInformation.find(f => toCamelCase(f.field) === field);
-    if (personalField && personalField.options) {
-      return personalField.options;
-    }
-    
-    const profileField = inputFieldProfileInformation.find(f => toCamelCase(f.field) === field);
-    if (profileField && profileField.options) {
-      return profileField.options;
-    }
-    
-    return [];
-  };
-
-  const getCheckboxOptions = (field: string) => {
-    const profileField = inputFieldProfileInformation.find(f => toCamelCase(f.field) === field);
-    return profileField?.options || [];
-  };
-
-  const getDisplayValue = (field: string) => {
-    const value = profileData[field as keyof typeof profileData];
-    
-    if (Array.isArray(value)) {
-      if (value.length === 0) {
-        if (field === 'daysOfAvailability') {
-          return userData?.availability?.join(', ') || '';
-        }
-        if (field === 'teachingStyle') {
-          return userData?.style?.join(', ') || '';
-        }
-      }
-      return value.join(', ');
-    }
-    return value || '';
-  };
-
-  const closeAllDropdowns = () => {
-    setDropdownOpen({});
-    setCurrentDropdown('');
-    setDropdownFocusedIndex(-1);
+    return profileData.courseOffered.join(', ');
   };
 
   const toggleDropdown = (field: string) => {
-    setDropdownOpen(prev => {
-      const newState: Record<string, boolean> = {};
-      Object.keys(prev).forEach(key => {
-        if (key !== field) newState[key] = false;
-      });
-      newState[field] = !prev[field];
-      
-      if (newState[field]) {
-        setCurrentDropdown(field);
-        setDropdownFocusedIndex(0);
-      } else {
-        setCurrentDropdown('');
-        setDropdownFocusedIndex(-1);
-      }
-      
-      return newState;
+    const dropdownKey = field === 'Subject of Interest' ? 'subjectOfInterest' : toCamelCase(field);
+    const newDropdownOpen = { ...dropdownOpen };
+    Object.keys(newDropdownOpen).forEach((key) => {
+      if (key !== dropdownKey) newDropdownOpen[key] = false;
     });
+    newDropdownOpen[dropdownKey] = !newDropdownOpen[dropdownKey];
+    setDropdownOpen(newDropdownOpen);
   };
 
-  const selectOption = (field: string, value: string, section: 'personal' | 'profile' = 'profile') => {
+  const selectOption = (field: string, value: string, section: string = 'profile') => {
     if (section === 'personal') {
       setPersonalData(prev => ({ ...prev, [field]: value }));
+      setDropdownOpen(prev => ({ ...prev, [field]: false }));
+      
+      if (field === 'program') {
+        updateAvailableSubjects(value);
+        setProfileData(prev => ({ ...prev, courseOffered: [] }));
+      }
     } else {
-      if (Array.isArray(profileData[field as keyof typeof profileData])) {
-        const currentArray = profileData[field as keyof typeof profileData] as string[];
+      if (Array.isArray(profileData[field])) {
+        const currentArray = profileData[field] as string[];
         const index = currentArray.indexOf(value);
         let newArray;
-        
         if (index === -1) {
           newArray = [...currentArray, value];
         } else {
           newArray = currentArray.filter(item => item !== value);
         }
-        
         setProfileData(prev => ({ ...prev, [field]: newArray }));
       } else {
         setProfileData(prev => ({ ...prev, [field]: value }));
+        setDropdownOpen(prev => ({ ...prev, [field]: false }));
       }
     }
-    closeAllDropdowns();
   };
 
-  const selectGender = (gender: string) => {
-    setPersonalData(prev => ({ ...prev, gender }));
-    closeAllDropdowns();
-  };
-
-  const handleCourseOfferedChange = (subject: string) => {
-    setProfileData(prev => {
-      const currentSubjects = prev.courseOffered;
-      const index = currentSubjects.indexOf(subject);
-      let newSubjects;
-      
-      if (index === -1) {
-        newSubjects = [...currentSubjects, subject];
-      } else {
-        newSubjects = currentSubjects.filter((item: string) => item !== subject);
+  const getDisplayValue = (field: string): string => {
+    if (Array.isArray(profileData[field])) {
+      if (profileData[field].length === 0) {
+        if (field === 'availability') {
+          return userData?.learn?.availability?.join(', ') || '';
+        }
+        if (field === 'style') {
+          return userData?.learn?.style?.join(', ') || '';
+        }
       }
-      
-      return { ...prev, courseOffered: newSubjects };
-    });
+      return (profileData[field] as string[]).join(', ');
+    }
+    return (profileData[field] as string) || '';
   };
 
-  const handleCheckboxSelection = (field: string, value: string) => {
-    setProfileData(prev => {
-      const currentArray = prev[field as keyof typeof profileData] as string[];
-      const index = currentArray.indexOf(value);
-      let newArray;
-      
-      if (index === -1) {
-        newArray = [...currentArray, value];
-      } else {
-        newArray = currentArray.filter(item => item !== value);
-      }
-      
-      return { ...prev, [field]: newArray };
-    });
+  const handleClickOutside = (event: MouseEvent) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      setDropdownOpen({});
+    }
   };
 
   const validateField = (field: string, value: string) => {
-    const trimmedValue = value.trim();
+    const trimmedValue = value?.trim() || '';
 
     if (trimmedValue === '') {
       setValidationErrors(prev => {
@@ -524,11 +417,13 @@ export default function EditInformationComponent({
           error = 'Short Bio should be at least 20 characters.';
         }
         break;
-      case 'tutoringExperience':
+
+      case 'learningGoals':
         if (trimmedValue.length < 10) {
-          error = 'Tutoring Experience should be at least 10 characters.';
+          error = 'Learning Goals should be at least 10 characters.';
         }
         break;
+
       case 'contactNumber':
         if (trimmedValue.length !== 11) {
           error = 'Contact Number should be 11 digits.';
@@ -536,11 +431,13 @@ export default function EditInformationComponent({
           error = 'Contact Number should contain only digits.';
         }
         break;
+
       case 'address':
         if (trimmedValue.length < 10) {
           error = 'Address should be at least 10 characters.';
         }
         break;
+
       default:
         break;
     }
@@ -552,442 +449,201 @@ export default function EditInformationComponent({
   };
 
   const saveChanges = async () => {
-    Object.keys(personalData).forEach(key => {
-      validateField(key, personalData[key as keyof typeof personalData]);
+    Object.keys(personalData).forEach(field => {
+      validateField(field, personalData[field]);
     });
-    Object.keys(profileData).forEach(key => {
-      if (typeof profileData[key as keyof typeof profileData] === 'string') {
-        validateField(key, profileData[key as keyof typeof profileData] as string);
+    Object.keys(profileData).forEach(field => {
+      if (typeof profileData[field] === 'string') {
+        validateField(field, profileData[field] as string);
       }
     });
 
-    if (Object.values(validationErrors).some(error => error)) {
-      toast.error('Please fix validation errors before saving.');
+    if (Object.keys(validationErrors).length > 0) {
+      alert('Please fix validation errors before saving.');
       return;
     }
 
+    const learn = userData?.learn || {};
+
+    const combinedData = {
+      phoneNum: personalData.contactNumber?.trim() || learn.phoneNum,
+      address: personalData.address?.trim() || learn.address,
+      course: personalData.program || learn.course,
+      department: 'College of Computer Studies',
+      year: personalData.yearLevel || learn.year,
+      subjects: profileData.courseOffered?.length ? profileData.courseOffered : learn.subjects || [],
+      learn_modality: profileData.learningModality as string || learn.learn_modality,
+      learn_sty: (profileData.learningStyle as string[] || learn.learn_sty || []).filter(Boolean),
+      availability: (profileData.daysOfAvailability as string[] || learn.availability || []).filter(Boolean),
+      prefSessDur: profileData.preferredSessionDuration as string || learn.prefSessDur,
+      bio: profileData.shortBio?.trim() || learn.bio || '',
+      goals: profileData.learningGoals?.trim() || learn.goals || '',
+    };
+
     try {
-      // Map frontend field names to backend field names
-      const payload: any = {};
-      
-      // Only include fields that have been changed
-      if (personalData.gender && personalData.gender !== userData?.sex) {
-        payload.sex = personalData.gender.toLowerCase();
-      }
-      if (personalData.contactNumber && personalData.contactNumber !== userData?.phoneNumber) {
-        payload.phoneNumber = personalData.contactNumber;
-      }
-      if (personalData.address && personalData.address !== userData?.address) {
-        payload.address = personalData.address;
-      }
-      if (personalData.program && personalData.program !== userData?.program) {
-        // Map full program name to abbreviated form
-        if (personalData.program.includes('Information Technology')) {
-          payload.program = 'BSIT';
-        } else if (personalData.program.includes('Computer Science')) {
-          payload.program = 'BSCS';
-        } else if (personalData.program.includes('Entertainment and Multimedia')) {
-          payload.program = 'BSEMC';
+      onUpdateUserData({
+        // allow updating nested learn object
+        learn: {
+          ...learn,
+          ...combinedData
         }
-      }
-      if (personalData.yearLevel && personalData.yearLevel !== userData?.yearLevel) {
-        // Map "1st Year" to "1st year" format
-        payload.yearLevel = personalData.yearLevel.toLowerCase();
-      }
+      } as Partial<IUserData>);
+
+      alert('Changes saved successfully!');
+      onClose();
+    } catch (error) {
+      alert('An error occurred while saving changes.');
+    }
+  };
+
+  const getPlaceholder = (field: string, section: string = 'personal'): string => {
+    const learn = userData?.learn || {};
+
+    const mappings: any = {
+      personal: {
+        'Contact Number': learn.phoneNum || 'Enter contact number',
+        'Year Level': learn.year || 'Select year level',
+        'Program': learn.course || 'Select program',
+        'Address': learn.address || 'Enter address',
+      },
+      profile: {
+        'Learning Modality': learn.learn_modality || 'Select learning modality',
+        'Days of Availability': learn.availability?.join(', ') || 'Select days',
+        'Learning Style': learn.learn_sty?.join(', ') || 'Select learning style',
+        'Preferred Session Duration': learn.prefSessDur || 'Select duration',
+        'Subject of Interest': learn.subjects?.join(', ') || 'Select subjects',
+        'Short Bio': learn.bio || 'Tell us about yourself',
+        'Learning Goals': learn.goals || 'Tell us your learning goals',
+      },
+    };
+
+    return mappings[section][field];
+  };
+
+  const handleSubjectCheckboxChange = (subject: string, isChecked: boolean) => {
+    setProfileData(prev => {
+      const currentSubjects = prev.courseOffered || [];
+      let newSubjects;
       
-      // Profile data mappings
-      if (profileData.courseOffered.length && JSON.stringify(profileData.courseOffered) !== JSON.stringify(userData?.subjects)) {
-        payload.subjects = profileData.courseOffered;
-      }
-      if (profileData.proficiencyLevel && profileData.proficiencyLevel !== '') {
-        payload.proficiency = profileData.proficiencyLevel.toLowerCase();
-      }
-      if (profileData.teachingModality && profileData.teachingModality !== userData?.modality) {
-        payload.modality = profileData.teachingModality.toLowerCase();
-      }
-      if (profileData.teachingStyle?.length && JSON.stringify(profileData.teachingStyle) !== JSON.stringify(userData?.style)) {
-        // Map "Lecture-Based" to "lecture-based" format
-        payload.style = profileData.teachingStyle.map((s: string) => s.toLowerCase().replace(/\s+/g, '-'));
-      }
-      if (profileData.daysOfAvailability?.length && JSON.stringify(profileData.daysOfAvailability) !== JSON.stringify(userData?.availability)) {
-        payload.availability = profileData.daysOfAvailability.map((d: string) => d.toLowerCase());
-      }
-      if (profileData.preferredSessionDuration && profileData.preferredSessionDuration !== userData?.sessionDur) {
-        // Map "1 hour" to "1hr" format
-        if (profileData.preferredSessionDuration.includes('1')) {
-          payload.sessionDur = '1hr';
-        } else if (profileData.preferredSessionDuration.includes('2')) {
-          payload.sessionDur = '2hrs';
-        } else if (profileData.preferredSessionDuration.includes('3')) {
-          payload.sessionDur = '3hrs';
-        }
-      }
-      if (profileData.shortBio && profileData.shortBio !== userData?.bio) {
-        payload.bio = profileData.shortBio;
-      }
-      if (profileData.tutoringExperience && profileData.tutoringExperience !== userData?.goals) {
-        payload.goals = profileData.tutoringExperience;
-      }
-
-      // Only proceed if there are changes to save
-      if (Object.keys(payload).length === 0) {
-        toast.info('No changes detected to save.');
-        return;
-      }
-
-      const response = await api.patch('/api/learner/profile/edit', payload);
-
-      if (response.status === 200) {
-        toast.success('Profile updated successfully.');
-        
-        // Map backend response back to frontend format
-        const updatedData: any = {
-          ...userData,
-        };
-
-        if (response.data.learner) {
-          if (response.data.learner.sex) updatedData.sex = capitalizeFirstLetter(response.data.learner.sex);
-          if (response.data.learner.phoneNumber) updatedData.phoneNumber = response.data.learner.phoneNumber;
-          if (response.data.learner.address) updatedData.address = response.data.learner.address;
-          if (response.data.learner.program) {
-            updatedData.program = response.data.learner.program === 'BSIT' ? 'Bachelor of Science in Information Technology (BSIT)' :
-                        response.data.learner.program === 'BSCS' ? 'Bachelor of Science in Computer Science (BSCS)' :
-                        response.data.learner.program === 'BSEMC' ? 'Bachelor of Science in Entertainment and Multimedia Computing (BSEMC)' :
-                        response.data.learner.program;
-          }
-          if (response.data.learner.yearLevel) updatedData.yearLevel = capitalizeFirstLetter(response.data.learner.yearLevel);
-          if (response.data.learner.subjects) updatedData.subjects = response.data.learner.subjects;
-          if (response.data.learner.modality) updatedData.modality = capitalizeFirstLetter(response.data.learner.modality);
-          if (response.data.learner.style) {
-            updatedData.style = response.data.learner.style.map((s: string) => 
-              s.split('-').map((w: string) => capitalizeFirstLetter(w)).join(' ')
-            );
-          }
-          if (response.data.learner.availability) {
-            updatedData.availability = response.data.learner.availability.map((d: string) => capitalizeFirstLetter(d));
-          }
-          if (response.data.learner.sessionDur) {
-            updatedData.sessionDur = response.data.learner.sessionDur.replace('1hr', '1 hour')
-              .replace('2hrs', '2 hours').replace('3hrs', '3 hours');
-          }
-          if (response.data.learner.bio) updatedData.bio = response.data.learner.bio;
-          if (response.data.learner.goals) updatedData.goals = response.data.learner.goals;
-        }
-        
-        onSave(updatedData);
-        try {
-          onUpdateUserData?.(updatedData);
-        } catch (e) {}
-      }
-    } catch (error: any) {
-      console.error('Error saving changes:', error);
-      
-      // Handle validation errors from backend
-      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-        toast.error(`Validation failed:\n${error.response.data.errors.join('\n')}`);
-      } else if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
+      if (isChecked) {
+        newSubjects = [...currentSubjects, subject];
       } else {
-        toast.error('An error occurred while saving changes.');
+        newSubjects = currentSubjects.filter(s => s !== subject);
       }
-    }
+      
+      return { ...prev, courseOffered: newSubjects };
+    });
   };
 
-  const closeEditInformation = () => {
-    onCancel();
-  };
-
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      closeEditInformation();
-    }
+  const handleCheckboxChange = (field: string, value: string, isChecked: boolean) => {
+    setProfileData(prev => {
+      const currentArray = (prev[field] as string[]) || [];
+      let newArray;
+      
+      if (isChecked) {
+        newArray = [...currentArray, value];
+      } else {
+        newArray = currentArray.filter(item => item !== value);
+      }
+      
+      return { ...prev, [field]: newArray };
+    });
   };
 
   useEffect(() => {
-    if (userData?.program) {
-      updateAvailableSubjects(userData.program);
-    }
+    document.addEventListener('click', handleClickOutside);
     
-    setPersonalData({
-      gender: userData?.sex || '',
-      otherGender: '',
-      yearLevel: userData?.yearLevel || '',
-      program: userData?.program || '',
-      address: userData?.address || '',
-      contactNumber: userData?.phoneNumber || '',
+    const initialPersonalData: PersonalData = {};
+    inputFieldPersonalInformation.forEach((item) => {
+      const fieldName = toCamelCase(item.field);
+      initialPersonalData[fieldName] = '';
+    });
+    setPersonalData(initialPersonalData);
+
+    updateAvailableSubjects(userData?.learn?.course);
+    
+    setProfileData({
+      courseOffered: userData?.learn?.subjects || [],
+      shortBio: userData?.learn?.bio || '',
+      learningGoals: userData?.learn?.goals || '',
+      learningModality: userData?.learn?.modality || '',
+      daysOfAvailability: userData?.learn?.availability || [],
+      learningStyle: userData?.learn?.style || [],
+      preferredSessionDuration: userData?.learn?.sessionDur || '',
     });
     
-    setProfileData(prev => ({
-      ...prev,
-      courseOffered: userData?.subjects || [],
-      daysOfAvailability: userData?.availability || [],
-      teachingStyle: userData?.style || [],
-      teachingModality: userData?.modality || '',
-      proficiencyLevel: '',
-      preferredSessionDuration: userData?.sessionDur || '',
-      shortBio: userData?.bio || '',
-      tutoringExperience: userData?.goals || '',
-    }));
+    setPersonalData({
+      contactNumber: userData?.learn?.phoneNum || '',
+      address: userData?.learn?.address || '',
+      program: userData?.learn?.course || '',
+      yearLevel: userData?.learn?.year || '',
+    });
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
   }, [userData]);
 
-  useEffect(() => {
-    if (personalData.program) {
-      updateAvailableSubjects(personalData.program);
-    }
-  }, [personalData.program]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        closeAllDropdowns();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (currentDropdown && dropdownOpen[currentDropdown]) {
-        const dropdownOptions = getDropdownOptions(currentDropdown);
-        const checkboxOptions = getCheckboxOptions(currentDropdown);
-        const optionsCount = dropdownOptions.length || checkboxOptions.length;
-
-        switch (event.key) {
-          case 'ArrowDown':
-            event.preventDefault();
-            setDropdownFocusedIndex(prev => {
-              const nextIndex = (prev + 1) % optionsCount;
-              dropdownOptionRefs.current[nextIndex]?.focus();
-              return nextIndex;
-            });
-            break;
-          
-          case 'ArrowUp':
-            event.preventDefault();
-            setDropdownFocusedIndex(prev => {
-              const nextIndex = prev <= 0 ? optionsCount - 1 : prev - 1;
-              dropdownOptionRefs.current[nextIndex]?.focus();
-              return nextIndex;
-            });
-            break;
-          
-          case 'Enter':
-            event.preventDefault();
-            if (dropdownFocusedIndex >= 0) {
-              if (currentDropdown === 'gender') {
-                selectGender(genderOptions[dropdownFocusedIndex]);
-              } else if (dropdownOptions.length > 0) {
-                const opt = dropdownOptions[dropdownFocusedIndex];
-                const optVal = normalizeOptionValue(opt as OptionItem);
-                selectOption(
-                  currentDropdown,
-                  optVal,
-                  inputFieldPersonalInformation.some(f => toCamelCase(f.field) === currentDropdown) ? 'personal' : 'profile'
-                );
-              } else if (checkboxOptions.length > 0) {
-                const chk = checkboxOptions[dropdownFocusedIndex];
-                const chkVal = normalizeOptionValue(chk as OptionItem);
-                handleCheckboxSelection(currentDropdown, chkVal);
-              }
-            }
-            break;
-          
-          case 'Escape':
-            event.preventDefault();
-            closeAllDropdowns();
-            if (focusedIndex >= 0) {
-              inputRefs.current[focusedIndex]?.focus();
-            }
-            break;
-          
-          case 'Tab':
-            closeAllDropdowns();
-            break;
-          
-          default:
-            break;
-        }
-        return;
-      }
-
-      switch (event.key) {
-        case 'ArrowDown':
-          event.preventDefault();
-          setFocusedIndex(prev => {
-            const nextIndex = (prev + 1) % totalFocusableElements;
-            inputRefs.current[nextIndex]?.focus();
-            return nextIndex;
-          });
-          break;
-        
-        case 'ArrowUp':
-          event.preventDefault();
-          setFocusedIndex(prev => {
-            const nextIndex = prev <= 0 ? totalFocusableElements - 1 : prev - 1;
-            inputRefs.current[nextIndex]?.focus();
-            return nextIndex;
-          });
-          break;
-        
-        case 'Enter':
-          if (focusedIndex >= 0 && focusedIndex < totalFocusableElements - 1) {
-            event.preventDefault();
-            const fieldIndex = focusedIndex;
-            if (fieldIndex < inputFieldPersonalInformation.length) {
-              const field = inputFieldPersonalInformation[fieldIndex];
-              if (field.type === 'select') {
-                toggleDropdown(toCamelCase(field.field));
-              }
-            } else if (fieldIndex === inputFieldPersonalInformation.length) {
-              toggleDropdown('gender');
-            } else if (fieldIndex < inputFieldPersonalInformation.length + 1 + inputFieldProfileInformation.length) {
-              const profileIndex = fieldIndex - inputFieldPersonalInformation.length - 1;
-              const field = inputFieldProfileInformation[profileIndex];
-              if (field.type === 'select' || field.type === 'checkbox') {
-                toggleDropdown(toCamelCase(field.field));
-              }
-            }
-          } else if (focusedIndex === totalFocusableElements - 1) {
-            event.preventDefault();
-            saveChanges();
-          }
-          break;
-
-        case 'Escape':
-          closeEditInformation();
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [dropdownOpen, focusedIndex, dropdownFocusedIndex, currentDropdown, totalFocusableElements]);
-
-  useEffect(() => {
-    dropdownOptionRefs.current = dropdownOptionRefs.current.slice(0, 
-      getDropdownOptions(currentDropdown).length || getCheckboxOptions(currentDropdown).length
-    );
-  }, [currentDropdown, dropdownOpen]);
-
   return (
-    <>
-      <div 
-        className={styles.editInformationOverlay} 
-        onClick={handleOverlayClick}
-      />
-      
-      <div className={styles.editInformationModal} ref={dropdownRef}>
-        <div className={styles.editInformation}>
-          <div className={styles.upperElement}>
-            <h1 className={styles.upperElementH1}>Edit Information</h1>
-            <img 
-              src="/exit.svg" 
-              alt="exit" 
-              className={styles.exitIcon}
-              onClick={closeEditInformation}
-            />
-          </div>
-          <div className={styles.lowerElement}>
-            <div className={styles.personalInformation}>
-              <h1 className={styles.sectionH1}>I. PERSONAL INFORMATION</h1>
-              <div className={styles.inputWrapper}>
-                {inputFieldPersonalInformation.map((item, index) => (
-                  <div key={index} className={styles.inputFields}>
-                    <label className={styles.label}>{item.field}</label>
+    <div className={styles.editInformation} ref={dropdownRef}>
+      <div className={styles.upperElement}>
+        <h1 className={styles.upperElementH1}>Edit Information</h1>
+        <img 
+          src="/exit.svg" 
+          alt="exit" 
+          onClick={onClose}
+          className={styles.exitIcon}
+        />
+      </div>
+      <div className={styles.lowerElement}>
+        <div className={styles.personalInformation}>
+          <h1 className={styles.sectionH1}>PERSONAL INFORMATION</h1>
+          <div className={styles.inputWrapper}>
+            {inputFieldPersonalInformation.map((item, index) => (
+              <div key={index} className={styles.inputFields}>
+                <label className={styles.label}>{item.field}</label>
 
-                    {item.type === 'text' ? (
-                      <>
-                        <input
-                          ref={el => { inputRefs.current[index] = el as HTMLInputElement | null; }}
-                          type="text"
-                          value={personalData[toCamelCase(item.field) as keyof typeof personalData] as string}
-                          onChange={(e) => {
-                            const newValue = e.target.value;
-                            setPersonalData(prev => ({ ...prev, [toCamelCase(item.field)]: newValue }));
-                            validateField(toCamelCase(item.field), newValue);
-                          }}
-                          onFocus={() => setFocusedIndex(index)}
-                          className={styles.standardInput}
-                          placeholder={String(getPlaceholder(item.field, 'personal') || item.placeholder)}
-                        />
-                        {validationErrors[toCamelCase(item.field)] && (
-                          <span className={styles.errorMessage}>
-                            {validationErrors[toCamelCase(item.field)]}
-                          </span>
-                        )}
-                      </>
-                    ) : item.type === 'select' && item.field !== 'Gender' ? (
-                      <div className={styles.customDropdown}>
-                        <div
-                          ref={el => { inputRefs.current[index] = el as HTMLDivElement | null; }}
-                          className={styles.dropdownContainer}
-                          onClick={() => toggleDropdown(toCamelCase(item.field))}
-                          onFocus={() => setFocusedIndex(index)}
-                          tabIndex={0}
-                        >
-                          <input
-                            type="text"
-                            value={personalData[toCamelCase(item.field) as keyof typeof personalData] as string}
-                            placeholder={getPlaceholder(item.field, 'personal') || item.placeholder}
-                            readOnly
-                            className={styles.standardInput}
-                          />
-                          <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}>▼</i>
-                        </div>
-                        {dropdownOpen[toCamelCase(item.field)] && (
-                          <div className={styles.dropdownOptions}>
-                            {(item.options ?? []).map((op, i) => {
-                              const val = normalizeOptionValue(op as OptionItem);
-                              const label = normalizeOptionLabel(op as OptionItem);
-                              return (
-                                <div
-                                  key={val + '-' + i}
-                                  className={styles.dropdownOption}
-                                  onClick={() => selectOption(toCamelCase(item.field), val, 'personal')}
-                                  ref={el => { dropdownOptionRefs.current[i] = el; }}
-                                  tabIndex={0}
-                                >
-                                  {label}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
+                {item.type === 'text' && (
+                  <input
+                    type="text"
+                    value={personalData[toCamelCase(item.field)] || ''}
+                    onChange={(e) => {
+                      const fieldName = toCamelCase(item.field);
+                      setPersonalData(prev => ({ ...prev, [fieldName]: e.target.value }));
+                      validateField(fieldName, e.target.value);
+                    }}
+                    placeholder={getPlaceholder(item.field, 'personal')}
+                    className={styles.standardInput}
+                  />
+                )}
 
-                <div className={styles.inputFields}>
-                  <label className={styles.label}>Sex at Birth</label>
+                {item.type === 'select' && (
                   <div className={styles.customDropdown}>
                     <div
-                      ref={el => { inputRefs.current[inputFieldPersonalInformation.length] = el as HTMLDivElement | null; }}
                       className={styles.dropdownContainer}
-                      onClick={() => toggleDropdown('gender')}
-                      onFocus={() => setFocusedIndex(inputFieldPersonalInformation.length)}
-                      tabIndex={0}
+                      onClick={() => toggleDropdown(toCamelCase(item.field))}
                     >
                       <input
                         type="text"
-                        value={personalData.gender}
-                        placeholder={getPlaceholder('Sex at Birth', 'personal') || 'Select your gender'}
-                        className={styles.standardInput}
+                        value={personalData[toCamelCase(item.field)] || ''}
+                        placeholder={
+                          personalData[toCamelCase(item.field)] ||
+                          `Select ${item.field.toLowerCase()}`
+                        }
                         readOnly
+                        className={styles.standardInput}
                       />
-                      <i className={`${styles.dropdownIcon} ${dropdownOpen.gender ? styles.dropdownIconOpen : ''}`}>▼</i>
+                      <i
+                        className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}
+                      >▼</i>
                     </div>
-                    {dropdownOpen.gender && (
+                    {dropdownOpen[toCamelCase(item.field)] && (
                       <div className={styles.dropdownOptions}>
-                        {genderOptions.map((option, i) => (
+                        {(item.options as string[])?.map((option, i) => (
                           <div
                             key={i}
-                            ref={el => { dropdownOptionRefs.current[i] = el; }}
                             className={styles.dropdownOption}
-                            onClick={() => selectGender(option)}
-                            tabIndex={-1}
+                            onClick={() => selectOption(toCamelCase(item.field), option, 'personal')}
                           >
                             {option}
                           </div>
@@ -995,231 +651,225 @@ export default function EditInformationComponent({
                       </div>
                     )}
                   </div>
-                </div>
+                )}
+                {validationErrors[toCamelCase(item.field)] && (
+                  <div className={styles.errorMessage}>
+                    {validationErrors[toCamelCase(item.field)]}
+                  </div>
+                )}
               </div>
-            </div>
-
-            <div className={styles.profileInformation}>
-              <h1 className={styles.sectionH1}>II. PROFILE INFORMATION</h1>
-              <div className={styles.inputWrapper}>
-                {inputFieldProfileInformation.map((item, index) => {
-                  const globalIndex = inputFieldPersonalInformation.length + 1 + index;
-                  return (
-                    <div key={index} className={styles.inputFields}>
-                      <label className={styles.label}>{item.field}</label>
-
-                      {item.type === 'select' && item.field !== 'Course Offered' ? (
-                        <div className={styles.customDropdown}>
-                          <div
-                            ref={el => { inputRefs.current[globalIndex] = el as HTMLDivElement | null; }}
-                            className={styles.dropdownContainer}
-                            onClick={() => toggleDropdown(toCamelCase(item.field))}
-                            onFocus={() => setFocusedIndex(globalIndex)}
-                            tabIndex={0}
-                          >
-                            <input
-                              type="text"
-                              value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
-                              placeholder={getPlaceholder(item.field, 'profile') || item.placeholder}
-                              readOnly
-                              className={styles.standardInput}
-                            />
-                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}>▼</i>
-                          </div>
-                          {dropdownOpen[toCamelCase(item.field)] && (
-                            <div className={styles.dropdownOptions}>
-                              {(item.options ?? []).map((op, i) => {
-                                const val = normalizeOptionValue(op as OptionItem);
-                                const label = normalizeOptionLabel(op as OptionItem);
-                                return (
-                                  <div
-                                    key={val + '-' + i}
-                                    className={styles.dropdownOption}
-                                    onClick={() => selectOption(toCamelCase(item.field), val)}
-                                    ref={el => { dropdownOptionRefs.current[i] = el; }}
-                                    tabIndex={0}
-                                  >
-                                    {label}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      ) : item.field === 'Course Offered' ? (
-                        <div className={styles.customDropdown}>
-                          <div
-                            ref={el => { inputRefs.current[globalIndex] = el as HTMLDivElement | null; }}
-                            className={styles.dropdownContainer}
-                            onClick={() => toggleDropdown(toCamelCase(item.field))}
-                            onFocus={() => setFocusedIndex(globalIndex)}
-                            tabIndex={0}
-                          >
-                            <input
-                              type="text"
-                              value={getDisplayValue('courseOffered')}
-                              placeholder={getPlaceholder(item.field, 'profile') || item.placeholder}
-                              readOnly
-                              className={styles.standardInput}
-                            />
-                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}>▼</i>
-                          </div>
-                          {dropdownOpen[toCamelCase(item.field)] && (
-                            <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
-                              {availableSubjects.coreSubjects.length > 0 && (
-                                <div className={styles.categorySection}>
-                                  <h4 className={styles.categoryH4}>Core Subjects</h4>
-                                  {availableSubjects.coreSubjects.map((option, i) => (
-                                    <div key={`core-${i}`} className={styles.checkboxOption}>
-                                      <input
-                                        type="checkbox"
-                                        id={`core-${i}`}
-                                        className={styles.checkboxInput}
-                                        value={option}
-                                        checked={profileData.courseOffered.includes(option)}
-                                        onChange={() => handleCourseOfferedChange(option)}
-                                      />
-                                      <label htmlFor={`core-${i}`} className={styles.checkboxLabel}>{option}</label>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              {availableSubjects.gecSubjects.length > 0 && (
-                                <div className={styles.categorySection}>
-                                  <h4 className={styles.categoryH4}>GEC Subjects</h4>
-                                  {availableSubjects.gecSubjects.map((option, i) => (
-                                    <div key={`gec-${i}`} className={styles.checkboxOption}>
-                                      <input
-                                        type="checkbox"
-                                        id={`gec-${i}`}
-                                        className={styles.checkboxInput}
-                                        value={option}
-                                        checked={profileData.courseOffered.includes(option)}
-                                        onChange={() => handleCourseOfferedChange(option)}
-                                      />
-                                      <label htmlFor={`gec-${i}`} className={styles.checkboxLabel}>{option}</label>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              {availableSubjects.peNstpSubjects.length > 0 && (
-                                <div className={styles.categorySection}>
-                                  <h4 className={styles.categoryH4}>NSTP & PE Subjects</h4>
-                                  {availableSubjects.peNstpSubjects.map((option, i) => (
-                                    <div key={`pe-${i}`} className={styles.checkboxOption}>
-                                      <input
-                                        type="checkbox"
-                                        id={`pe-${i}`}
-                                        className={styles.checkboxInput}
-                                        value={option}
-                                        checked={profileData.courseOffered.includes(option)}
-                                        onChange={() => handleCourseOfferedChange(option)}
-                                      />
-                                      <label htmlFor={`pe-${i}`} className={styles.checkboxLabel}>{option}</label>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ) : item.type === 'checkbox' ? (
-                        <div className={styles.customDropdown}>
-                          <div
-                            ref={el => { inputRefs.current[globalIndex] = el as HTMLDivElement | null; }}
-                            className={styles.dropdownContainer}
-                            onClick={() => toggleDropdown(toCamelCase(item.field))}
-                            onFocus={() => setFocusedIndex(globalIndex)}
-                            tabIndex={0}
-                          >
-                            <input
-                              type="text"
-                              value={getDisplayValue(toCamelCase(item.field))}
-                              placeholder={getPlaceholder(item.field, 'profile') || item.placeholder}
-                              readOnly
-                              className={styles.standardInput}
-                            />
-                            <i className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}>▼</i>
-                          </div>
-                          {dropdownOpen[toCamelCase(item.field)] && (
-                            <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
-                              {(item.options ?? []).map((option, i) => {
-                                const opt = option as OptionItem;
-                                const val = normalizeOptionValue(opt);
-                                const label = normalizeOptionLabel(opt);
-                                return (
-                                  <div 
-                                    key={i} 
-                                    className={styles.checkboxOption}
-                                    ref={el => { dropdownOptionRefs.current[i] = el; }}
-                                    tabIndex={-1}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      id={`${toCamelCase(item.field)}-${i}`}
-                                      className={styles.checkboxInput}
-                                      value={val}
-                                      checked={(profileData[toCamelCase(item.field) as keyof typeof profileData] as string[]).includes(val)}
-                                      onChange={() => selectOption(toCamelCase(item.field), val)}
-                                    />
-                                    <label htmlFor={`${toCamelCase(item.field)}-${i}`} className={styles.checkboxLabel}>
-                                      {label}
-                                    </label>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className={styles.bioGoalsWrapper}>
-              <div className={styles.bioGoalsGrid}>
-                {bioAndExperienceFields.map((item, index) => {
-                  const globalIndex = inputFieldPersonalInformation.length + 1 + inputFieldProfileInformation.length + index;
-                  return (
-                    <div key={`bio-${index}`} className={styles.inputFields}>
-                      <label className={styles.label}>{item.field}</label>
-                      <textarea
-                        ref={el => { inputRefs.current[globalIndex] = el as HTMLTextAreaElement | null; }}
-                        value={profileData[toCamelCase(item.field) as keyof typeof profileData] as string}
-                        onChange={(e) => {
-                          const newValue = e.target.value;
-                          setProfileData(prev => ({ ...prev, [toCamelCase(item.field)]: newValue }));
-                          validateField(toCamelCase(item.field), newValue);
-                        }}
-                        onFocus={() => setFocusedIndex(globalIndex)}
-                        className={styles.fixedTextarea}
-                        placeholder={getPlaceholder(item.field, 'profile') || item.placeholder}
-                      />
-                      {validationErrors[toCamelCase(item.field)] && (
-                        <span className={styles.errorMessage}>
-                          {validationErrors[toCamelCase(item.field)]}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            ))}
           </div>
-          <div className={styles.save}>
-            <button 
-              ref={el => { inputRefs.current[totalFocusableElements - 1] = el as HTMLButtonElement | null; }}
-              className={styles.saveButton} 
-              onClick={saveChanges}
-              onFocus={() => setFocusedIndex(totalFocusableElements - 1)}
-            >
-              Save Changes
-            </button>
+        </div>
+
+        <div className={styles.profileInformation}>
+          <h1 className={styles.sectionH1}>PROFILE INFORMATION</h1>
+          <div className={styles.inputWrapper}>
+            {inputFieldProfileInformation.map((item, index) => (
+              <div key={index} className={styles.inputFields}>
+                <label className={styles.label}>{item.field}</label>
+
+                {item.type === 'select' && item.field !== 'Subject of Interest' && (
+                  <div className={styles.customDropdown}>
+                    <div
+                      className={styles.dropdownContainer}
+                      onClick={() => toggleDropdown(toCamelCase(item.field))}
+                    >
+                      <input
+                        type="text"
+                        value={profileData[toCamelCase(item.field)] as string || ''}
+                        placeholder={
+                          (profileData[toCamelCase(item.field)] as string) ||
+                          `Select ${item.field.toLowerCase()}`
+                        }
+                        readOnly
+                        className={styles.standardInput}
+                      />
+                      <i
+                        className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}
+                      >▼</i>
+                    </div>
+                    {dropdownOpen[toCamelCase(item.field)] && (
+                      <div className={styles.dropdownOptions}>
+                        {(item.options as string[])?.map((option, i) => (
+                          <div
+                            key={i}
+                            className={styles.dropdownOption}
+                            onClick={() => selectOption(toCamelCase(item.field), option)}
+                          >
+                            {option}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {item.field === 'Subject of Interest' && (
+                  <div className={styles.customDropdown}>
+                    <div
+                      className={styles.dropdownContainer}
+                      onClick={() => toggleDropdown('Subject of Interest')}
+                    >
+                      <input
+                        type="text"
+                        value={getCSubjectInterestDisplay()}
+                        placeholder={getCSubjectInterestDisplay() || 'Select courses'}
+                        readOnly
+                        className={styles.standardInput}
+                      />
+                      <i
+                        className={`${styles.dropdownIcon} ${dropdownOpen['subjectOfInterest'] ? styles.dropdownIconOpen : ''}`}
+                      >▼</i>
+                    </div>
+                    {dropdownOpen['subjectOfInterest'] && (
+                      <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
+                        {availableSubjects.coreSubjects.length > 0 && (
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryH4}>Core Subjects</h4>
+                            {availableSubjects.coreSubjects.map((option, i) => (
+                              <div key={`core-${i}`} className={styles.checkboxOption}>
+                                <input
+                                  type="checkbox"
+                                  id={`core-${i}`}
+                                  checked={profileData.courseOffered.includes(option)}
+                                  onChange={(e) => handleSubjectCheckboxChange(option, e.target.checked)}
+                                  className={styles.checkboxInput}
+                                />
+                                <label htmlFor={`core-${i}`} className={styles.checkboxLabel}>{option}</label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {availableSubjects.gecSubjects.length > 0 && (
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryH4}>GEC Subjects</h4>
+                            {availableSubjects.gecSubjects.map((option, i) => (
+                              <div key={`gec-${i}`} className={styles.checkboxOption}>
+                                <input
+                                  type="checkbox"
+                                  id={`gec-${i}`}
+                                  checked={profileData.courseOffered.includes(option)}
+                                  onChange={(e) => handleSubjectCheckboxChange(option, e.target.checked)}
+                                  className={styles.checkboxInput}
+                                />
+                                <label htmlFor={`gec-${i}`} className={styles.checkboxLabel}>{option}</label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {availableSubjects.peNstpSubjects.length > 0 && (
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryH4}>NSTP & PE Subjects</h4>
+                            {availableSubjects.peNstpSubjects.map((option, i) => (
+                              <div key={`pe-${i}`} className={styles.checkboxOption}>
+                                <input
+                                  type="checkbox"
+                                  id={`pe-${i}`}
+                                  checked={profileData.courseOffered.includes(option)}
+                                  onChange={(e) => handleSubjectCheckboxChange(option, e.target.checked)}
+                                  className={styles.checkboxInput}
+                                />
+                                <label htmlFor={`pe-${i}`} className={styles.checkboxLabel}>{option}</label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {item.type === 'checkbox' && (
+                  <div className={styles.customDropdown}>
+                    <div
+                      className={styles.dropdownContainer}
+                      onClick={() => toggleDropdown(toCamelCase(item.field))}
+                    >
+                      <input
+                        type="text"
+                        value={getDisplayValue(toCamelCase(item.field))}
+                        readOnly
+                        className={styles.standardInput}
+                      />
+                      <i
+                        className={`${styles.dropdownIcon} ${dropdownOpen[toCamelCase(item.field)] ? styles.dropdownIconOpen : ''}`}
+                      >▼</i>
+                    </div>
+                    {dropdownOpen[toCamelCase(item.field)] && (
+                      <div className={`${styles.dropdownOptions} ${styles.checkboxOptions}`}>
+                        {(item.options as { label: string; value: string }[])?.map((option, i) => (
+                          <div key={i} className={styles.checkboxOption}>
+                            <input
+                              type="checkbox"
+                              id={`${toCamelCase(item.field)}-${i}`}
+                              checked={(profileData[toCamelCase(item.field)] as string[])?.includes(option.value) || false}
+                              onChange={(e) => handleCheckboxChange(toCamelCase(item.field), option.value, e.target.checked)}
+                              className={styles.checkboxInput}
+                            />
+                            <label htmlFor={`${toCamelCase(item.field)}-${i}`} className={styles.checkboxLabel}>
+                              {option.label}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {validationErrors[toCamelCase(item.field)] && (
+                  <div className={styles.errorMessage}>
+                    {validationErrors[toCamelCase(item.field)]}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.bioGoalsWrapper}>
+          <div className={styles.bioGoalsGrid}>
+            <div className={styles.inputFields}>
+              <label className={styles.label}>Short Bio</label>
+              <textarea
+                value={profileData.shortBio as string}
+                onChange={(e) => {
+                  setProfileData(prev => ({ ...prev, shortBio: e.target.value }));
+                  validateField('shortBio', e.target.value);
+                }}
+                className={styles.fixedTextarea}
+                placeholder="Tell us about yourself"
+              />
+              {validationErrors.shortBio && (
+                <div className={styles.errorMessage}>
+                  {validationErrors.shortBio}
+                </div>
+              )}
+            </div>
+            <div className={styles.inputFields}>
+              <label className={styles.label}>Learning Goals</label>
+              <textarea
+                value={profileData.learningGoals as string}
+                onChange={(e) => {
+                  setProfileData(prev => ({ ...prev, learningGoals: e.target.value }));
+                  validateField('learningGoals', e.target.value);
+                }}
+                className={styles.fixedTextarea}
+                placeholder="Tell us your learning goals"
+              />
+              {validationErrors.learningGoals && (
+                <div className={styles.errorMessage}>
+                  {validationErrors.learningGoals}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </>
+      <div className={styles.save}>
+        <button onClick={saveChanges} className={styles.saveButton}>Save Changes</button>
+      </div>
+    </div>
   );
 }

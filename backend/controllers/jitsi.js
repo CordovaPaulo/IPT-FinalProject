@@ -4,14 +4,17 @@ const Mentor = require('../models/Mentor');
 const Learner = require('../models/Learner');
 const { getValuesFromToken } = require('../service/jwt');
 
+// Configuration - using free meet.jit.si (no JWT)
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN || 'meet.jit.si';
 
+// Helper: check if location indicates online session
 function isOnlineSession(location) {
   if (!location) return false;
   const loc = String(location).toLowerCase().trim();
   return loc === 'online' || loc.includes('online');
 }
 
+// Helper: check if user can join this session
 async function canUserJoinSession(scheduleId, userId) {
   const schedule = await Schedule.findById(scheduleId);
   if (!schedule) return { allowed: false, reason: 'Schedule not found' };
@@ -46,6 +49,7 @@ async function canUserJoinSession(scheduleId, userId) {
   return { allowed: false, reason: 'Not authorized for this session' };
 }
 
+// GET /api/jitsi/session/:scheduleId - Get or create Jitsi session
 exports.getOrCreateSession = async (req, res) => {
   const { scheduleId } = req.params;
   const decoded = getValuesFromToken(req);
@@ -72,6 +76,7 @@ exports.getOrCreateSession = async (req, res) => {
       });
     }
     
+    // Check if session time is valid (within ±15min window)
     const now = new Date();
     const sessionDateTime = new Date(schedule.date);
     const [hours, minutes] = schedule.time.split(':');
@@ -119,6 +124,7 @@ exports.getOrCreateSession = async (req, res) => {
     
     const isModerator = role === 'mentor';
     
+    // Return session details WITHOUT JWT
     return res.status(200).json({
       jitsiSession: {
         id: jitsiSession._id,
@@ -127,7 +133,7 @@ exports.getOrCreateSession = async (req, res) => {
         subject: jitsiSession.subject,
         isActive: jitsiSession.isActive,
         startedAt: jitsiSession.startedAt,
-        jwt: null 
+        jwt: null // NO JWT for free meet.jit.si
       },
       schedule: {
         id: schedule._id,
@@ -140,7 +146,7 @@ exports.getOrCreateSession = async (req, res) => {
       userRole: role,
       userName,
       isModerator,
-      mentorJoinedFirst: jitsiSession.startedAt && role === 'mentor', 
+      mentorJoinedFirst: jitsiSession.startedAt && role === 'mentor', // Track if mentor joined first
       code: 200
     });
     
@@ -150,6 +156,7 @@ exports.getOrCreateSession = async (req, res) => {
   }
 };
 
+// POST /api/jitsi/session/:scheduleId/end - End Jitsi session
 exports.endSession = async (req, res) => {
   const { scheduleId } = req.params;
   const decoded = getValuesFromToken(req);
@@ -188,6 +195,7 @@ exports.endSession = async (req, res) => {
   }
 };
 
+// GET /api/jitsi/history - Get user's past Jitsi sessions
 exports.getSessionHistory = async (req, res) => {
   const decoded = getValuesFromToken(req);
   

@@ -9,9 +9,9 @@
   top: 0;
   z-index: 100;
   padding: 24px 24px 0 24px;
-  background: white;
 }
 
+/* Header Styles */
 .forumHeader {
   margin-bottom: 20px;
 }
@@ -38,6 +38,7 @@
   line-height: 1.5;
 }
 
+/* Controls */
 .forumControls {
   display: flex;
   justify-content: space-between;
@@ -135,6 +136,7 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
+/* Posts Grid */
 .postsGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -214,12 +216,14 @@
   border-top: 1px solid #e5e7eb;
 }
 
+/* FIXED: REMOVED LINE CLAMP - NOW SHOWS ALL CONTENT TEXT */
 .postPreview {
   color: #4b5563;
   font-size: 0.95rem;
   line-height: 1.6;
   margin: 0;
   white-space: pre-line;
+  /* REMOVED THE LINE CLAMP PROPERTIES THAT WERE HIDING CONTENT */
 }
 
 .postFooter {
@@ -257,6 +261,7 @@
   color: #2563eb;
 }
 
+/* Right side actions */
 .postRightActions {
   display: flex;
   align-items: center;
@@ -283,6 +288,7 @@
   color: #2563eb;
 }
 
+/* Vote Section - Horizontal Layout */
 .voteSection {
   display: flex;
   align-items: center;
@@ -334,6 +340,7 @@
   text-align: center;
 }
 
+/* Create Post Modal */
 .createPostModal {
   position: fixed;
   top: 0;
@@ -355,7 +362,6 @@
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  margin-left: 17rem
 }
 
 .createPostModal .modalHeader {
@@ -488,6 +494,7 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
+/* Split-View Comments Modal */
 .commentsModal {
   position: fixed;
   top: 0;
@@ -523,9 +530,6 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  margin: 0 auto;
-  margin-left: 24rem;
-
 }
 
 .commentsModal .modalHeader {
@@ -567,6 +571,7 @@
   color: #374151;
 }
 
+/* Split View Layout */
 .modalSplitView {
   display: flex;
   flex: 1;
@@ -574,6 +579,7 @@
   min-height: 0;
 }
 
+/* Left Side - Post Details */
 .postSidebar {
   flex: 0 0 40%;
   overflow-y: auto;
@@ -628,6 +634,7 @@
   line-height: 1.4;
 }
 
+/* FIXED: Detailed post content shows ALL text */
 .postContentDetailed {
   color: #4b5563;
   line-height: 1.6;
@@ -679,6 +686,7 @@
   gap: 8px;
 }
 
+/* Right Side - Comments */
 .commentsSidebar {
   flex: 1;
   display: flex;
@@ -719,6 +727,7 @@
   width: 100%;
 }
 
+/* Comments List in Split View */
 .commentsSidebar .commentsList {
   flex: 1;
   display: flex;
@@ -748,6 +757,7 @@
   min-height: 0;
 }
 
+/* Comment Items */
 .comment {
   padding: 16px 32px;
   border-bottom: 1px solid #f9fafb;
@@ -806,6 +816,7 @@
   margin-top: 8px;
 }
 
+/* Horizontal vote section for comments */
 .comment .voteSection {
   display: flex;
   align-items: center;
@@ -894,6 +905,7 @@
   color: #dc2626;
 }
 
+/* Reply Form */
 .replyForm {
   margin-top: 12px;
   padding: 12px;
@@ -960,6 +972,7 @@
   cursor: not-allowed;
 }
 
+/* No Comments State */
 .noComments {
   padding: 40px 32px;
   text-align: center;
@@ -971,6 +984,7 @@
   font-size: 14px;
 }
 
+/* Improved scrollbar for better visibility */
 .commentsSidebar .commentsContainer::-webkit-scrollbar {
   width: 8px;
 }
@@ -1005,6 +1019,7 @@
   background: #94a3b8;
 }
 
+/* Comment Form Styling */
 .commentForm {
   background: #ffffff;
   padding: 1.5rem;
@@ -1074,79 +1089,12 @@
   transform: none;
 }
 
-@media (min-width: 1024px) and (max-width: 1439px) {
-  .commentsModal .modalContent {
-    width: 90%;
-    max-width: 900px;
-    margin-left: 5rem;
-  }
-  
-  .postSidebar {
-    flex: 0 0 45%;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-  .stickyHeader {
-    padding: 20px 20px 0 20px;
-  }
-  
-  .postsGrid {
-    padding: 0 20px 20px 20px;
-  }
-  
-  .forumControls {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-  
-  .searchFilter {
-    max-width: none;
-    width: 100%;
-  }
-  
-  .createPostBtn {
-    width: 100%;
-    justify-content: center;
-  }
- 
-  .createPostModal .modalContent {
-   margin-left: 1rem;
-}
-  .commentsModal .modalContent {
-    margin-left: 4rem;
-  }
-  
-  .modalSplitView {
-    flex-direction: column;
-  }
-  
-  .postSidebar {
-    flex: 0 0 auto;
-    max-height: 40%;
-    border-right: none;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  
-  .commentsSidebar {
-    flex: 1;
-  }
-}
-
-@media (max-width: 767px) {
+/* Responsive Design */
+@media (max-width: 768px) {
   .stickyHeader {
     padding: 16px 16px 0 16px;
   }
   
-  .headerTitle h1 {
-    font-size: 24px;
-  }
-  
-  .headerSubtitle {
-    font-size: 14px;
-  }
-  
   .forumControls {
     flex-direction: column;
     align-items: stretch;
@@ -1157,7 +1105,6 @@
     max-width: none;
     flex-direction: column;
     width: 100%;
-    gap: 12px;
   }
   
   .filterGroup {
@@ -1175,15 +1122,6 @@
   
   .postsGrid {
     padding: 0 16px 16px 16px;
-    gap: 12px;
-  }
-  
-  .postCard {
-    padding: 1.25rem;
-  }
-  
-  .postTitle {
-    font-size: 1.1rem;
   }
   
   .postFooter {
@@ -1196,10 +1134,22 @@
     justify-content: space-between;
   }
   
+  .commentFooter {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .commentActions {
+    justify-content: flex-start;
+  }
+  
+  /* Mobile comments modal */
   .commentsModal .modalContent {
     width: 95%;
     height: 90vh;
-    margin: 10px;
+    max-height: 90vh;
+    margin: 20px;
   }
   
   .modalSplitView {
@@ -1211,7 +1161,7 @@
     max-height: 40%;
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
-    padding: 8px;
+    padding: 20px;
   }
   
   .commentsSidebar {
@@ -1219,33 +1169,39 @@
   }
   
   .commentsSidebar .commentForm {
-    padding: 12px 16px;
+    padding: 16px 20px;
   }
   
   .commentsSidebar .commentsTitle {
-    padding: 12px 16px;
+    padding: 12px 20px;
   }
   
   .comment {
-    padding: 12px 16px;
+    padding: 12px 20px;
   }
   
   .comment.reply {
-    padding-left: 24px;
-    margin-left: 12px;
+    padding-left: 32px;
+    margin-left: 16px;
   }
   
   .createPostModal .modalContent {
     width: 95%;
-    margin: 10px;
+    margin: 20px;
   }
   
-  .createPostModal .modalHeader {
-    padding: 20px;
+  .commentForm {
+    margin: 0.75rem;
+    padding: 1rem;
   }
   
-  .createPostModal form {
-    padding: 20px;
+  .commentTextarea {
+    min-height: 100px;
+  }
+  
+  .commentSubmit {
+    width: 100%;
+    padding: 0.75rem 1rem;
   }
 }
 
@@ -1255,33 +1211,19 @@
   }
   
   .headerTitle h1 {
-    font-size: 20px;
-  }
-  
-  .headerSubtitle {
-    font-size: 13px;
+    font-size: 24px;
   }
   
   .postsGrid {
     padding: 0 12px 12px 12px;
   }
   
-  .postCard {
-    padding: 1rem;
+  .postCard, .createPostModal form {
+    padding: 16px;
   }
   
   .postTitle {
-    font-size: 1rem;
-  }
-  
-  .postMeta {
-    gap: 0.5rem;
-    font-size: 0.8rem;
-  }
-  
-  .postCategory {
-    font-size: 10px;
-    padding: 2px 8px;
+    font-size: 16px;
   }
   
   .commentsModal .modalContent,
@@ -1299,41 +1241,31 @@
   }
   
   .postSidebar {
-    padding: 8px;
-  }
-  
-  .postCardDetailed {
     padding: 16px;
-    margin: 8px;
   }
   
   .commentsSidebar .commentForm,
   .comment {
-    padding: 12px 16px;
+    padding: 16px 20px;
   }
   
   .comment.reply {
-    padding-left: 20px;
-    margin-left: 8px;
+    padding-left: 28px;
+    margin-left: 12px;
   }
   
+  .postMeta,
   .commentHeader {
     gap: 6px;
   }
   
-  .commentAuthor {
-    font-size: 12px;
-  }
-  
-  .commentTime {
-    font-size: 11px;
-  }
-  
-  .commentText {
-    font-size: 13px;
+  .postCategory {
+    font-size: 10px;
+    padding: 1px 6px;
   }
 }
 
+/* Animation for modal */
 .commentsModal .modalContent,
 .createPostModal .modalContent {
   animation: modalSlideIn 0.3s ease-out;
@@ -1350,6 +1282,7 @@
   }
 }
 
+/* Focus states for accessibility */
 .actionBtn:focus,
 .voteButton:focus,
 .commentTextarea:focus,
@@ -1358,6 +1291,7 @@
   outline-offset: 2px;
 }
 
+/* Loading states */
 .actionBtn:disabled,
 .voteButton:disabled {
   opacity: 0.6;
@@ -1365,6 +1299,7 @@
   transform: none !important;
 }
 
+/* High contrast mode support */
 @media (prefers-contrast: high) {
   .postCard {
     border: 2px solid #000;
@@ -1376,6 +1311,7 @@
   }
 }
 
+/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .postCard,
   .voteButton,

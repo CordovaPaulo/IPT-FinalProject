@@ -11,11 +11,11 @@ import EditInformationComponent from '@/components/mentorpage/information/page';
 import LogoutComponent from '@/components/mentorpage/logout/page';
 import CommunityForumComponent from '@/components/mentorpage/community/page';
 import SessionAnalyticsComponent from '@/components/mentorpage/analytics/page';
+import GroupSessionInvite from '@/components/mentorpage/GroupSessionInvite/page';
 import api from "@/lib/axios";
 import styles from './mentor.module.css';
 import { toast } from 'react-toastify';
 import Pusher from 'pusher-js';
-import ChatbotWidget from '@/components/ChatbotWidget';
 
 interface User {
   id: number | null;
@@ -248,6 +248,8 @@ export default function MentorPage() {
   const [showDatePopup, setShowDatePopup] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showBadgesPopup, setShowBadgesPopup] = useState(false);
+  const [showGroupInviteModal, setShowGroupInviteModal] = useState(false);
+  const [selectedGroupSessionId, setSelectedGroupSessionId] = useState<string | null>(null);
   
   const topbarRef = useRef<HTMLDivElement>(null);
   const datePopupRef = useRef<HTMLDivElement>(null);
@@ -1119,7 +1121,13 @@ export default function MentorPage() {
           return <SessionComp 
             schedule={todaySchedule} 
             upcomingSchedule={upcomingSchedule}
-            userData={userData}
+            userData={{
+              ...userData,
+              onOpenGroupInvite: (sessionId: string) => {
+                setSelectedGroupSessionId(sessionId);
+                setShowGroupInviteModal(true);
+              }
+            }}
             onScheduleCreated={fetchSchedules}
           />;
         case 'reviews':
@@ -1620,7 +1628,8 @@ export default function MentorPage() {
         </div>
       )}
 
-      <ChatbotWidget />
+      {/* Group Session Invite Modal - This is now handled in ViewUser component */}
+      {/* showGroupInviteModal logic can be removed as invite is now in ViewUser */}
     </div>
   );
 }

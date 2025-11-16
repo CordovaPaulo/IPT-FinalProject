@@ -8,6 +8,10 @@ const Forum = require('./Forum');
 const ForumComment = require('./ForumComment');
 const ForumMetrics = require('./ForumMetrics');
 
+/**
+ * Seedable mentor badge catalog (static definitions used by UI and award logic).
+ * Keep these keys stable.
+ */
 const BADGES = [
   {
     key: 'first_session',
@@ -107,6 +111,10 @@ const BADGES = [
   }
 ];
 
+/**
+ * Machine-readable thresholds used by the evaluation engine.
+ * Metrics are computed from Schedules, Feedback, Forum*, and Mentor model.
+ */
 const BADGE_THRESHOLDS = [
   // sessions
   { key: 'first_session', all: [{ metric: 'sessionsCompleted', op: '>=', value: 1 }] },

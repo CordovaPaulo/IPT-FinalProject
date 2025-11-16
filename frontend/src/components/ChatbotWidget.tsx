@@ -4,13 +4,13 @@ import React, { useMemo, useState } from 'react';
 import axios from '@/lib/axios';
 import { toast } from 'react-toastify';
 
+type Mode = 'assist' | 'schedule' | 'summary' | 'motivation';
+
 type ChatItem = {
   role: 'user' | 'assistant' | 'system';
   content: string;
   mode?: Mode;
 };
-
-type Mode = 'assist' | 'schedule' | 'summary' | 'motivation';
 
 export default function ChatbotWidget() {
   const [open, setOpen] = useState(false);
@@ -26,15 +26,6 @@ export default function ChatbotWidget() {
   ]);
 
   const canSend = useMemo(() => input.trim().length > 0 || mode === 'motivation', [input, mode]);
-
-
-  function onQuick(m: Mode) {
-    setMode(m);
-    if (m === 'motivation') {
-      // send immediately
-      send();
-    }
-  }
 
   async function send() {
     if (!canSend || busy) return;
@@ -73,6 +64,14 @@ export default function ChatbotWidget() {
       setHistory((h) => [...h, { role: 'assistant', content: msg }]);
     } finally {
       setBusy(false);
+    }
+  }
+
+  function onQuick(m: Mode) {
+    setMode(m);
+    if (m === 'motivation') {
+      // send immediately
+      send();
     }
   }
 

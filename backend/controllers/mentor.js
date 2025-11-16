@@ -13,9 +13,11 @@ const { schedulePayload } = require('../utils/realtimePayload');
 const Rank = require('../models/rank');
 const Badge = require('../models/badges');
 
+// Safe helper to resolve mentor and call awardMentorBadges without relying on userData variable
 async function safeAwardMentorBadgesByUserId(userOrMentorId) {
   try {
     if (!userOrMentorId) return null;
+    // Try to find mentor either by _id or userId
     const mentor = await Mentor.findOne({
       $or: [{ _id: userOrMentorId }, { userId: userOrMentorId }]
     }).select('_id');
@@ -494,6 +496,7 @@ exports.getSchedules = async (req, res) => {
                 time: schedule.time,
                 location: schedule.location,
                 subject: schedule.subject,
+                type: schedule.type,
                 
                 // Mentor information (include id)
                 mentor: {
@@ -593,13 +596,7 @@ exports.getReviewer = async (req, res) => {
         // Safe award badges
         await safeAwardMentorBadgesByUserId(decoded.id);
 
-        // Return the actual learner data that the frontend needs
-        res.status(200).json({ 
-            name: learner.name,
-            course: learner.program,
-            year: learner.yearLevel,
-            image: learner.image || ''
-        });
+        res.status(200).json({ reviewer: learner.reviewer });
     } catch (error) {
         console.error('Error in getReviewer:', error);
         res.status(500).json({ message: error.message, code: 500 });
@@ -730,7 +727,10 @@ exports.sendOffer = async (req, res) => {
         if (!toEmail) return res.status(400).json({ message: 'Learner email not found', code: 400 });
 
         // build accept offer link (tokenized payload in query)
-        const apiBase = process.env.BACKEND_URL;
+        const appBase =
+        process.env.FRONTEND_URL ||
+        process.env.APP_URL ||
+        'http://localhost:3001';
         const offerPayload = {
         offerId: Date.now().toString(), // simple unique id; replace with DB id if you persist offers
         mentorId: String(mentor._id),
@@ -741,7 +741,7 @@ exports.sendOffer = async (req, res) => {
         subject
         };
         const token = Buffer.from(JSON.stringify(offerPayload)).toString('base64url');
-        const acceptLink = `${apiBase}/api/learner/offers/accept?token=${token}`;
+        const acceptLink = `${appBase}/api/learner/offers/accept?token=${token}`;
 
         // email contents
         const emailSubject = `Offer: ${subject} with ${mentor.name}`;
@@ -885,7 +885,7 @@ exports.sendGroupSessionOffer = async (req, res) => {
     }
     if (!toEmail) return res.status(400).json({ message: 'Learner email not found', code: 400 });
 
-    const appBase = process.env.FRONTEND_URL;
+    const appBase = process.env.BACKEND_URL || process.env.APP_URL || 'http://localhost:3001';
     // explicitly mark this offer as a group offer (sessionType = 'group')
     const offerPayload = {
       // hyphenated id helps earlier heuristics detect group offers; also include explicit sessionType
@@ -1047,8 +1047,8 @@ exports.sendExistingGroupSessionOffer = async (req, res) => {
     };
 
     const token = Buffer.from(JSON.stringify(offerPayload)).toString('base64url');
-    const apiBase = process.env.BACKEND_URL;
-    const acceptLink = `${apiBase}/api/learner/offers/accept?token=${token}`;
+    const appBase = process.env.BACKEND_URL || process.env.APP_URL || 'http://localhost:3001';
+    const acceptLink = `${appBase}/api/learner/offers/accept?token=${token}`;
 
     const prettyDate = new Date(offerPayload.date).toLocaleDateString();
     const emailSubject = `Group Invite: ${offerPayload.subject} - ${offerPayload.groupName || 'Group Study Session'}`;
@@ -1160,212 +1160,47 @@ exports.getGroupSessions = async (req, res) => {
       });
       if (!mentor) return res.status(404).json({ message: 'Mentor not found', code: 404 });
 
-      // Fetch group sessions for the mentor
-      const groupSessions = await Schedule.find({ mentorId: mentor._id, sessionType: 'group' });
+      // Fetch group sessions for the mentor (use 'mentor' field, not 'mentorId')
+      const groupSessions = await Schedule.find({ 
+          mentor: mentor._id, 
+          sessionType: 'group' 
+      });
+
+      // Transform sessions to include learner details
+      const transformedSessions = [];
+      for (const session of groupSessions) {
+          const learnerDetails = [];
+          if (Array.isArray(session.learners)) {
+              for (const learnerId of session.learners) {
+                  const learner = await Learner.findById(learnerId);
+                  if (learner) {
+                      learnerDetails.push({
+                          _id: learner._id,
+                          name: learner.name || 'Unknown'
+                      });
+                  }
+              }
+          }
+
+          transformedSessions.push({
+              _id: session._id,
+              subject: session.subject,
+              date: session.date,
+              time: session.time,
+              location: session.location,
+              sessionType: session.sessionType,
+              groupName: session.groupName || null,
+              maxParticipants: session.maxParticipants || null,
+              learners: learnerDetails
+          });
+      }
 
       // Safe award badges
       await safeAwardMentorBadgesByUserId(mentor._id);
 
-      return res.status(200).json({ message: 'Group sessions fetched', groupSessions, code: 200 });
+      return res.status(200).json({ message: 'Group sessions fetched', groupSessions: transformedSessions, code: 200 });
   } catch (error) {
       console.error('getGroupSessions error:', error);
       return res.status(500).json({ message: error.message, code: 500 });
-  }
-}
-
-exports.editProfile = async (req, res) => {
-  const decoded = getValuesFromToken(req);
-
-  if (!decoded || !decoded.id) {
-      return res.status(403).json({ message: 'Invalid token', code: 403 });
-  }
-
-  try {
-      // Find the mentor first to ensure they exist
-      const existingMentor = await Mentor.findOne({
-          $or: [{ _id: decoded.id }, { userId: decoded.id }]
-      });
-
-      if (!existingMentor) {
-          return res.status(404).json({ message: 'Mentor not found', code: 404 });
-      }
-
-      const allowedFields = [
-          'sex', 'program', 'yearLevel', 
-          'phoneNumber', 'bio', 'exp', 'address', 
-          'modality', 'proficiency', 'subjects', 
-          'availability', 'style', 'sessionDur'
-      ];
-
-      const updates = {};
-      const errors = [];
-
-      for (const field of allowedFields) {
-          if (req.body[field] !== undefined) {
-              const value = req.body[field];
-
-              switch (field) {
-                  case 'sex':
-                      if (!['male', 'female'].includes(value)) {
-                          errors.push('Sex must be either "male" or "female"');
-                      } else {
-                          updates.sex = value;
-                      }
-                      break;
-
-                  case 'program':
-                      if (!['BSIT', 'BSCS', 'BSEMC'].includes(value)) {
-                          errors.push('Program must be one of: BSIT, BSCS, BSEMC');
-                      } else {
-                          updates.program = value;
-                      }
-                      break;
-
-                  case 'yearLevel':
-                      if (!['1st year', '2nd year', '3rd year', '4th year', 'graduate'].includes(value)) {
-                          errors.push('Year level must be one of: 1st year, 2nd year, 3rd year, 4th year, graduate');
-                      } else {
-                          updates.yearLevel = value;
-                      }
-                      break;
-
-                  case 'phoneNumber':
-                      const phoneRegex = /^\d{11}$/;
-                      if (typeof value !== 'string' || !phoneRegex.test(value)) {
-                          errors.push('Phone number must be exactly 11 digits');
-                      } else {
-                          updates.phoneNumber = value;
-                      }
-                      break;
-
-                  case 'bio':
-                  case 'exp':
-                  case 'address':
-                      if (typeof value !== 'string' || value.trim().length === 0) {
-                          errors.push(`${field.charAt(0).toUpperCase() + field.slice(1)} must be a non-empty string`);
-                      } else {
-                          updates[field] = value.trim();
-                      }
-                      break;
-
-                  case 'modality':
-                      if (!['online', 'in-person', 'hybrid'].includes(value)) {
-                          errors.push('Modality must be one of: online, in-person, hybrid');
-                      } else {
-                          updates.modality = value;
-                      }
-                      break;
-
-                  case 'proficiency':
-                      if (!['beginner', 'intermediate', 'advanced'].includes(value)) {
-                          errors.push('Proficiency must be one of: beginner, intermediate, advanced');
-                      } else {
-                          updates.proficiency = value;
-                      }
-                      break;
-
-                  case 'subjects':
-                      if (!Array.isArray(value) || value.length === 0) {
-                          errors.push('Subjects must be a non-empty array');
-                      } else if (!value.every(s => typeof s === 'string' && s.trim().length > 0)) {
-                          errors.push('All subjects must be non-empty strings');
-                      } else {
-                          updates.subjects = value.map(s => s.trim());
-                      }
-                      break;
-
-                  case 'availability':
-                      const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-                      if (!Array.isArray(value) || value.length === 0) {
-                          errors.push('Availability must be a non-empty array');
-                      } else if (!value.every(day => validDays.includes(day))) {
-                          errors.push('All availability days must be valid weekdays (monday-sunday)');
-                      } else {
-                          updates.availability = value;
-                      }
-                      break;
-
-                  case 'style':
-                      const validStyles = ['lecture-based', 'interactive-discussion', 'q-and-a-discussion', 
-                                          'demonstrations', 'project-based', 'step-by-step-discussion'];
-                      if (!Array.isArray(value) || value.length === 0) {
-                          errors.push('Style must be a non-empty array');
-                      } else if (!value.every(s => validStyles.includes(s))) {
-                          errors.push('All teaching styles must be valid options');
-                      } else {
-                          updates.style = value;
-                      }
-                      break;
-
-                  case 'sessionDur':
-                      if (!['1hr', '2hrs', '3hrs'].includes(value)) {
-                          errors.push('Session duration must be one of: 1hr, 2hrs, 3hrs');
-                      } else {
-                          updates.sessionDur = value;
-                      }
-                      break;
-              }
-          }
-      }
-
-      // Return validation errors if any
-      if (errors.length > 0) {
-          return res.status(400).json({ 
-              message: 'Validation failed', 
-              errors, 
-              code: 400 
-          });
-      }
-
-      // Check if there are any fields to update
-      if (Object.keys(updates).length === 0) {
-          return res.status(400).json({ 
-              message: 'No valid fields provided for update', 
-              code: 400 
-          });
-      }
-
-      // Perform the update
-      const mentor = await Mentor.findOneAndUpdate(
-          { $or: [{ _id: decoded.id }, { userId: decoded.id }] },
-          { $set: updates },
-          { new: true, runValidators: true }
-      );
-
-      if (!mentor) {
-          return res.status(404).json({ message: 'Mentor not found', code: 404 });
-      }
-
-      // Safe award badges
-      await safeAwardMentorBadgesByUserId(mentor._id);
-
-      return res.status(200).json({ 
-          message: 'Profile updated successfully', 
-          mentor, 
-          code: 200 
-      });
-  } catch (error) {
-      console.error('editProfile error:', error);
-      
-      // Handle mongoose validation errors
-      if (error.name === 'ValidationError') {
-          const validationErrors = Object.values(error.errors).map(err => err.message);
-          return res.status(400).json({ 
-              message: 'Validation failed', 
-              errors: validationErrors, 
-              code: 400 
-          });
-      }
-      
-      // Handle duplicate key errors
-      if (error.code === 11000) {
-          const field = Object.keys(error.keyPattern)[0];
-          return res.status(409).json({ 
-              message: `${field} already exists`, 
-              code: 409 
-          });
-      }
-      
-      return res.status(500).json({ message: 'Internal server error', code: 500 });
   }
 }

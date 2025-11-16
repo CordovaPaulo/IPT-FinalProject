@@ -9,12 +9,10 @@ import ReviewsComponent from '@/components/learnerpage/reviews/page';
 import EditInformation from '@/components/learnerpage/information/page';
 import LogoutComponent from '@/components/learnerpage/logout/page';
 import CommunityForumComponent from '@/components/learnerpage/community/page';
-import SessionAnalyticsComponent from '@/components/learnerpage/analytics/page'; // Add this import
 import api from "@/lib/axios";
 import styles from './learner.module.css';
 import { toast } from 'react-toastify';
 import Pusher from 'pusher-js';
-import ChatbotWidget from '@/components/ChatbotWidget';
 
 // Helper to get cookie value (works only for non-httpOnly cookies)
 function getCookie(name: string) {
@@ -155,27 +153,6 @@ interface RankData {
   sessionsToNextRank: number | null;
 }
 
-// Update the AnalyticsData interface to match the backend response exactly
-interface AnalyticsData {
-  totalSessions: number;
-  oneOnOneSessions: number;
-  groupSessions: number;
-  subjectsOfInterest: { subject: string; count: number }[];
-  schedules: AnalyticsSchedule[];
-}
-
-interface AnalyticsSchedule {
-  id: string;
-  date: string;
-  time: string;
-  subject: string;
-  mentor: string;
-  duration: string;
-  type: string;
-  location: string;
-  status: string;
-}
-
 const transformSchedulesForReview = (schedules: any[]): any[] => {
   return schedules.map(schedule => ({
     id: schedule.id,
@@ -253,7 +230,6 @@ export default function LearnerPage() {
   const [transformedMentors, setTransformedMentors] = useState<TransformedMentor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [forumData, setForumData] = useState<ForumData[]>([]);
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null); // Add analytics data state
   const [isLoadingMentors, setIsLoadingMentors] = useState(false);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   
@@ -282,13 +258,11 @@ export default function LearnerPage() {
   // Add this state
   const [rankData, setRankData] = useState<RankData | null>(null);
 
-  // Update topbarItems to include Analytics
   const topbarItems = [
     { key: 'main', label: 'Mentors', icon: '/main.svg' },
     { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
     { key: 'records', label: 'Reviews', icon: '/records.svg' },
-    { key: 'community', label: 'Community', icon: '/community.svg' },
-    { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' } // Add Analytics
+    { key: 'community', label: 'Community', icon: '/community.svg' }
   ];
 
   useEffect(() => {
@@ -392,27 +366,6 @@ export default function LearnerPage() {
       
     } catch (error) {
       console.error('Error fetching forum data:', error);
-    }
-  };
-
-  // Add fetchAnalyticsData function
-  const fetchAnalyticsData = async () => {
-    try {
-      console.log("Fetching analytics data...");
-      const res = await api.get('/api/learner/analytics', {
-        timeout: 50000,
-        withCredentials: true,
-      });
-      
-      console.log("Analytics API Response:", res.data);
-      if (res.data?.data) {
-        // Mount the data exactly as received from backend
-        setAnalyticsData(res.data.data);
-      }
-      
-    } catch (error) {
-      console.error('Error fetching analytics data:', error);
-      toast.error('Error fetching analytics data');
     }
   };
 
@@ -702,8 +655,7 @@ export default function LearnerPage() {
           fetchMentFiles(),
           fetchMentors(),
           fetchSchedules(),
-          fetchForumData(),
-          fetchAnalyticsData() // Add analytics data fetch
+          fetchForumData()
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -805,14 +757,6 @@ export default function LearnerPage() {
             forumData={forumData}
             userData={userData}
             onForumUpdate={fetchForumData}
-          />
-        );
-      case 'analytics': // Add analytics case
-        return (
-          <SessionAnalyticsComponent 
-            analyticsData={analyticsData}
-            userData={userData}
-            onDataRefresh={fetchAnalyticsData}
           />
         );
       default:
@@ -1078,14 +1022,7 @@ export default function LearnerPage() {
         <div className={styles['edit-information-popup']}>
           <EditInformation 
             userData={userData}
-            onCancel={() => setIsEdit(false)}
-            onSave={(updatedData) => {
-              console.log('Data saved:', updatedData);
-              // Update the user data with the saved changes
-              handleUpdateUserData(updatedData);
-              // Close the modal
-              setIsEdit(false);
-            }}
+            onClose={() => setIsEdit(false)}
             onUpdateUserData={handleUpdateUserData}
           />
         </div>
@@ -1094,8 +1031,6 @@ export default function LearnerPage() {
       {confirmLogout && (
         <LogoutComponent onCancel={handleCancelLogout} />
       )}
-
-      <ChatbotWidget />
     </>
   );
 }

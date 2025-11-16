@@ -5,104 +5,43 @@ const { getValuesFromToken } = require('../service/jwt');
 const Learner = require('../models/Learner');
 const Mentor = require('../models/Mentor');
 
-module.exports.fetchLearnerDashboard = async (req, res) => {
+async function chatAssist(req, res) {
+    const decoded = getValuesFromToken(req);
+    if (!decoded) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userId = decoded.id;
+    const mode = 'assist';
+
     try {
-        const decoded = getValuesFromToken(req);
-        if (!decoded || !decoded.id) return res.status(401).json({ message: 'Invalid or missing token' });
+        const { message } = req.body;
+        
+        if (!message) {
+            return res.status(400).json({ error: 'message is required' });
+        }
 
-        const learner = await Learner.findOne({ userId: decoded.id });
-        if (!learner) return res.status(404).json({ message: 'User not found' });
+        const systemInstruction =
+            'You are MindMate AI Study Assistant. Be concise, friendly, and helpful. ' +
+            'Capabilities: (1) brief Q&A about platform usage, (2) answer study questions to the best of your ability. ' +
+            'Avoid making up data. If uncertain, ask a clarifying question.';
 
-        const roleId = learner._id;
+        const context = 
+            'You are MindMate\'s AI Study Assistant. Answer questions about the platform and general study help briefly.';
 
-        // Count sessions where learner is in the learners array
-        const [ totalSessions, oneOnOneSessions, groupSessions ] = await Promise.all([
-            Schedule.countDocuments({ learners: roleId }),
-            Schedule.countDocuments({ learners: roleId, sessionType: 'one-on-one' }),
-            Schedule.countDocuments({ learners: roleId, sessionType: 'group' })
-        ]);
-
-        // Get learner's subjects of interest
-        const learnerSubjects = learner.subjects || [];
-
-        // Count completed sessions for each subject of interest
-        const now = new Date();
-        const subjectsOfInterest = await Promise.all(
-            learnerSubjects.map(async (subject) => {
-                const count = await Schedule.countDocuments({
-                    learners: roleId,
-                    subject: subject,
-                    date: { $lt: now }
-                });
-                return { subject, count };
-            })
-        );
-
-        // Fetch recent schedules with mentor details
-        const schedulesAgg = await Schedule.aggregate([
-            { $match: { learners: roleId } },
-            { $sort: { date: -1 } },
-            { $limit: 6 },
-            { $lookup: {
-                from: 'mentors',
-                localField: 'mentor',
-                foreignField: '_id',
-                as: 'mentorDoc'
-            }},
-            { $unwind: { path: '$mentorDoc', preserveNullAndEmptyArrays: true } },
-            { $project: {
-                date: 1,
-                time: 1,
-                subject: 1,
-                sessionType: 1,
-                mentorName: 1,
-                mentorDoc: 1,
-                location: 1
-            }}
-        ]);
-
-        const durationMap = { '1hr': '60 min', '2hrs': '120 min', '3hrs': '180 min' };
-
-        const schedules = schedulesAgg.map(s => {
-            const date = s.date;
-            const subject = s.subject || 'Unknown';
-            const mentorName = s.mentorName || (s.mentorDoc ? s.mentorDoc.name : 'Unknown');
-
-            // Get duration from mentor or learner
-            const mentorDur = s.mentorDoc ? s.mentorDoc.sessionDur : null;
-            const rawDur = mentorDur || learner.sessionDur || null;
-            const duration = rawDur ? (durationMap[rawDur] || rawDur) : 'N/A';
-
-            const type = s.sessionType || 'N/A';
-            const location = s.location || 'N/A';
-
-            const status = (date instanceof Date && date < now) ? 'COMPLETED' : 'SCHEDULED';
-
-            return {
-                id: s._id,
-                date,
-                time: s.time,
-                subject,
-                mentor: mentorName,
-                duration,
-                type,
-                location,
-                status
-            };
+        const reply = await generateAIResponse({ 
+            system: systemInstruction,
+            user: message,
+            context
         });
 
-        return res.status(200).json({
-            data: {
-                totalSessions,
-                oneOnOneSessions,
-                groupSessions,
-                subjectsOfInterest,
-                schedules
-            }
+        return res.json({ reply, mode });
+    } catch (error) {
+        console.error('[AI] chatAssist error:', error);
+        const statusCode = error.status || 500;
+        return res.status(statusCode).json({ 
+            error: statusCode === 429 ? 'AI service quota exceeded. Please try again later.' : 'Internal Server Error'
         });
-    } catch (err) {
-        console.error('Error fetching learner dashboard:', err);
-        return res.status(500).json({ message: 'Internal server error' });
     }
 }
 
@@ -145,44 +84,145 @@ async function chatSummarize(req, res) {
     }
 }
 
-async function chatAssist(req, res) {
-    const decoded = getValuesFromToken(req);
-    if (!decoded) {
-        return res.status(401).json({ error: 'Unauthorized' });
+async function getUpcomingSchedulesForUser(userId, dateRange = null) {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return [];
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  try {
+    // Find if user is a learner or mentor (or both)
+    const learner = await Learner.findOne({
+      $or: [{ _id: userId }, { userId: userId }]
+    });
+    
+    const mentor = await Mentor.findOne({
+      $or: [{ _id: userId }, { userId: userId }]
+    });
+
+    if (!learner && !mentor) {
+      console.warn('[AI] User not found as learner or mentor:', userId);
+      return [];
     }
 
-    const userId = decoded.id;
-    const mode = 'assist';
+    // Build participation filter based on user role
+    let participationFilter = {};
+    
+    if (learner && mentor) {
+      // User is both learner and mentor
+      participationFilter = {
+        $or: [
+          { learners: { $in: [learner._id, learner.userId].filter(Boolean) } },
+          { mentor: mentor._id },
+          { mentor: mentor.userId }
+        ]
+      };
+    } else if (learner) {
+      // User is only a learner
+      participationFilter = {
+        learners: { $in: [learner._id, learner.userId].filter(Boolean) }
+      };
+    } else if (mentor) {
+      // User is only a mentor
+      participationFilter = {
+        $or: [
+          { mentor: mentor._id },
+          { mentor: mentor.userId }
+        ]
+      };
+    }
 
-    try {
-        const { message } = req.body;
+    // Build time filter
+    let timeFilter = {};
+    if (dateRange) {
+      // Specific date range requested
+      timeFilter = {
+        date: { $gte: dateRange.start, $lte: dateRange.end }
+      };
+    } else {
+      // All upcoming (no specific range)
+      timeFilter = {
+        date: { $gte: now }
+      };
+    }
+
+    // Fetch schedules
+    const schedules = await Schedule.find({
+      ...participationFilter,
+      ...timeFilter
+    })
+      .sort({ date: 1, time: 1 })
+      .limit(dateRange ? 50 : 20)
+      .lean();
+
+    console.log(`[AI] Found ${schedules.length} schedules for user ${userId}`);
+
+    // Transform to readable format
+    const upcoming = [];
+    
+    for (const s of schedules) {
+      const schedDate = new Date(s.date);
+      schedDate.setHours(0, 0, 0, 0);
+
+      // Skip if in the past (additional safety check)
+      if (!dateRange && schedDate < now) continue;
+
+      // Resolve mentor details
+      let mentorDetails = null;
+      if (s.mentor) {
+        mentorDetails = await Mentor.findOne({
+          $or: [{ _id: s.mentor }, { userId: s.mentor }]
+        }).select('name program yearLevel').lean();
+      }
+
+      // Resolve learner details (first learner for display)
+      let learnerDetails = null;
+      if (Array.isArray(s.learners) && s.learners.length > 0) {
+        learnerDetails = await Learner.findOne({
+          $or: [{ _id: s.learners[0] }, { userId: s.learners[0] }]
+        }).select('name program yearLevel').lean();
+      }
+
+      // Build human-readable schedule entry
+      const scheduleEntry = {
+        id: String(s._id),
+        title: s.subject || 'Tutoring Session',
+        subject: s.subject,
+        date: schedDate.toISOString().split('T')[0],
+        time: s.time,
+        startTime: `${schedDate.toISOString().split('T')[0]} ${s.time}`,
+        location: s.location,
+        sessionType: s.sessionType || 'one-on-one',
         
-        if (!message) {
-            return res.status(400).json({ error: 'message is required' });
-        }
+        // Mentor info
+        mentorName: s.mentorName || mentorDetails?.name || 'Unknown Mentor',
+        mentorProgram: mentorDetails?.program,
+        mentorYear: mentorDetails?.yearLevel,
+        
+        // Learner info (for one-on-one or first learner in group)
+        learnerName: (Array.isArray(s.learnerNames) && s.learnerNames.length > 0) 
+          ? s.learnerNames[0] 
+          : learnerDetails?.name || 'Unknown Learner',
+        learnerProgram: learnerDetails?.program,
+        learnerYear: learnerDetails?.yearLevel,
+        
+        // Group session info
+        ...(s.sessionType === 'group' && {
+          groupName: s.groupName,
+          participantCount: Array.isArray(s.learners) ? s.learners.length : 0,
+          maxParticipants: s.maxParticipants,
+          allLearnerNames: s.learnerNames || []
+        })
+      };
 
-        const systemInstruction =
-            'You are MindMate AI Study Assistant. Be concise, friendly, and helpful. ' +
-            'Capabilities: (1) brief Q&A about platform usage, (2) answer study questions to the best of your ability. ' +
-            'Avoid making up data. If uncertain, ask a clarifying question.';
-
-        const context = 
-            'You are MindMate\'s AI Study Assistant. Answer questions about the platform and general study help briefly.';
-
-        const reply = await generateAIResponse({ 
-            system: systemInstruction,
-            user: message,
-            context
-        });
-
-        return res.json({ reply, mode });
-    } catch (error) {
-        console.error('[AI] chatAssist error:', error);
-        const statusCode = error.status || 500;
-        return res.status(statusCode).json({ 
-            error: statusCode === 429 ? 'AI service quota exceeded. Please try again later.' : 'Internal Server Error'
-        });
+      upcoming.push(scheduleEntry);
     }
+
+    return upcoming;
+  } catch (error) {
+    console.error('[AI] Error fetching schedules:', error);
+    return [];
+  }
 }
 
 async function chatSchedule(req, res) {
