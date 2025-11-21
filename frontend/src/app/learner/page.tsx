@@ -11,18 +11,11 @@ import LogoutComponent from '@/components/learnerpage/logout/page';
 import CommunityForumComponent from '@/components/learnerpage/community/page';
 import SessionAnalyticsComponent from '@/components/learnerpage/analytics/page'; // Add this import
 import api from "@/lib/axios";
+import { checkAuth } from '@/lib/auth';
 import styles from './learner.module.css';
 import { toast } from 'react-toastify';
 import Pusher from 'pusher-js';
 import ChatbotWidget from '@/components/ChatbotWidget';
-
-// Helper to get cookie value (works only for non-httpOnly cookies)
-function getCookie(name: string) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
 
 interface RoleData{
   role: string;
@@ -291,6 +284,32 @@ export default function LearnerPage() {
     { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' } // Add Analytics
   ];
 
+  // Authentication guard - check if user is logged in and has learner role
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const auth = await checkAuth();
+        
+        if (!auth.authenticated) {
+          toast.error('Please log in to access this page');
+          router.replace('/auth/login');
+          return;
+        }
+
+        if (auth.user?.role !== 'learner') {
+          toast.error('Access denied. This page is for learners only.');
+          router.replace('/auth/login');
+          return;
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        router.replace('/auth/login');
+      }
+    };
+
+    verifyAuth();
+  }, [router]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (datePopupRef.current && !datePopupRef.current.contains(event.target as Node)) {
@@ -309,9 +328,25 @@ export default function LearnerPage() {
 
     Pusher.logToConsole = true;
 
+    // Use a custom authorizer so the browser will include httpOnly cookies
+    // (credentials: 'include') when calling the auth endpoint. This avoids
+    // reading httpOnly cookies from JavaScript (not allowed) and ensures the
+    // backend `authenticateToken()` middleware can read the cookie.
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-      authEndpoint: `/api/pusher-auth`,
+      authorizer: (channel, options) => ({
+        authorize: (socketId, callback) => {
+          const body = `socket_id=${encodeURIComponent(socketId)}&channel_name=${encodeURIComponent(channel.name)}`;
+          // Call the backend auth endpoint directly so the browser will send
+          // the httpOnly cookie that was set by the backend (same host).
+          api.post(`${backendUrl}/api/pusher/pusher/auth`, body, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          })
+            .then((res) => callback(null, res.data))
+            .catch((err) => callback(err, null));
+        },
+      }),
     });
 
     const channelName = `private-user-${userData.userId}`;
@@ -381,7 +416,6 @@ export default function LearnerPage() {
   const fetchForumData = async () => {
     try {
       console.log("Fetching forum data...");
-      const token = getCookie('MindMateToken');
       const res = await api.get('/api/forum/posts', {
         timeout: 10000,
         withCredentials: true,
@@ -473,12 +507,8 @@ export default function LearnerPage() {
   const sessionInfo = async () => {
     try {
       console.log("Fetching session info...");
-      const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/schedules', {
         withCredentials: true,
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
       });
 
       setTodaySchedule(res.data);
@@ -490,7 +520,6 @@ export default function LearnerPage() {
   const mentorProfile = async () => {
     try {
       console.log("Fetching mentor profiles...");
-      const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/mentors', {
         withCredentials: true,
       });
@@ -503,7 +532,6 @@ export default function LearnerPage() {
   const fetchMentFiles = async () => {
     try {
       console.log("Fetching mentor files...");
-      const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/files', {
         withCredentials: true,
       });
@@ -538,7 +566,7 @@ export default function LearnerPage() {
       if (res.status === 200) {
         const newRole = res.data?.newRole;
         toast.success(`Role switched to ${newRole}. Please log in again.`);
-        try { document.cookie = 'MindMateToken=; Max-Age=0; path=/'; } catch {}
+        // httpOnly cookie is cleared by backend logout endpoint
         localStorage.removeItem('auth_token');
         router.replace('/auth/login');
       } else {
@@ -608,8 +636,8 @@ export default function LearnerPage() {
     setIsLoading(true);
     try {
       console.log("Starting fetchUserData...");
-      const token = getCookie('MindMateToken');
-      console.log("Token:", token ? "Found" : "Not found");
+      // const token = getCookie('MindMateToken');
+      // console.log("Token:", token ? "Found" : "Not found");
       
       const res = await api.get('/api/learner/profile', {
         withCredentials: true,
@@ -635,7 +663,7 @@ export default function LearnerPage() {
     setIsLoadingMentors(true);
     try {
       console.log("Fetching mentors from API...");
-      const token = getCookie('MindMateToken');
+      // const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/mentors', {
         withCredentials: true,
       });
@@ -656,7 +684,7 @@ export default function LearnerPage() {
   const fetchSchedules = async () => {
     setIsLoadingSchedules(true);
     try {
-      const token = getCookie('MindMateToken');
+      // const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/schedules', {
         withCredentials: true,
       });
@@ -1095,6 +1123,7 @@ export default function LearnerPage() {
         <LogoutComponent onCancel={handleCancelLogout} />
       )}
 
+      {/* Chatbot visible only on learner page */}
       <ChatbotWidget />
     </>
   );

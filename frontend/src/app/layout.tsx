@@ -4,7 +4,6 @@ import './globals.css';
 import Providers from '@/components/Providers';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import ChatbotWidget from '@/components/ChatbotWidget';
 
 export const metadata: Metadata = {
   title: 'MindMates - Peer Tutoring Platform',
@@ -23,6 +22,7 @@ export default function RootLayout({
           rel="stylesheet" 
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
         />
+        {/* Botpress removed: using local ChatbotWidget instead on learner/mentor pages */}
       </head>
       <body suppressHydrationWarning /* optional: disable Grammarly */ data-gramm="false">
         {/* Skip link for keyboard users */}
@@ -35,7 +35,6 @@ export default function RootLayout({
           </Providers>
           <ToastContainer />
         </main>
-        <ChatbotWidget />
       </body>
     </html>
   );

@@ -40,8 +40,10 @@ async function sendRoleConfirmationEmail({ id: uid, username, email }, role, rol
       { expiresIn: '2d' }
     );
 
-    const verifyUrl = `http://localhost:3001/api/auth/role/verify?token=${encodeURIComponent(verifyToken)}`;
-    const unverifyUrl = `http://localhost:3001/api/auth/role/unverify?token=${encodeURIComponent(unverifyToken)}`;
+    const API_BASE = process.env.BACKEND_URL || 'http://localhost:3001';
+
+    const verifyUrl = `${API_BASE}/api/auth/role/verify?token=${encodeURIComponent(verifyToken)}`;
+    const unverifyUrl = `${API_BASE}/api/auth/role/unverify?token=${encodeURIComponent(unverifyToken)}`;
 
     const subj = `Confirm your ${role === 'mentor' ? 'Mentor' : 'Learner'} account`;
     const text = `
@@ -86,6 +88,41 @@ MindMate Team
     console.error('[MAIL] Failed to send role confirmation email:', e.message);
   }
 }
+
+// Check auth endpoint - verifies token from httpOnly cookie and returns user info
+exports.checkAuth = async (req, res) => {
+  try {
+    const decoded = getValuesFromToken(req);
+    
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ 
+        authenticated: false, 
+        message: 'Not authenticated',
+        code: 401 
+      });
+    }
+
+    // Return essential user info (token is already verified by getValuesFromToken)
+    return res.status(200).json({
+      authenticated: true,
+      user: {
+        id: decoded.id,
+        username: decoded.username,
+        email: decoded.email,
+        role: decoded.role,
+        accountStatus: decoded.accountStatus
+      },
+      code: 200
+    });
+  } catch (error) {
+    console.error('[CHECK_AUTH ERROR]', error);
+    return res.status(401).json({ 
+      authenticated: false, 
+      message: 'Authentication failed',
+      code: 401 
+    });
+  }
+};
 
 
 exports.learnerSignup = async (req, res) => {
@@ -506,8 +543,8 @@ exports.login = async (req, res) => {
 
     res.cookie('MindMateToken', token, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'Lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
       path: '/',
       maxAge: parseInt(process.env.AUTH_COOKIE_MAX_AGE || `${7 * 24 * 60 * 60 * 1000}`, 10)
     });
@@ -773,8 +810,9 @@ exports.logout = async (req, res) => {
   try {
     res.clearCookie('MindMateToken', {
       httpOnly: true,
-      secure: false,
-      sameSite: 'Lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      path: '/'
     });
     return res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
@@ -1165,7 +1203,7 @@ exports.switchRole = async (req, res) => {
     try {
       res.clearCookie('MindMateToken', {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
         secure: process.env.NODE_ENV === 'production',
         path: '/',
       });

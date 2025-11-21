@@ -13,9 +13,11 @@ import CommunityForumComponent from '@/components/mentorpage/community/page';
 import SessionAnalyticsComponent from '@/components/mentorpage/analytics/page';
 import GroupSessionInvite from '@/components/mentorpage/GroupSessionInvite/page';
 import api from "@/lib/axios";
+import { checkAuth } from '@/lib/auth';
 import styles from './mentor.module.css';
 import { toast } from 'react-toastify';
 import Pusher from 'pusher-js';
+import ChatbotWidget from '@/components/ChatbotWidget';
 
 interface User {
   id: number | null;
@@ -157,14 +159,6 @@ const TOPBAR_ITEMS = [
   { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' }
 ];
 
-function getCookie(name: string) {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
-
 const StarRating = ({ rating }: { rating: number }) => {
   return (
     <div className={styles.stars}>
@@ -268,6 +262,32 @@ export default function MentorPage() {
     );
   });
 
+  // Authentication guard - check if user is logged in and has mentor role
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const auth = await checkAuth();
+        
+        if (!auth.authenticated) {
+          toast.error('Please log in to access this page');
+          router.replace('/auth/login');
+          return;
+        }
+
+        if (auth.user?.role !== 'mentor') {
+          toast.error('Access denied. This page is for mentors only.');
+          router.replace('/auth/login');
+          return;
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        router.replace('/auth/login');
+      }
+    };
+
+    verifyAuth();
+  }, [router]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (datePopupRef.current && !datePopupRef.current.contains(event.target as Node)) {
@@ -286,9 +306,24 @@ export default function MentorPage() {
 
     Pusher.logToConsole = true;
 
+    // Use a custom authorizer so the browser will include httpOnly cookies
+    // (credentials: 'include') when calling the auth endpoint. This avoids
+    // reading httpOnly cookies from JavaScript (not allowed) and ensures the
+    // backend `authenticateToken()` middleware can read the cookie.
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-      authEndpoint: `/api/pusher-auth`,
+      authorizer: (channel, options) => ({
+        authorize: (socketId, callback) => {
+          const body = `socket_id=${encodeURIComponent(socketId)}&channel_name=${encodeURIComponent(channel.name)}`;
+          // Call backend directly so httpOnly cookie set by backend is sent
+          api.post(`${backendUrl}/api/pusher/pusher/auth`, body, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          })
+            .then((res) => callback(null, res.data))
+            .catch((err) => callback(err, null));
+        },
+      }),
     });
 
     const channelName = `private-user-${userData.userId}`;
@@ -346,8 +381,8 @@ export default function MentorPage() {
     setApiError(null);
     try {
       console.log("Starting fetchUserData...");
-      const token = getCookie('MindMateToken');
-      console.log("Token:", token ? "Found" : "Not found");
+      // const token = getCookie('MindMateToken');
+      // console.log("Token:", token ? "Found" : "Not found");
       
       try {
         const res = await api.get('/api/mentor/profile', {
@@ -557,13 +592,13 @@ export default function MentorPage() {
     setIsLoadingLearners(true);
     try {
       console.log("Fetching learners from API...");
-      const token = getCookie('MindMateToken');
+      // const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/learners', {
         timeout: 50000,
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          // ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       
@@ -583,13 +618,13 @@ export default function MentorPage() {
     setIsLoadingSchedules(true);
     try {
       console.log("Fetching schedules from API...");
-      const token = getCookie('MindMateToken');
+      // const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/schedules', {
         timeout: 50000,
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          // ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
@@ -610,13 +645,13 @@ export default function MentorPage() {
     setIsLoadingFeedbacks(true);
     try {
       console.log("Fetching feedbacks from API...");
-      const token = getCookie('MindMateToken');
+      // const token = getCookie('MindMateToken');
       const res = await api.get('/api/mentor/feedbacks', {
         timeout: 50000,
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          // ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       
@@ -1627,9 +1662,8 @@ export default function MentorPage() {
           </div>
         </div>
       )}
-
-      {/* Group Session Invite Modal - This is now handled in ViewUser component */}
-      {/* showGroupInviteModal logic can be removed as invite is now in ViewUser */}
+      {/* Chatbot visible only on mentor page */}
+      <ChatbotWidget />
     </div>
   );
 }

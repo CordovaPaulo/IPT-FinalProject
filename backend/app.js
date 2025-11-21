@@ -22,6 +22,8 @@ const forumRouter = require('./routes/forum');
 const jitsiRouter = require('./routes/jitsi'); // NEW
 const roleRouter = require('./routes/role');
 const aiRouter = require('./routes/ai');
+const whiteboardRouter = require('./routes/whiteboard');
+const botpressRouter = require('./routes/botpress');
 
 const app = express();
 
@@ -33,12 +35,34 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser()); 
 
 // CORS configuration - MUST BE BEFORE ROUTES
-app.use(cors({
-    origin: 'http://localhost:3000',
+const corsOptions = {
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            process.env.FRONTEND_URL,
+            'https://mindmate-one-lac.vercel.app',
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'https://cdn.botpress.cloud',
+            'https://messaging.botpress.cloud',
+            'https://files.bpcontent.cloud'
+        ];
+        // Allow requests with no origin (like mobile apps, curl, or Botpress server-side requests)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            // Log blocked origins for debugging
+            console.warn('[CORS] Blocked origin:', origin);
+            callback(null, true); // Temporarily allow all for testing
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie'],
     credentials: true,
-}));
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 // API Routes
 app.use('/api', indexRouter);
@@ -55,6 +79,8 @@ app.use('/api/forum', forumRouter);
 app.use('/api/jitsi', jitsiRouter); // NEW
 app.use('/api/role', roleRouter);
 app.use('/ai', aiRouter);
+app.use('/api/whiteboard', whiteboardRouter);
+app.use('/api/botpress', botpressRouter);
 
 // 404 handler
 app.use((req, res, next) => {
