@@ -163,7 +163,7 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
           <thead>
             <tr>
               <th>LEARNER&apos;S NAME</th>
-              <th>COURSE</th>
+              <th>SPECIALIZATION</th>
               <th>YEAR</th>
               <th>RATING</th>
               <th>ACTIONS</th>
@@ -238,7 +238,7 @@ export default function ReviewsComponent({ feedbacks = [] }: ReviewsComponentPro
                   <h4>{getReviewerName(recordView.reviewer)}</h4>
                   <div className={styles.reviewsProfileDetails}>
                     <div className={styles.reviewsDetailItem}>
-                      <span className={styles.reviewsLabel}>Course:</span>
+                      <span className={styles.reviewsLabel}>Specialization:</span>
                       <span className={styles.reviewsValue}>{getReviewerCourse(recordView.reviewer)}</span>
                     </div>
                     <div className={styles.reviewsDetailItem}>

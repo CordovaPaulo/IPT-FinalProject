@@ -1475,7 +1475,7 @@ export default function MentorPage() {
           </div>
 
           <div className={styles.courseOffered}>
-            <h1>Course Offered</h1>
+            <h1>Specialization</h1>
             
             <div className={styles.courseGrid}>
               {displayedCourses.map((card, index) => (
@@ -1638,7 +1638,7 @@ export default function MentorPage() {
           <div className={styles.popupContainer}>
             <h3>Make Offer to Student</h3>
             <div className={styles.formGroup}>
-                <label htmlFor="subject-select">Subject:</label>
+                <label htmlFor="subject-select">Specialization:</label>
                 <select id="subject-select">
                   {subjects.map((subject, index) => (
                     <option key={index} value={subject}>

@@ -334,17 +334,17 @@ export default function Offer({ info, mentorId, onClose, onConfirm }: OfferProps
           </div>
 
           <div className={styles.offerSubjectSelect}>
-            <h3 className={styles.offerSubjectHeader}>Select Subject</h3>
+            <h3 className={styles.offerSubjectHeader}>Select Specialization</h3>
             <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}
               className={styles.offerSubjectDropdown} required>
-              <option value="" disabled>Choose a subject</option>
+              <option value="" disabled>Choose a specialization</option>
               {subjectOptions.map((s) => (<option key={s} value={s}>{s}</option>))}
             </select>
           </div>
 
-          <div className={styles.offerNotes}>
+          {/* <div className={styles.offerNotes}>
             <textarea placeholder="Notes or message (optional)" value={notes} onChange={(e)=>setNotes(e.target.value)} />
-          </div>
+          </div> */}
         </div>
       </div>
 

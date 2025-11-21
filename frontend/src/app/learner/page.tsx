@@ -951,7 +951,7 @@ export default function LearnerPage() {
           </div>
 
           <div className={styles['subject-interest']}>
-            <h1>Subject of Interest</h1>
+            <h1>Specialization</h1>
             <div className={styles['course-grid']}>
               {userData.subjects?.slice(0, 5).map((subject, index) => (
                 <div key={index} className={styles['course-card']}>
@@ -986,7 +986,7 @@ export default function LearnerPage() {
                   onClick={() => setShowAllCourses(false)}
                 />
                 <div className={styles['popup-content']}>
-                  <h3>All Subject of Interest</h3>
+                  <h3>All Specializations</h3>
                   <div className={styles['popup-courses']}>
                     {userData.subjects?.map((subject, index) => (
                       <div key={index} className={styles['popup-course']}>

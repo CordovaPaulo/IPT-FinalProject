@@ -265,7 +265,7 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
                 <hr className={styles.divider2} />
                 <div className={styles.detailsContent}>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Subjects Offered:</span>
+                    <span className={styles.detailLabel}>Specialization Offered:</span>
                     <span className={`${styles.detailValue} ${styles.wrapText}`}>
                       {parseArrayString(userInfo.subjects) || "N/A"}
                     </span>

@@ -345,7 +345,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
           <thead>
             <tr>
               <th>MENTOR&apos;S NAME</th>
-              <th>SUBJECT</th>
+              <th>SPECIALIZATION</th>
               <th>DATE</th>
               <th>RATING</th>
               <th>ACTIONS</th>
@@ -420,7 +420,7 @@ export default function ReviewsComponent({ schedForReview = [], userData, data }
                   <h4>{getReviewerName(recordView.reviewer)}</h4>
                   <div className="profile-details">
                     <div className="detail-item">
-                      <span className="detail-label">Subject:</span>
+                      <span className="detail-label">Specialization:</span>
                       <span className="detail-value">{recordView.subject || 'N/A'}</span>
                     </div>
                     <div className="detail-item">

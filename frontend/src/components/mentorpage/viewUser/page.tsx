@@ -213,7 +213,7 @@ export default function ViewUser({ userId, mentorData, onClose }: ViewUserProps)
                 <hr className={styles.viewDivider2} />
                 <div className={styles.viewDetailsContent}>
                   <div className={styles.viewDetailItem}>
-                    <span className={styles.viewDetailLabel}>Subjects of Interest:</span>
+                    <span className={styles.viewDetailLabel}>Specialization:</span>
                     <span className={`${styles.viewDetailValue} ${styles.viewWrapText}`}>
                       {Array.isArray(userInfo.subjects) ? userInfo.subjects.join(", ") : userInfo.subjects || "N/A"}
                     </span>
