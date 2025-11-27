@@ -6,10 +6,11 @@ import { useRouter } from 'next/navigation';
 import MainComponent from '@/components/learnerpage/main/page';
 import SessionComponent from '@/components/learnerpage/session/page';
 import ReviewsComponent from '@/components/learnerpage/reviews/page';
+import ChallengesComponent from '@/components/learnerpage/challenges/page';
 import EditInformation from '@/components/learnerpage/information/page';
 import LogoutComponent from '@/components/learnerpage/logout/page';
 import CommunityForumComponent from '@/components/learnerpage/community/page';
-import SessionAnalyticsComponent from '@/components/learnerpage/analytics/page'; // Add this import
+import SessionAnalyticsComponent from '@/components/learnerpage/analytics/page';
 import api from "@/lib/axios";
 import { checkAuth } from '@/lib/auth';
 import styles from './learner.module.css';
@@ -120,16 +121,16 @@ interface TransformedMentor {
 }
 
 interface ForumData {
-  id: string; // MongoDB ObjectId as string
+  id: string;
   title: string;
   content: string;
-  author: string; // MongoDB ObjectId as string
+  author: string;
   authorName: string;
   createdAt: string;
   upvotes: number;
   downvotes: number;
-  commentsCount: number; // backend uses commentsCount, not commentCount
-  topics?: string; // backend uses topics, not category
+  commentsCount: number;
+  topics?: string;
   tags?: string[];
   userVote?: 'up' | 'down' | null;
 }
@@ -140,7 +141,6 @@ interface ProgressData {
   progress: number;
 }
 
-// Add this
 interface RankData {
   rank: string;
   progress: number;
@@ -148,7 +148,6 @@ interface RankData {
   sessionsToNextRank: number | null;
 }
 
-// Update the AnalyticsData interface to match the backend response exactly
 interface AnalyticsData {
   totalSessions: number;
   oneOnOneSessions: number;
@@ -246,7 +245,7 @@ export default function LearnerPage() {
   const [transformedMentors, setTransformedMentors] = useState<TransformedMentor[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [forumData, setForumData] = useState<ForumData[]>([]);
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null); // Add analytics data state
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoadingMentors, setIsLoadingMentors] = useState(false);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   
@@ -265,23 +264,22 @@ export default function LearnerPage() {
   const [isTopbarFocused, setIsTopbarFocused] = useState(false);
   const topbarRef = useRef<HTMLDivElement>(null);
 
-  // Progress Data State - Simplified to just session attendance
   const [progressData, setProgressData] = useState<ProgressData>({
     sessionsAttended: 0,
     totalSessions: 0,
     progress: 0
   });
 
-  // Add this state
   const [rankData, setRankData] = useState<RankData | null>(null);
 
-  // Update topbarItems to include Analytics
+  // Update topbarItems to include Challenges
   const topbarItems = [
     { key: 'main', label: 'Mentors', icon: '/main.svg' },
     { key: 'session', label: 'Schedules', icon: '/calendar.svg' },
     { key: 'records', label: 'Reviews', icon: '/records.svg' },
+    { key: 'challenges', label: 'Challenges', icon: '/challenges.svg' },
     { key: 'community', label: 'Community', icon: '/community.svg' },
-    { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' } // Add Analytics
+    { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' }
   ];
 
   // Authentication guard - check if user is logged in and has learner role
@@ -328,18 +326,12 @@ export default function LearnerPage() {
 
     Pusher.logToConsole = true;
 
-    // Use a custom authorizer so the browser will include httpOnly cookies
-    // (credentials: 'include') when calling the auth endpoint. This avoids
-    // reading httpOnly cookies from JavaScript (not allowed) and ensures the
-    // backend `authenticateToken()` middleware can read the cookie.
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
       authorizer: (channel, options) => ({
         authorize: (socketId, callback) => {
           const body = `socket_id=${encodeURIComponent(socketId)}&channel_name=${encodeURIComponent(channel.name)}`;
-          // Call the backend auth endpoint directly so the browser will send
-          // the httpOnly cookie that was set by the backend (same host).
           api.post(`${backendUrl}/api/pusher/pusher/auth`, body, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           })
@@ -396,7 +388,6 @@ export default function LearnerPage() {
     };
   }, [userData.userId]);
 
-  // Update progress based on completed sessions
   useEffect(() => {
     const updateProgress = () => {
       const sessionsAttended = schedForReview.filter(session => session.has_feedback).length;
@@ -429,7 +420,6 @@ export default function LearnerPage() {
     }
   };
 
-  // Add fetchAnalyticsData function
   const fetchAnalyticsData = async () => {
     try {
       console.log("Fetching analytics data...");
@@ -440,7 +430,6 @@ export default function LearnerPage() {
       
       console.log("Analytics API Response:", res.data);
       if (res.data?.data) {
-        // Mount the data exactly as received from backend
         setAnalyticsData(res.data.data);
       }
       
@@ -566,7 +555,6 @@ export default function LearnerPage() {
       if (res.status === 200) {
         const newRole = res.data?.newRole;
         toast.success(`Role switched to ${newRole}. Please log in again.`);
-        // httpOnly cookie is cleared by backend logout endpoint
         localStorage.removeItem('auth_token');
         router.replace('/auth/login');
       } else {
@@ -636,8 +624,6 @@ export default function LearnerPage() {
     setIsLoading(true);
     try {
       console.log("Starting fetchUserData...");
-      // const token = getCookie('MindMateToken');
-      // console.log("Token:", token ? "Found" : "Not found");
       
       const res = await api.get('/api/learner/profile', {
         withCredentials: true,
@@ -648,7 +634,6 @@ export default function LearnerPage() {
         role: res.data.roleData.role,
         altRole: res.data.roleData.altRole
       });
-      // Mount rank data from payload
       setRankData(res.data.rankData || null);
       console.log(res.data);
       
@@ -663,7 +648,6 @@ export default function LearnerPage() {
     setIsLoadingMentors(true);
     try {
       console.log("Fetching mentors from API...");
-      // const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/mentors', {
         withCredentials: true,
       });
@@ -684,7 +668,6 @@ export default function LearnerPage() {
   const fetchSchedules = async () => {
     setIsLoadingSchedules(true);
     try {
-      // const token = getCookie('MindMateToken');
       const res = await api.get('/api/learner/schedules', {
         withCredentials: true,
       });
@@ -731,7 +714,7 @@ export default function LearnerPage() {
           fetchMentors(),
           fetchSchedules(),
           fetchForumData(),
-          fetchAnalyticsData() // Add analytics data fetch
+          fetchAnalyticsData()
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -753,10 +736,9 @@ export default function LearnerPage() {
     console.log("Current userData state:", userData);
   }, [userData]);
 
-  // Helper for rank progress percentage
   const rankProgressPct = (() => {
     if (!rankData) return 0;
-    if (rankData.requiredSessions == null) return 100; // top rank
+    if (rankData.requiredSessions == null) return 100;
     const req = Math.max(Number(rankData.requiredSessions) || 0, 1);
     const prog = Math.max(Number(rankData.progress) || 0, 0);
     return Math.min(Math.round((prog / req) * 100), 100);
@@ -827,6 +809,8 @@ export default function LearnerPage() {
             data={{ schedForReview: schedForReview }}
           />
         );
+      case 'challenges':
+        return <ChallengesComponent userData={userData} />;
       case 'community':
         return (
           <CommunityForumComponent 
@@ -835,7 +819,7 @@ export default function LearnerPage() {
             onForumUpdate={fetchForumData}
           />
         );
-      case 'analytics': // Add analytics case
+      case 'analytics':
         return (
           <SessionAnalyticsComponent 
             analyticsData={analyticsData}
@@ -1109,9 +1093,7 @@ export default function LearnerPage() {
             onCancel={() => setIsEdit(false)}
             onSave={(updatedData) => {
               console.log('Data saved:', updatedData);
-              // Update the user data with the saved changes
               handleUpdateUserData(updatedData);
-              // Close the modal
               setIsEdit(false);
             }}
             onUpdateUserData={handleUpdateUserData}
@@ -1123,7 +1105,6 @@ export default function LearnerPage() {
         <LogoutComponent onCancel={handleCancelLogout} />
       )}
 
-      {/* Chatbot visible only on learner page */}
       <ChatbotWidget />
     </>
   );

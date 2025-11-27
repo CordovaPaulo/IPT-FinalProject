@@ -12,6 +12,7 @@ import LogoutComponent from '@/components/mentorpage/logout/page';
 import CommunityForumComponent from '@/components/mentorpage/community/page';
 import SessionAnalyticsComponent from '@/components/mentorpage/analytics/page';
 import GroupSessionInvite from '@/components/mentorpage/GroupSessionInvite/page';
+import ChallengesComponent from '@/components/mentorpage/challenges/page';
 import api from "@/lib/axios";
 import { checkAuth } from '@/lib/auth';
 import styles from './mentor.module.css';
@@ -155,6 +156,7 @@ const TOPBAR_ITEMS = [
   { key: 'reviews', label: 'Reviews', icon: '/records.svg' },
   { key: 'files', label: 'Files', icon: '/uploadCloud.svg' },
   { key: 'fileManage', label: 'File Manager', icon: '/files.svg' },
+  { key: 'challenges', label: 'Challenges', icon: '/challenges.svg' },
   { key: 'community', label: 'Community', icon: '/community.svg' },
   { key: 'analytics', label: 'Analytics', icon: '/analytics.svg' }
 ];
@@ -926,204 +928,6 @@ export default function MentorPage() {
     );
   };
 
-  /*
-  const AccessibilityNavPad = () => {
-    const [isVisible, setIsVisible] = useState(false);
-    const [focusedNavIndex, setFocusedNavIndex] = useState(0);
-
-    const navItems = TOPBAR_ITEMS;
-
-    useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.ctrlKey && e.altKey && e.key === 'n') {
-          e.preventDefault();
-          setIsVisible(prev => !prev);
-          const currentIndex = navItems.findIndex(item => item.key === activeComponent);
-          setFocusedNavIndex(currentIndex >= 0 ? currentIndex : 0);
-        }
-
-        if (isVisible) {
-          switch (e.key) {
-            case 'ArrowLeft':
-              e.preventDefault();
-              navigateNavItems('left');
-              break;
-            case 'ArrowRight':
-              e.preventDefault();
-              navigateNavItems('right');
-              break;
-            case 'Enter':
-            case ' ':
-              e.preventDefault();
-              activateFocusedNavItem();
-              break;
-            case 'Escape':
-              e.preventDefault();
-              setIsVisible(false);
-              break;
-            case 'Home':
-              e.preventDefault();
-              setFocusedNavIndex(0);
-              break;
-            case 'End':
-              e.preventDefault();
-              setFocusedNavIndex(navItems.length - 1);
-              break;
-          }
-        }
-      };
-
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isVisible, focusedNavIndex, activeComponent]);
-
-    const navigateNavItems = (direction: 'left' | 'right') => {
-      if (direction === 'right') {
-        setFocusedNavIndex((prev) => (prev + 1) % navItems.length);
-      } else {
-        setFocusedNavIndex((prev) => (prev - 1 + navItems.length) % navItems.length);
-      }
-    };
-
-    const activateFocusedNavItem = () => {
-      const focusedItem = navItems[focusedNavIndex];
-      setActiveComponent(focusedItem.key);
-    };
-
-    const quickNavigate = (component: string) => {
-      setActiveComponent(component);
-      const index = navItems.findIndex(item => item.key === component);
-      if (index >= 0) {
-        setFocusedNavIndex(index);
-      }
-    };
-
-    const handleNavPadClose = () => {
-      setIsVisible(false);
-      const currentIndex = navItems.findIndex(item => item.key === activeComponent);
-      setFocusedNavIndex(currentIndex >= 0 ? currentIndex : 0);
-    };
-
-    if (!isVisible) return null;
-
-    return (
-      <>
-        <div className={styles.accessibilityNavPadOverlay} onClick={handleNavPadClose}></div>
-        <div className={styles.accessibilityNavPad}>
-          <div className={styles.navPadHeader}>
-            <h3>Accessibility Navigation</h3>
-            <button 
-              className={styles.closeNavPad} 
-              onClick={handleNavPadClose}
-              aria-label="Close navigation pad"
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <div className={styles.navPadControls}>
-            <div className={styles.navVisualIndicator}>
-              <div className={styles.navTrack}>
-                {navItems.map((item, index) => (
-                  <div
-                    key={item.key}
-                    className={`${styles.navPoint} ${index === focusedNavIndex ? styles.focused : ''} ${
-                      item.key === activeComponent ? styles.active : ''
-                    }`}
-                    onClick={() => {
-                      setFocusedNavIndex(index);
-                      activateFocusedNavItem();
-                    }}
-                  >
-                    <div className={styles.navPointIcon}>
-                      <img src={item.icon} alt={item.label} />
-                    </div>
-                    <span className={styles.navPointLabel}>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.navDirection}>
-              <button 
-                className={styles.navBtn}
-                onClick={() => navigateNavItems('left')}
-                aria-label="Navigate to previous nav item"
-              >
-                <i className="fas fa-arrow-left"></i>
-                <span>Previous</span>
-              </button>
-              
-              <div className={styles.navDisplay}>
-                <span className={styles.currentNavItem}>
-                  {navItems[focusedNavIndex]?.label}
-                </span>
-                <span className={styles.navPosition}>
-                  {focusedNavIndex + 1} of {navItems.length}
-                </span>
-              </div>
-              
-              <button 
-                className={styles.navBtn}
-                onClick={() => navigateNavItems('right')}
-                aria-label="Navigate to next nav item"
-              >
-                <span>Next</span>
-                <i className="fas fa-arrow-right"></i>
-              </button>
-            </div>
-
-            <div className={styles.navActivation}>
-              <button 
-                className={styles.activateBtn}
-                onClick={activateFocusedNavItem}
-                aria-label={`Activate ${navItems[focusedNavIndex]?.label} section`}
-              >
-                <i className="fas fa-arrow-right-to-bracket"></i>
-                Activate {navItems[focusedNavIndex]?.label}
-              </button>
-            </div>
-
-            <div className={styles.quickNavGrid}>
-              {navItems.map((item, index) => (
-                <button 
-                  key={item.key}
-                  className={`${styles.quickNavBtn} ${item.key === activeComponent ? styles.active : ''} ${
-                    index === focusedNavIndex ? styles.focused : ''
-                  }`}
-                  onClick={() => quickNavigate(item.key)}
-                >
-                  <img src={item.icon} alt={item.label} />
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.navShortcuts}>
-              <div className={styles.shortcutItem}>
-                <kbd>←</kbd> / <kbd>→</kbd>
-                <span>Navigate Nav Items</span>
-              </div>
-              <div className={styles.shortcutItem}>
-                <kbd>Enter</kbd> / <kbd>Space</kbd>
-                <span>Activate Focused Item</span>
-              </div>
-              <div className={styles.shortcutItem}>
-                <kbd>Home</kbd> / <kbd>End</kbd>
-                <span>Jump to First/Last</span>
-              </div>
-              <div className={styles.shortcutItem}>
-                <kbd>ESC</kbd>
-                <span>Close Navigation Pad</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  };
-  */
-
   const renderComponent = () => {
     const MainComp: any = MainComponent;
     const SessionComp: any = SessionComponent;
@@ -1132,6 +936,7 @@ export default function MentorPage() {
     const FileManagerComp: any = FileManagerComponent;
     const CommunityForumComp: any = CommunityForumComponent;
     const SessionAnalyticsComp: any = SessionAnalyticsComponent;
+    const ChallengesComp: any = ChallengesComponent;
 
     const mainContent = (() => {
       switch (activeComponent) {
@@ -1182,6 +987,8 @@ export default function MentorPage() {
             setFiles={setFiles}
             userData={userData}
           />;
+        case 'challenges':
+          return <ChallengesComp userData={userData} />;
         case 'community':
           return <CommunityForumComp 
             forumData={forumData}
@@ -1287,12 +1094,8 @@ export default function MentorPage() {
         />
       )}
       
-      {/* <AccessibilityNavPad /> */}
-      
       {showLogoutModal && (
         <LogoutComponent
-          // userData={userData}
-          // onConfirm={confirmLogout}
           onCancel={cancelLogout}
         />
       )}
@@ -1360,17 +1163,6 @@ export default function MentorPage() {
           </div>
         </div>
       )}
-
-      {/*
-      <button 
-        className={styles.accessibilityToggleBtn}
-        onClick={() => setShowAccessibilityNav(prev => !prev)}
-        aria-label="Toggle accessibility navigation"
-        title="Accessibility Navigation (Ctrl+Alt+N)"
-      >
-        <i className="fas fa-universal-access"></i>
-      </button>
-      */}
 
       {isMobileView && (
         <button className={styles.sidebarToggle} onClick={toggleSidebar}>
