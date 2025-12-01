@@ -18,6 +18,7 @@ router.post('/files/upload', jwtService.authenticateToken('mentor'), multerUploa
 router.post('/send-offer/:learnerId', jwtService.authenticateToken('mentor'), mentorController.sendOffer);
 router.post('/send-offer/group/:learnerId', jwtService.authenticateToken('mentor'), mentorController.sendGroupSessionOffer);
 router.post('/send-existing-offer/group/:learnerId/:sessionId', jwtService.authenticateToken('mentor'), mentorController.sendExistingGroupSessionOffer);
+router.post('/schedules/preset', jwtService.authenticateToken('mentor'), mentorController.createPresetSched);
 
 // GET routes
 router.get('/profile', jwtService.authenticateToken('mentor'), mentorController.getProfileInfo);
@@ -29,6 +30,7 @@ router.get('/feedbacks', jwtService.authenticateToken('mentor'), mentorControlle
 router.get('/feedbacks/reviewer/:id', jwtService.authenticateToken('mentor'), mentorController.getReviewer);
 router.get('/files', jwtService.authenticateToken('mentor'), mentorController.getLearningMaterialsList);
 router.get('/files/:fileId', jwtService.authenticateToken('mentor'), mentorController.getLearningMaterial);
+router.get('/schedules/preset', jwtService.authenticateToken('mentor'), mentorController.getPresetScheds);
 
 
 // DELETE routes

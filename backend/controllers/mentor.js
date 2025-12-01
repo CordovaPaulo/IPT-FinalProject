@@ -1,4 +1,5 @@
 const Learner = require('../models/Learner');
+const mongoose = require('mongoose');
 const Mentor = require('../models/Mentor');
 const User = require('../models/user');
 const Schedule = require('../models/Schedule');
@@ -12,6 +13,7 @@ const pusher = require('../service/pusher');
 const { schedulePayload } = require('../utils/realtimePayload');
 const Rank = require('../models/rank');
 const Badge = require('../models/badges');
+const presetSched = require('../models/presetSched');
 
 // Safe helper to resolve mentor and call awardMentorBadges without relying on userData variable
 async function safeAwardMentorBadgesByUserId(userOrMentorId) {
@@ -101,7 +103,7 @@ exports.setSchedule = async (req, res) => {
 
     const decoded = getValuesFromToken(req);
 
-    const learner = await Learner.findById(id);
+    const learner = await Learner.findOne({_id: id});
 
     if(!learner){
       return res.status(404).json({message: 'Learner not found', code: 404})
@@ -1202,5 +1204,97 @@ exports.getGroupSessions = async (req, res) => {
   } catch (error) {
       console.error('getGroupSessions error:', error);
       return res.status(500).json({ message: error.message, code: 500 });
+  }
+}
+
+exports.createPresetSched = async (req, res) => {
+  const decoded = getValuesFromToken(req);
+  if (!decoded || !decoded.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  try {
+    const presetSchedCount = await presetSched.find({mentor: decoded.id}).countDocuments();
+    if (presetSchedCount >= 5) {
+      return res.status(400).json({ message: 'Preset schedule limit reached (max 5)', code: 400 });
+    }
+
+    const mentor = await Mentor.findOne({
+      $or: [
+        { _id: decoded.id },
+        { userId: decoded.id }
+      ]
+    });
+
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    }
+
+    const { days, time, subject } = req.body;
+
+    // Accept either a single day string or an array of day strings
+    const dayArray = Array.isArray(days) ? days : (typeof days === 'string' ? [days] : []);
+    if (dayArray.length === 0 || !time || !subject) {
+      return res.status(400).json({ message: 'days (string or array), time, and subject are required', code: 400 });
+    }
+
+    // ensure participants is defined (optional list of learner ids)
+    const participants = Array.isArray(req.body.participants) ? req.body.participants : [];
+
+    // Resolve allowed enum values from the presetSched model (falls back to lowercase names)
+    const schemaEnumValues = Array.isArray(presetSched.schema.path('days')?.enumValues)
+      ? presetSched.schema.path('days').enumValues
+      : ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+
+    // Map incoming day names case-insensitively to the schema's enum values
+    const normalizedDays = [];
+    for (const d of dayArray) {
+      const match = schemaEnumValues.find(ev => String(ev).toLowerCase() === String(d).toLowerCase());
+      if (!match) {
+        return res.status(400).json({ message: `Invalid day value: ${d}. Allowed: ${schemaEnumValues.join(', ')}`, code: 400 });
+      }
+      normalizedDays.push(match);
+    }
+
+    // Create a single preset schedule document containing the array of days
+    const doc = new presetSched({
+      mentor: mentor._id,
+      mentorName: mentor.name,
+      days: normalizedDays,
+      time,
+      subject,
+      participants
+    });
+    await doc.save();
+
+    return res.status(201).json({ message: 'Preset schedule created', created: doc, count: 1, code: 201 });
+  } catch (error) {
+    console.error('createPresetSched error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+};
+
+exports.getPresetScheds = async (req, res) => {
+  const decoded = getValuesFromToken(req);
+  if (!decoded || !decoded.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  try {
+    const mentor = await Mentor.findOne({
+      $or: [
+        { _id: decoded.id },
+        { userId: decoded.id }
+      ]
+    });
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    }
+    const scheds = await presetSched.find({ mentor: mentor._id });
+
+    return res.status(200).json({ message: 'Preset schedules fetched', presetSchedules: scheds, count: scheds.length, code: 200 });
+  } catch (error) {
+    console.error('getPresetScheds error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
   }
 }
