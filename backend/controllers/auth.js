@@ -159,14 +159,14 @@ exports.learnerSignup = async (req, res) => {
     goals,
     address,
     modality,
-    subjects,
+    specialization,
     availability,
     style,
     sessionDur
   } = req.body;
 
   // Parse arrays if sent as JSON strings
-  const parsedSubjects = typeof subjects === 'string' ? JSON.parse(subjects) : subjects;
+  const parsedSpecialization = typeof specialization === 'string' ? JSON.parse(specialization) : specialization;
   const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
   const parsedStyle = typeof style === 'string' ? JSON.parse(style) : style;
 
@@ -177,7 +177,7 @@ exports.learnerSignup = async (req, res) => {
   }
 
   // Validate required fields
-  if (!decoded.id || !decoded.username || !decoded.email || !program || !yearLevel || !phoneNumber || !bio || !sex || !goals || !address || !modality || !parsedSubjects || !parsedAvailability || !parsedStyle || !sessionDur) {
+  if (!decoded.id || !decoded.username || !decoded.email || !program || !yearLevel || !phoneNumber || !bio || !sex || !goals || !address || !modality || !parsedSpecialization || !parsedAvailability || !parsedStyle || !sessionDur) {
     return res.status(400).json({ message: 'All fields are required', code: 400 });
   }
 
@@ -216,8 +216,8 @@ exports.learnerSignup = async (req, res) => {
   }
 
   // Validate arrays
-  if (!Array.isArray(parsedSubjects) || parsedSubjects.length === 0) {
-    return res.status(400).json({ message: 'Subjects must be a non-empty array', code: 400 });
+  if (!Array.isArray(parsedSpecialization) || parsedSpecialization.length === 0) {
+    return res.status(400).json({ message: 'Specialization must be a non-empty array', code: 400 });
   }
   if (!Array.isArray(parsedAvailability) || parsedAvailability.length === 0) {
     return res.status(400).json({ message: 'Availability must be a non-empty array', code: 400 });
@@ -254,7 +254,7 @@ exports.learnerSignup = async (req, res) => {
       goals,
       address,
       modality,
-      subjects: parsedSubjects,
+      specialization: parsedSpecialization,
       availability: parsedAvailability,
       style: parsedStyle,
       sessionDur,
@@ -360,16 +360,16 @@ exports.mentorSignup = async (req, res) => {
   // Parse fields from req.body (FormData sends all as strings)
   const {
     sex, program, yearLevel, phoneNumber, bio, exp, address, modality,
-    proficiency, subjects, availability, style, sessionDur
+    proficiency, specialization, availability, style, sessionDur
   } = req.body;
 
   // Parse arrays if sent as JSON strings
-  const parsedSubjects = typeof subjects === 'string' ? JSON.parse(subjects) : subjects;
+  const parsedSpecialization = typeof specialization === 'string' ? JSON.parse(specialization) : specialization;
   const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
   const parsedStyle = typeof style === 'string' ? JSON.parse(style) : style;
 
   // Validate required fields (add more as needed)
-  if (!decoded.id || !decoded.username || !decoded.email || !sex || !program || !yearLevel || !phoneNumber || !bio || !exp || !address || !modality || !proficiency || !parsedSubjects || !parsedAvailability || !parsedStyle || !sessionDur) {
+  if (!decoded.id || !decoded.username || !decoded.email || !sex || !program || !yearLevel || !phoneNumber || !bio || !exp || !address || !modality || !proficiency || !parsedSpecialization || !parsedAvailability || !parsedStyle || !sessionDur) {
     return res.status(400).json({ message: 'All fields are required', code: 400 });
   }
 
@@ -408,8 +408,8 @@ exports.mentorSignup = async (req, res) => {
   }
 
   // Validate arrays
-  if (!Array.isArray(parsedSubjects) || parsedSubjects.length === 0) {
-    return res.status(400).json({ message: 'Subjects must be a non-empty array', code: 400 });
+  if (!Array.isArray(parsedSpecialization) || parsedSpecialization.length === 0) {
+    return res.status(400).json({ message: 'Specialization must be a non-empty array', code: 400 });
   }
   if (!Array.isArray(parsedAvailability) || parsedAvailability.length === 0) {
     return res.status(400).json({ message: 'Availability must be a non-empty array', code: 400 });
@@ -447,7 +447,7 @@ exports.mentorSignup = async (req, res) => {
       address,
       modality,
       proficiency,
-      subjects: parsedSubjects,
+      specialization: parsedSpecialization,
       availability: parsedAvailability,
       style: parsedStyle,
       sessionDur,
@@ -850,13 +850,13 @@ exports.learnerAltSignup = async (req, res) => {
     goals,
     address,
     modality,
-    subjects,
+    specialization,
     availability,
     style,
     sessionDur
   } = req.body;
 
-  const parsedSubjects = typeof subjects === 'string' ? JSON.parse(subjects) : subjects;
+  const parsedSpecialization = typeof specialization === 'string' ? JSON.parse(specialization) : specialization;
   const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
   const parsedStyle = typeof style === 'string' ? JSON.parse(style) : style;
 
@@ -865,7 +865,7 @@ exports.learnerAltSignup = async (req, res) => {
     return res.status(400).json({ message: 'Learner already exists', code: 400 });
   }
 
-  if (!decoded.id || !decoded.username || !decoded.email || !program || !yearLevel || !phoneNumber || !bio || !sex || !goals || !address || !modality || !parsedSubjects || !parsedAvailability || !parsedStyle || !sessionDur) {
+  if (!decoded.id || !decoded.username || !decoded.email || !program || !yearLevel || !phoneNumber || !bio || !sex || !goals || !address || !modality || !parsedSpecialization || !parsedAvailability || !parsedStyle || !sessionDur) {
     return res.status(400).json({ message: 'All fields are required', code: 400 });
   }
 
@@ -900,8 +900,8 @@ exports.learnerAltSignup = async (req, res) => {
     return res.status(400).json({ message: 'Invalid sex value', code: 400, validOptions: validSexValues });
   }
 
-  if (!Array.isArray(parsedSubjects) || parsedSubjects.length === 0) {
-    return res.status(400).json({ message: 'Subjects must be a non-empty array', code: 400 });
+  if (!Array.isArray(parsedSpecialization) || parsedSpecialization.length === 0) {
+    return res.status(400).json({ message: 'Specialization must be a non-empty array', code: 400 });
   }
   if (!Array.isArray(parsedAvailability) || parsedAvailability.length === 0) {
     return res.status(400).json({ message: 'Availability must be a non-empty array', code: 400 });
@@ -935,7 +935,7 @@ exports.learnerAltSignup = async (req, res) => {
       goals,
       address,
       modality,
-      subjects: parsedSubjects,
+      specialization: parsedSpecialization,
       availability: parsedAvailability,
       style: parsedStyle,
       sessionDur,
@@ -1024,14 +1024,14 @@ exports.mentorAltSignup = async (req, res) => {
 
   const {
     sex, program, yearLevel, phoneNumber, bio, exp, address, modality,
-    proficiency, subjects, availability, style, sessionDur
+    proficiency, specialization, availability, style, sessionDur
   } = req.body;
 
-  const parsedSubjects = typeof subjects === 'string' ? JSON.parse(subjects) : subjects;
+  const parsedSpecialization = typeof specialization === 'string' ? JSON.parse(specialization) : specialization;
   const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
   const parsedStyle = typeof style === 'string' ? JSON.parse(style) : style;
 
-  if (!decoded.id || !decoded.username || !decoded.email || !sex || !program || !yearLevel || !phoneNumber || !bio || !exp || !address || !modality || !proficiency || !parsedSubjects || !parsedAvailability || !parsedStyle || !sessionDur) {
+  if (!decoded.id || !decoded.username || !decoded.email || !sex || !program || !yearLevel || !phoneNumber || !bio || !exp || !address || !modality || !proficiency || !parsedSpecialization || !parsedAvailability || !parsedStyle || !sessionDur) {
     return res.status(400).json({ message: 'All fields are required', code: 400 });
   }
 
@@ -1068,8 +1068,8 @@ exports.mentorAltSignup = async (req, res) => {
     return res.status(400).json({ message: 'Invalid sex value', code: 400, validOptions: validSexValues });
   }
 
-  if (!Array.isArray(parsedSubjects) || parsedSubjects.length === 0) {
-    return res.status(400).json({ message: 'Subjects must be a non-empty array', code: 400 });
+  if (!Array.isArray(parsedSpecialization) || parsedSpecialization.length === 0) {
+    return res.status(400).json({ message: 'Specialization must be a non-empty array', code: 400 });
   }
   if (!Array.isArray(parsedAvailability) || parsedAvailability.length === 0) {
     return res.status(400).json({ message: 'Availability must be a non-empty array', code: 400 });
@@ -1104,7 +1104,7 @@ exports.mentorAltSignup = async (req, res) => {
       address,
       modality,
       proficiency,
-      subjects: parsedSubjects,
+      specialization: parsedSpecialization,
       availability: parsedAvailability,
       style: parsedStyle,
       sessionDur,

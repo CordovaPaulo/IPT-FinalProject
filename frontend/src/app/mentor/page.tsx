@@ -36,6 +36,7 @@ interface Mentor {
   prefSessDur: string;
   bio: string;
   subjects: string[];
+  specializations?: string[];
   image: string;
   phoneNum: string;
   teach_sty: string[];
@@ -218,6 +219,8 @@ export default function MentorPage() {
     createdAt: "",
     __v: 0
   });
+  // prefer explicit specializations state (derived from profile)
+  const [userSpecializations, setUserSpecializations] = useState<string[]>([]);
   
   const [users, setUsers] = useState<any[]>([]);
   const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
@@ -250,7 +253,7 @@ export default function MentorPage() {
   const topbarRef = useRef<HTMLDivElement>(null);
   const datePopupRef = useRef<HTMLDivElement>(null);
 
-  const subjects = userData?.subjects || [];
+  const subjects = (userSpecializations && userSpecializations.length > 0) ? userSpecializations : (userData?.subjects || []);
   const displayedCourses = subjects.slice(0, 5);
   const remainingCoursesCount = Math.max(subjects.length - 5, 0);
   const courseAbbreviation = userData.program?.match(/\(([^)]+)\)/)?.[1] || userData.program;
@@ -394,6 +397,15 @@ export default function MentorPage() {
 
         if (res.data && res.data.userData) {
           setUserData(res.data.userData);
+          // derive and store specializations (backward-compatible with older 'subjects')
+          try {
+            const raw = res.data.userData?.specialization || res.data.userData?.specializations || res.data.userData?.subjects || [];
+            const parsed = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+            setUserSpecializations(Array.isArray(parsed) ? parsed : []);
+          } catch (e) {
+            console.warn('Failed to parse specializations from profile:', e);
+            setUserSpecializations([]);
+          }
           setRoleData(res.data.roleData);
           setBadges(Array.isArray(res.data.badges) ? res.data.badges : []);
           console.log("Mentor profile data:", res.data);
