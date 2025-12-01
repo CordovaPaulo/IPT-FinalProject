@@ -11,6 +11,7 @@ const uploadController = require('./upload');
 const calculateMatchScore = require('../utils/matchingUtils');
 const Rank = require('../models/rank'); // <-- added
 const Badge = require('../models/badges'); // added
+const presetSched = require('../models/presetSched');
 
 // Safe helper to resolve mentor and call awardMentorBadges without relying on userData variable
 async function safeAwardMentorBadgesByUserId(userOrMentorId) {
@@ -1318,5 +1319,43 @@ exports.editProfile = async (req, res) => {
       }
       
       return res.status(500).json({ message: 'Internal server error', code: 500 });
+  }
+}
+
+exports.joinPresetSchedule = async (req, res) => {
+  const { presetId } = req.params;
+  const decoded = getValuesFromToken(req);
+  if (!decoded?.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  try {
+    const sched = await presetSched.findOne({_id: presetId});
+    if (!sched) {
+      return res.status(404).json({ message: 'Preset schedule not found', code: 404 });
+    }
+
+    const learner = await Learner.findOne({
+      $or: [{ _id: decoded.id }, { userId: decoded.id }]
+    });
+    if (!learner) {
+      return res.status(404).json({ message: 'Learner not found', code: 404 });
+    }
+
+    // check if learner already joined
+    const alreadyJoined = Array.isArray(sched.participants) && sched.participants.some(l => String(l) === String(learner._id));
+    if (alreadyJoined) {
+      return res.status(409).json({ message: 'You already joined this preset schedule', schedule: sched, code: 409 });
+    }
+
+    sched.participants = sched.participants || [];
+    sched.participants.push(learner._id);
+    await sched.save();
+
+    return res.status(200).json({ message: 'Successfully joined preset schedule', schedule: sched, code: 200 });
+
+  } catch (error) {
+    console.error('joinPresetSchedule error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
   }
 }

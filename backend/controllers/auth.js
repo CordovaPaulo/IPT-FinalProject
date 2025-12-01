@@ -12,10 +12,6 @@ const mailingController = require('./mailing');
 const VerificationToken = require('../models/VerificationToken');
 const crypto = require('crypto');
 const Rank = require('../models/rank');
-// const APP_BASE = (process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/,'');
-// const API_BASE = (process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:5000').replace(/\/+$/,'');
-
-// Helper: send role confirmation email with verify/unverify links
 async function sendRoleConfirmationEmail({ id: uid, username, email }, role, roleDocId) {
   try {
     const ttlMs = 2 * 24 * 60 * 60 * 1000; // 2 days
@@ -123,7 +119,6 @@ exports.checkAuth = async (req, res) => {
     });
   }
 };
-
 
 exports.learnerSignup = async (req, res) => {
   const decoded = getValuesFromToken(req);
