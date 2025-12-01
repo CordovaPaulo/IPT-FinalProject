@@ -11,7 +11,8 @@
     "roleBackFill": "node ./scripts/backfillRoleStatuses.js",
     "scheduleBackFill": "node ./scripts/backfillSchedules.js",
     "rankBackFill": "node ./scripts/backfillRanks.js",
-    "subtospecfill": "node ./scripts/migrate-subjects-to-specialization.js"
+    "subtospecfill": "node ./scripts/migrate-subjects-to-specialization.js",
+    "archivedBackfill": "node ./scripts/backfillArchived.js"
   },
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",

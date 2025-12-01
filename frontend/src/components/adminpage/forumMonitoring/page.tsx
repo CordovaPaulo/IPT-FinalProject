@@ -11,16 +11,12 @@ interface Post {
   content: string;
   author: string;
   authorName: string;
-  authorProgram: string;
-  authorYear: string;
+  archived: boolean;
   createdAt: string;
   upvotes: number;
   downvotes: number;
   commentsCount: number;
   topics?: string;
-  tags?: string[];
-  userVote?: 'up' | 'down' | null;
-  status?: 'active' | 'archived';
 }
 
 interface Comment {
@@ -28,14 +24,11 @@ interface Comment {
   content: string;
   author: string;
   authorName: string;
+  archived: boolean;
   createdAt: string;
   upvotes: number;
   downvotes: number;
   commentsCount: number;
-  postId?: string;
-  parentCommentId?: string;
-  replies?: Comment[];
-  userVote?: 'up' | 'down' | null;
 }
 
 // SVG Icons
@@ -103,90 +96,36 @@ export default function ForumMonitoring() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'archived'>('all');
   const [showCommentsModal, setShowCommentsModal] = useState(false);
-  const [activeReply, setActiveReply] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
-  const [newComment, setNewComment] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const categories = ['All', 'Teaching Methods', 'Student Management', 'Curriculum', 'Technology', 'General'];
 
-  // Sample data
-  const sampleData: Post[] = [
-    {
-      id: '1',
-      title: 'Need help with Data Structures assignment',
-      content: 'I am struggling with understanding binary trees and their implementations. Can anyone explain the different traversal methods? I have tried watching tutorials but still confused about the practical implementation.',
-      author: 'user1',
-      authorName: 'John Smith',
-      authorProgram: 'BS Computer Science',
-      authorYear: '3rd Year',
-      createdAt: '2024-01-15T10:30:00Z',
-      upvotes: 15,
-      downvotes: 2,
-      commentsCount: 8,
-      topics: 'Data Structures',
-      tags: ['algorithms', 'java', 'homework'],
-      status: 'active'
-    },
-    {
-      id: '2',
-      title: 'Best resources for learning React?',
-      content: 'Looking for recommendations on tutorials, documentation, and practice projects for mastering React development. Any suggestions would be greatly appreciated!',
-      author: 'user2',
-      authorName: 'Maria Garcia',
-      authorProgram: 'BS Information Technology',
-      authorYear: '2nd Year',
-      createdAt: '2024-01-14T14:20:00Z',
-      upvotes: 23,
-      downvotes: 1,
-      commentsCount: 12,
-      topics: 'Web Development',
-      tags: ['react', 'javascript', 'frontend'],
-      status: 'active'
-    },
-    {
-      id: '3',
-      title: 'Database normalization examples needed',
-      content: 'Can someone provide real-world examples of database normalization up to 3NF? Having trouble understanding the practical application of normalization principles.',
-      author: 'user3',
-      authorName: 'David Chen',
-      authorProgram: 'BS Computer Science',
-      authorYear: '4th Year',
-      createdAt: '2024-01-13T09:15:00Z',
-      upvotes: 8,
-      downvotes: 0,
-      commentsCount: 5,
-      topics: 'Database',
-      tags: ['sql', 'database-design'],
-      status: 'archived'
-    },
-    {
-      id: '4',
-      title: 'Python vs Java for beginners discussion',
-      content: 'Which programming language would you recommend for someone starting their coding journey? Looking for insights from experienced developers.',
-      author: 'user4',
-      authorName: 'Sarah Johnson',
-      authorProgram: 'BS Information Systems',
-      authorYear: '1st Year',
-      createdAt: '2024-01-12T16:45:00Z',
-      upvotes: 31,
-      downvotes: 3,
-      commentsCount: 25,
-      topics: 'Programming',
-      tags: ['python', 'java', 'beginners'],
-      status: 'archived'
-    }
-  ];
-
   const fetchForumData = async () => {
     try {
-      setTimeout(() => {
-        setPosts(sampleData);
-      }, 1000);
+      setIsLoading(true);
+      const response = await api.get('/api/forum/admin/posts');
+      if (response.status === 200) {
+        setPosts(response.data);
+      }
     } catch (error) {
-      console.error('Error fetching forum data:', error);
-      toast.error('Error loading forum posts');
+      console.error('Error fetching forum posts:', error);
+      toast.error('Failed to load forum posts');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchComments = async (postId: string) => {
+    try {
+      const response = await api.get(`/api/forum/admin/posts/comments/${postId}`);
+      if (response.status === 200) {
+        setComments(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      toast.error('Failed to load comments');
     }
   };
 
@@ -201,59 +140,33 @@ export default function ForumMonitoring() {
     
     const matchesSearch = safeTitle.includes(safeSearchQuery) || safeContent.includes(safeSearchQuery);
     const matchesCategory = selectedCategory === 'All' || post.topics === selectedCategory;
-    const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'active' && !post.archived) ||
+                         (statusFilter === 'archived' && post.archived);
     
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
   // Calculate counts
   const totalPosts = posts.length;
-  const activePosts = posts.filter(p => p.status === 'active').length;
-  const archivedPosts = posts.filter(p => p.status === 'archived').length;
+  const activePosts = posts.filter(p => !p.archived).length;
+  const archivedPosts = posts.filter(p => p.archived).length;
 
   const handleOpenComments = async (post: Post) => {
     setSelectedPost(post);
     setShowCommentsModal(true);
-  };
-
-  const handleVotePost = async (postId: string, voteType: 'up' | 'down') => {
-    try {
-      setPosts(prev => prev.map(post => {
-        if (post.id === postId) {
-          const currentVote = post.userVote;
-          let upvotes = post.upvotes;
-          let downvotes = post.downvotes;
-
-          if (currentVote === voteType) {
-            if (voteType === 'up') upvotes = Math.max(0, upvotes - 1);
-            else downvotes = Math.max(0, downvotes - 1);
-            return { ...post, upvotes, downvotes, userVote: null };
-          } else if (currentVote) {
-            if (currentVote === 'up') upvotes = Math.max(0, upvotes - 1);
-            else downvotes = Math.max(0, downvotes - 1);
-            if (voteType === 'up') upvotes++;
-            else downvotes++;
-            return { ...post, upvotes, downvotes, userVote: voteType };
-          } else {
-            if (voteType === 'up') upvotes++;
-            else downvotes++;
-            return { ...post, upvotes, downvotes, userVote: voteType };
-          }
-        }
-        return post;
-      }));
-    } catch (error) {
-      console.error('Error voting:', error);
-      toast.error('Error voting on post');
-    }
+    await fetchComments(post.id);
   };
 
   const handleArchivePost = async (postId: string) => {
     try {
-      setPosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, status: 'archived' as const } : post
-      ));
-      toast.success('Post archived successfully');
+      const response = await api.patch(`/api/forum/admin/post/archive/${postId}`);
+      if (response.status === 200) {
+        setPosts(prev => prev.map(post => 
+          post.id === postId ? { ...post, archived: true } : post
+        ));
+        toast.success('Post archived successfully');
+      }
     } catch (error) {
       console.error('Error archiving post:', error);
       toast.error('Error archiving post');
@@ -262,10 +175,13 @@ export default function ForumMonitoring() {
 
   const handleRestorePost = async (postId: string) => {
     try {
-      setPosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, status: 'active' as const } : post
-      ));
-      toast.success('Post restored successfully');
+      const response = await api.patch(`/api/forum/admin/post/restore/${postId}`);
+      if (response.status === 200) {
+        setPosts(prev => prev.map(post => 
+          post.id === postId ? { ...post, archived: false } : post
+        ));
+        toast.success('Post restored successfully');
+      }
     } catch (error) {
       console.error('Error restoring post:', error);
       toast.error('Error restoring post');
@@ -276,14 +192,17 @@ export default function ForumMonitoring() {
     if (!postToDelete) return;
     
     try {
-      setPosts(prev => prev.filter(post => post.id !== postToDelete));
-      if (selectedPost?.id === postToDelete) {
-        setSelectedPost(null);
-        setShowCommentsModal(false);
+      const response = await api.delete(`/api/forum/admin/post/delete/${postToDelete}`);
+      if (response.status === 200) {
+        setPosts(prev => prev.filter(post => post.id !== postToDelete));
+        if (selectedPost?.id === postToDelete) {
+          setSelectedPost(null);
+          setShowCommentsModal(false);
+        }
+        setShowDeleteModal(false);
+        setPostToDelete(null);
+        toast.success('Post deleted successfully!');
       }
-      setShowDeleteModal(false);
-      setPostToDelete(null);
-      toast.success('Post deleted successfully!');
     } catch (error) {
       console.error('Error deleting post:', error);
       toast.error('Error deleting post');
@@ -312,95 +231,136 @@ export default function ForumMonitoring() {
     return upvotes - downvotes;
   };
 
-  const getStatusBadge = (status: string = 'active') => {
-    switch (status) {
-      case 'active': return <span className={styles.statusActive}>Active</span>;
-      case 'archived': return <span className={styles.statusArchived}>Archived</span>;
-      default: return <span className={styles.statusActive}>Active</span>;
-    }
+  const getStatusBadge = (archived: boolean) => {
+    return archived 
+      ? <span className={styles.statusArchived}>Archived</span>
+      : <span className={styles.statusActive}>Active</span>;
   };
 
-  // Recursive component for nested comments
-  const CommentItem = ({ comment, depth = 0 }: { comment: Comment; depth?: number }) => {
-    const isReply = depth > 0;
+  // Component for displaying comments
+  const CommentItem = ({ comment }: { comment: Comment }) => {
+    const handleArchiveComment = async (commentId: string) => {
+      try {
+        const response = await api.patch(`/api/forum/admin/comment/archive/${commentId}`);
+        if (response.status === 200) {
+          setComments(prev => prev.map(c => 
+            c.id === commentId ? { ...c, archived: true } : c
+          ));
+          toast.success('Comment archived successfully');
+        }
+      } catch (error) {
+        console.error('Error archiving comment:', error);
+        toast.error('Error archiving comment');
+      }
+    };
+
+    const handleRestoreComment = async (commentId: string) => {
+      try {
+        const response = await api.patch(`/api/forum/admin/comment/restore/${commentId}`);
+        if (response.status === 200) {
+          setComments(prev => prev.map(c => 
+            c.id === commentId ? { ...c, archived: false } : c
+          ));
+          toast.success('Comment restored successfully');
+        }
+      } catch (error) {
+        console.error('Error restoring comment:', error);
+        toast.error('Error restoring comment');
+      }
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+      try {
+        const response = await api.delete(`/api/forum/admin/comment/delete/${commentId}`);
+        if (response.status === 200) {
+          setComments(prev => prev.filter(c => c.id !== commentId));
+          toast.success('Comment deleted successfully');
+        }
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        toast.error('Error deleting comment');
+      }
+    };
     
     return (
-      <div className={`${styles.comment} ${isReply ? styles.reply : ''}`} style={{ marginLeft: depth * 20 }}>
+      <div className={styles.comment}>
         <div className={styles.commentContent}>
           <div className={styles.commentHeader}>
             <span className={styles.commentAuthor}>{comment.authorName}</span>
             <span className={styles.commentTime}>
               {formatTimeAgo(comment.createdAt)}
             </span>
+            {getStatusBadge(comment.archived)}
           </div>
           
           <p className={styles.commentText}>{comment.content}</p>
           
           <div className={styles.commentFooter}>
             <div className={styles.voteSection}>
-              <button 
-                className={`${styles.voteButton} ${styles.upvote} ${comment.userVote === 'up' ? styles.active : ''}`}
-                onClick={() => {}}
-              >
-                <Icons.Upvote />
-              </button>
               <span className={styles.voteCount}>
-                {getVoteScore(comment.upvotes, comment.downvotes)}
+                {getVoteScore(comment.upvotes, comment.downvotes)} votes
               </span>
-              <button 
-                className={`${styles.voteButton} ${styles.downvote} ${comment.userVote === 'down' ? styles.active : ''}`}
-                onClick={() => {}}
-              >
-                <Icons.Downvote />
-              </button>
+              <span className={styles.commentCount}>
+                {comment.commentsCount || 0} replies
+              </span>
             </div>
 
             <div className={styles.commentActions}>
+              {!comment.archived ? (
+                <button 
+                  className={styles.actionBtn}
+                  onClick={() => handleArchiveComment(comment.id)}
+                >
+                  <Icons.Archive />
+                  Archive
+                </button>
+              ) : (
+                <button 
+                  className={styles.actionBtn}
+                  onClick={() => handleRestoreComment(comment.id)}
+                >
+                  <Icons.Restore />
+                  Restore
+                </button>
+              )}
               <button 
-                className={styles.replyBtn}
-                onClick={() => setActiveReply(activeReply === comment.id ? null : comment.id)}
+                className={styles.deleteBtn}
+                onClick={() => handleDeleteComment(comment.id)}
               >
-                Reply
+                <Icons.Delete />
+                Delete
               </button>
             </div>
           </div>
-
-          {activeReply === comment.id && (
-            <div className={styles.replyForm}>
-              <textarea
-                placeholder="Write a reply..."
-                value={replyContent[comment.id] || ''}
-                onChange={(e) => setReplyContent(prev => ({
-                  ...prev,
-                  [comment.id]: e.target.value
-                }))}
-                rows={2}
-                className={styles.replyTextarea}
-              />
-              <div className={styles.replyActions}>
-                <button 
-                  className={styles.cancelReply}
-                  onClick={() => setActiveReply(null)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className={styles.submitReply}
-                  onClick={() => {}}
-                  disabled={!replyContent[comment.id]?.trim()}
-                >
-                  Reply
-                </button>
-              </div>
-            </div>
-          )}
-
-          {comment.replies && comment.replies.map(reply => (
-            <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
-          ))}
         </div>
       </div>
     );
+  };
+
+  const handleVotePost = async (postId: string, voteType: 'up' | 'down') => {
+    try {
+      const endpoint = voteType === 'up' 
+        ? `/api/forum/posts/upvote/${postId}` 
+        : `/api/forum/posts/downvote/${postId}`;
+      
+      await api.post(endpoint);
+      
+      // Refresh the post data to show updated vote counts
+      await fetchForumData();
+      
+      // If modal is open, refresh the selected post
+      if (selectedPost?.id === postId) {
+        const updatedPost = posts.find(p => p.id === postId);
+        if (updatedPost) {
+          setSelectedPost(updatedPost);
+        }
+      }
+      
+      toast.success(`Post ${voteType}voted successfully`);
+    } catch (error: any) {
+      console.error('Error voting on post:', error);
+      toast.error(error.response?.data?.error || `Failed to ${voteType}vote post`);
+    }
   };
 
   return (
@@ -479,7 +439,7 @@ export default function ForumMonitoring() {
                   <span className={styles.postCategory}>{post.topics || 'General'}</span>
                   <span className={styles.postAuthor}>by {post.authorName}</span>
                   <span className={styles.postTime}>{formatTimeAgo(post.createdAt)}</span>
-                  {getStatusBadge(post.status)}
+                  {getStatusBadge(post.archived)}
                 </div>
                 <h3 className={styles.postTitle}>{post.title}</h3>
               </div>
@@ -490,7 +450,7 @@ export default function ForumMonitoring() {
 
               <div className={styles.postFooter}>
                 <div className={styles.postActions}>
-                  {post.status === 'active' ? (
+                  {!post.archived ? (
                     <button 
                       className={styles.actionBtn}
                       onClick={() => handleArchivePost(post.id)}
@@ -527,7 +487,7 @@ export default function ForumMonitoring() {
                   
                   <div className={styles.voteSection}>
                     <button 
-                      className={`${styles.voteButton} ${styles.upvote} ${post.userVote === 'up' ? styles.active : ''}`}
+                      className={`${styles.voteButton} ${styles.upvote}`}
                       onClick={() => handleVotePost(post.id, 'up')}
                     >
                       <Icons.Upvote />
@@ -536,7 +496,7 @@ export default function ForumMonitoring() {
                       {getVoteScore(post.upvotes, post.downvotes)}
                     </span>
                     <button 
-                      className={`${styles.voteButton} ${styles.downvote} ${post.userVote === 'down' ? styles.active : ''}`}
+                      className={`${styles.voteButton} ${styles.downvote}`}
                       onClick={() => handleVotePost(post.id, 'down')}
                     >
                       <Icons.Downvote />
@@ -606,7 +566,7 @@ export default function ForumMonitoring() {
                       <span className={styles.postCategory}>{selectedPost.topics || 'General'}</span>
                       <span className={styles.postAuthor}>by {selectedPost.authorName}</span>
                       <span className={styles.postTime}>{formatTimeAgo(selectedPost.createdAt)}</span>
-                      {getStatusBadge(selectedPost.status)}
+                      {getStatusBadge(selectedPost.archived)}
                     </div>
                   </div>
                   
@@ -623,7 +583,7 @@ export default function ForumMonitoring() {
                       </div>
                       <div className={styles.voteSection}>
                         <button 
-                          className={`${styles.voteButton} ${styles.upvote} ${selectedPost.userVote === 'up' ? styles.active : ''}`}
+                          className={`${styles.voteButton} ${styles.upvote}`}
                           onClick={() => handleVotePost(selectedPost.id, 'up')}
                         >
                           <Icons.Upvote />
@@ -632,7 +592,7 @@ export default function ForumMonitoring() {
                           {getVoteScore(selectedPost.upvotes, selectedPost.downvotes)}
                         </span>
                         <button 
-                          className={`${styles.voteButton} ${styles.downvote} ${selectedPost.userVote === 'down' ? styles.active : ''}`}
+                          className={`${styles.voteButton} ${styles.downvote}`}
                           onClick={() => handleVotePost(selectedPost.id, 'down')}
                         >
                           <Icons.Downvote />
@@ -642,7 +602,7 @@ export default function ForumMonitoring() {
                   </div>
 
                   <div className={styles.adminActions}>
-                    {selectedPost.status === 'active' ? (
+                    {!selectedPost.archived ? (
                       <button 
                         className={styles.archiveBtn}
                         onClick={() => handleArchivePost(selectedPost.id)}
