@@ -31,7 +31,7 @@ router.get('/feedbacks/reviewer/:id', jwtService.authenticateToken('mentor'), me
 router.get('/files', jwtService.authenticateToken('mentor'), mentorController.getLearningMaterialsList);
 router.get('/files/:fileId', jwtService.authenticateToken('mentor'), mentorController.getLearningMaterial);
 router.get('/schedules/preset', jwtService.authenticateToken('mentor'), mentorController.getPresetScheds);
-
+router.get('/subjects', jwtService.authenticateToken('mentor'), mentorController.getSubjectsBySpecializations);
 
 // DELETE routes
 router.delete('/files/:fileId', jwtService.authenticateToken('mentor'), mentorController.deleteLearningMaterial);

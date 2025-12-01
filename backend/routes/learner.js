@@ -20,6 +20,7 @@ router.get('/mentors/:id', jwtService.authenticateToken('learner'), learnerContr
 router.get('/schedules', jwtService.authenticateToken('learner'), learnerController.getSchedules);
 router.get('/feedback-given', jwtService.authenticateToken('learner'), learnerController.getFeedbacks);
 router.get('/learning-mats/:id', jwtService.authenticateToken('learner'), learnerController.getMentorLearningMaterials);
+router.get('/subjects', jwtService.authenticateToken('learner'), learnerController.getSubjectsBySpecializations);
 
 // Accept offer — support both GET (token in query) and POST (token in body)
 router.get('/offers/accept', learnerController.acceptOffer);

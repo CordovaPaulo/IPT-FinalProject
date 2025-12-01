@@ -35,6 +35,7 @@ interface UserData {
   sessionDur: string;
   bio: string;
   subjects: string[];
+  specializations?: string[];
   image: string;
   phoneNumber: string;
   style: string[];
@@ -223,6 +224,7 @@ export default function LearnerPage() {
     sessionDur: "",
     bio: "",
     subjects: [],
+    specializations: [],
     image: "",
     phoneNumber: "",
     style: [],
@@ -233,6 +235,9 @@ export default function LearnerPage() {
     createdAt: "",
     __v: 0
   });
+
+  // prefer explicit specializations state (derived from profile)
+  const [userSpecializations, setUserSpecializations] = useState<string[]>([]);
   
   const [schedForReview, setSchedForReview] = useState<Schedule[]>([]);
   const [todaySchedule, setTodaySchedule] = useState<Schedule[]>([]);
@@ -630,6 +635,9 @@ export default function LearnerPage() {
       });
       
       setUserData(res.data.userData);
+      // derive specializations (backward-compatible with older 'subjects' field)
+      const specs = res.data.userData?.specialization || res.data.userData?.specializations || res.data.userData?.subjects || [];
+      setUserSpecializations(Array.isArray(specs) ? specs : (typeof specs === 'string' ? JSON.parse(specs) : []));
       setRoleData({
         role: res.data.roleData.role,
         altRole: res.data.roleData.altRole
@@ -937,7 +945,7 @@ export default function LearnerPage() {
           <div className={styles['subject-interest']}>
             <h1>Specialization</h1>
             <div className={styles['course-grid']}>
-              {userData.subjects?.slice(0, 5).map((subject, index) => (
+              {userSpecializations?.slice(0, 5).map((subject, index) => (
                 <div key={index} className={styles['course-card']}>
                   <div className={styles.lines}>
                     <div>
@@ -946,7 +954,7 @@ export default function LearnerPage() {
                   </div>
                 </div>
               )) || []}
-              {(userData.subjects?.length || 0) > 5 && (
+              {(userSpecializations?.length || 0) > 5 && (
                 <div
                   className={[
                     styles['course-card'],
@@ -956,7 +964,7 @@ export default function LearnerPage() {
                 >
                   <div className={styles.lines}>
                     <div>
-                      <p>+{(userData.subjects?.length || 0) - 5}</p>
+                      <p>+{(userSpecializations?.length || 0) - 5}</p>
                     </div>
                   </div>
                 </div>
@@ -972,7 +980,7 @@ export default function LearnerPage() {
                 <div className={styles['popup-content']}>
                   <h3>All Specializations</h3>
                   <div className={styles['popup-courses']}>
-                    {userData.subjects?.map((subject, index) => (
+                    {userSpecializations?.map((subject, index) => (
                       <div key={index} className={styles['popup-course']}>
                         {subject}
                       </div>

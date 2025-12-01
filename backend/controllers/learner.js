@@ -115,7 +115,7 @@ exports.getAllMentors = async (req, res) => {
 exports.getMentorById = async (req, res) => {
   const { id } = req.params;
   try {
-    const mentor = await Mentor.findOne({ _id: id });
+    const mentor = await Mentor.findOne({ _id: id }).select('-subjects');
     if (!mentor) {
       return res.status(404).json({ message: 'Mentor not found', code: 404 });
     }
@@ -1356,6 +1356,44 @@ exports.joinPresetSchedule = async (req, res) => {
 
   } catch (error) {
     console.error('joinPresetSchedule error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+}
+
+exports.getSubjectsBySpecializations = async (req, res) => {
+  try {
+    const { specializations } = req.query;
+    
+    if (!specializations) {
+      return res.status(400).json({ message: 'Specializations parameter is required', code: 400 });
+    }
+
+    // Parse specializations (can be comma-separated string or JSON array)
+    let specializationList;
+    if (typeof specializations === 'string') {
+      try {
+        specializationList = JSON.parse(specializations);
+      } catch {
+        specializationList = specializations.split(',').map(s => s.trim());
+      }
+    } else {
+      specializationList = specializations;
+    }
+
+    if (!Array.isArray(specializationList) || specializationList.length === 0) {
+      return res.status(400).json({ message: 'Invalid specializations format', code: 400 });
+    }
+
+    const Subject = require('../models/Subject');
+    
+    // Find all subjects matching the specializations
+    const subjects = await Subject.find({
+      specialization: { $in: specializationList }
+    }).lean();
+
+    return res.status(200).json({ subjects });
+  } catch (error) {
+    console.error('getSubjectsBySpecializations error:', error);
     return res.status(500).json({ message: error.message, code: 500 });
   }
 }
