@@ -1214,11 +1214,7 @@ exports.createPresetSched = async (req, res) => {
   }
 
   try {
-    const presetSchedCount = await presetSched.find({mentor: decoded.id}).countDocuments();
-    if (presetSchedCount >= 5) {
-      return res.status(400).json({ message: 'Preset schedule limit reached (max 5)', code: 400 });
-    }
-
+    // First, find the mentor to ensure we use the correct mentor._id
     const mentor = await Mentor.findOne({
       $or: [
         { _id: decoded.id },
@@ -1230,7 +1226,28 @@ exports.createPresetSched = async (req, res) => {
       return res.status(404).json({ message: 'Mentor not found', code: 404 });
     }
 
-    const { days, time, subject } = req.body;
+    // Strict limit check: count existing preset schedules for this mentor
+    const presetSchedCount = await presetSched.countDocuments({ mentor: mentor._id });
+    if (presetSchedCount >= 3) {
+      return res.status(400).json({ 
+        message: 'Preset schedule limit reached. You can only create a maximum of 3 preset schedules.', 
+        currentCount: presetSchedCount,
+        maxAllowed: 3,
+        code: 400 
+      });
+    }
+
+    const { days, time, subject, specialization, course } = req.body;
+
+    // Validate required fields
+    if (!specialization || !course) {
+      return res.status(400).json({ message: 'specialization and course are required', code: 400 });
+    }
+
+    // Validate course enum
+    if (!['BSIT', 'BSCS', 'BSEMC'].includes(course)) {
+      return res.status(400).json({ message: 'course must be BSIT, BSCS, or BSEMC', code: 400 });
+    }
 
     // Accept either a single day string or an array of day strings
     const dayArray = Array.isArray(days) ? days : (typeof days === 'string' ? [days] : []);
@@ -1263,6 +1280,8 @@ exports.createPresetSched = async (req, res) => {
       days: normalizedDays,
       time,
       subject,
+      specialization,
+      course,
       participants
     });
     await doc.save();

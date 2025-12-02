@@ -6,6 +6,8 @@ const presetScheduleSchema = new mongoose.Schema({
     days: { type: [String], enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'], required: true },
     time: { type: String, required: true },
     subject: { type: String, required: true },
+    specialization: { type: String, required: true },
+    course: { type: String, enum: ['BSIT', 'BSCS', 'BSEMC'], required: true },
     participants: { type:[String], default: [] },
     // sessionType: { type: String, default: 'group', required: true },
 }, { 
