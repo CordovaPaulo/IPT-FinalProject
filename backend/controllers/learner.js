@@ -12,6 +12,8 @@ const calculateMatchScore = require('../utils/matchingUtils');
 const Rank = require('../models/rank'); // <-- added
 const Badge = require('../models/badges'); // added
 const presetSched = require('../models/presetSched');
+const progressService = require('../service/progress');
+const Specialization = require('../models/specializations');
 
 // Safe helper to resolve mentor and call awardMentorBadges without relying on userData variable
 async function safeAwardMentorBadgesByUserId(userOrMentorId) {
@@ -335,6 +337,44 @@ exports.setFeedback = async (req, res) => {
           }
         } catch (rankErr) {
           console.error('Error updating learner rank:', rankErr);
+        }
+
+        // Update skill progress for completed schedule
+        try {
+          const learnerSpecs = Array.isArray(learnerDoc.specialization) ? learnerDoc.specialization : [];
+          if (learnerSpecs.length > 0 && sched.subject) {
+            // Fetch specializations that match learner's specializations
+            const specs = await Specialization.find({ specialization: { $in: learnerSpecs } }).lean();
+            
+            const subjectLower = String(sched.subject).toLowerCase();
+            
+            // Try to find if any skill name is included in the schedule subject
+            for (const spec of specs) {
+              const skillmap = spec.skillmap || [];
+              // Check if any skill name appears within the subject (e.g., "JavaScript" in "Advanced JavaScript")
+              const matchingSkill = skillmap.find(skill => {
+                const skillLower = String(skill).toLowerCase();
+                // Check if skill is contained in subject name
+                return subjectLower.includes(skillLower);
+              });
+              
+              if (matchingSkill) {
+                // Award progress for completing this schedule
+                await progressService.addProgress({
+                  userId: learnerDoc._id,
+                  specialization: spec.specialization,
+                  skill: matchingSkill,
+                  delta: 100, // Base XP for completing a schedule
+                  source: 'schedule_completion',
+                  sourceId: sched._id,
+                  note: `Completed schedule: ${sched.subject} on ${sched.date}`
+                });
+                console.log(`[Progress] Updated skill "${matchingSkill}" for learner ${learnerDoc._id} (+100 XP)`);
+              }
+            }
+          }
+        } catch (progressErr) {
+          console.error('Error updating learner skill progress:', progressErr);
         }
 
         // Pusher: notify new feedback

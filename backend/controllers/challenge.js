@@ -3,6 +3,8 @@ const Challenge = require('../models/challenge');
 const Learner = require('../models/Learner');
 const Mentor = require('../models/Mentor');
 const PresetSchedule = require('../models/presetSched');
+const progressService = require('../service/progress');
+const Specialization = require('../models/specializations');
 
 // ==================== MENTOR FUNCTIONS ====================
 
@@ -14,7 +16,7 @@ exports.createChallenge = async (req, res) => {
     }
 
     try {
-        const { title, description, requirements, difficulty, xpReward } = req.body;
+        const { title, description, requirements, difficulty, xpReward, specialization, skill } = req.body;
 
         if (!title || !description) {
             return res.status(400).json({ message: 'Title and description are required', code: 400 });
@@ -36,7 +38,9 @@ exports.createChallenge = async (req, res) => {
             mentor: mentor._id,
             mentorName: mentor.name,
             difficulty: difficulty || 'beginner',
-            xpReward: xpReward || 50
+            xpReward: xpReward || 50,
+            specialization: specialization || undefined,
+            skill: skill || undefined
         });
 
         await challenge.save();
@@ -132,7 +136,7 @@ exports.updateChallenge = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized', code: 403 });
         }
 
-        const { title, description, requirements, difficulty, xpReward, isActive } = req.body;
+        const { title, description, requirements, difficulty, xpReward, isActive, specialization, skill } = req.body;
 
         if (title) challenge.title = title;
         if (description) challenge.description = description;
@@ -140,6 +144,8 @@ exports.updateChallenge = async (req, res) => {
         if (difficulty) challenge.difficulty = difficulty;
         if (xpReward !== undefined) challenge.xpReward = xpReward;
         if (isActive !== undefined) challenge.isActive = isActive;
+        if (specialization !== undefined) challenge.specialization = specialization;
+        if (skill !== undefined) challenge.skill = skill;
 
         await challenge.save();
 
@@ -256,6 +262,84 @@ exports.approveSubmission = async (req, res) => {
 
         await challenge.save();
 
+        // Update learner's skill progress for approved challenge
+        try {
+          // If challenge has specialization and skill defined, use them directly
+          if (challenge.specialization && challenge.skill) {
+            const xpReward = challenge.xpReward || 50;
+            const learnerId = submission.learner;
+            
+            await progressService.addProgress({
+              userId: learnerId,
+              specialization: challenge.specialization,
+              skill: challenge.skill,
+              delta: xpReward,
+              source: 'challenge_approved',
+              sourceId: challenge._id,
+              note: `Challenge approved: ${challenge.title}`
+            });
+            console.log(`[Progress] Updated skill "${challenge.skill}" for learner ${learnerId} (+${xpReward} XP from challenge)`);
+          } else {
+            // Fallback: try to auto-match if specialization/skill not set on challenge
+            const learner = await Learner.findById(submission.learner);
+            if (learner) {
+              const learnerSpecs = Array.isArray(learner.specialization) ? learner.specialization : [];
+              if (learnerSpecs.length > 0) {
+                // Find preset schedules connecting this learner and mentor to get specialization
+                const presetSched = await PresetSchedule.findOne({
+                  mentor: challenge.mentor,
+                  participants: { $in: [String(learner._id)] }
+                }).lean();
+
+                if (presetSched && presetSched.specialization) {
+                  // Fetch the specialization document
+                  const spec = await Specialization.findOne({ 
+                    specialization: presetSched.specialization 
+                  }).lean();
+
+                  if (spec && spec.skillmap) {
+                    // Try to match challenge title/description to a skill in the skillmap
+                    const skillmap = spec.skillmap || [];
+                    const challengeText = `${challenge.title} ${challenge.description}`.toLowerCase();
+                    
+                    // Check if any skill name appears within the challenge title or description
+                    const matchingSkill = skillmap.find(skill => {
+                      const skillLower = String(skill).toLowerCase();
+                      return challengeText.includes(skillLower);
+                    });
+
+                    if (matchingSkill) {
+                      // Award XP based on difficulty
+                      const xpReward = challenge.xpReward || 50;
+                      await progressService.addProgress({
+                        userId: learner._id,
+                        specialization: spec.specialization,
+                        skill: matchingSkill,
+                        delta: xpReward,
+                        source: 'challenge_approved',
+                        sourceId: challenge._id,
+                        note: `Challenge approved: ${challenge.title}`
+                      });
+                      console.log(`[Progress] Updated skill "${matchingSkill}" for learner ${learner._id} (+${xpReward} XP from challenge)`);
+                    } else {
+                      console.log(`[Progress] No matching skill found for challenge "${challenge.title}" in specialization "${spec.specialization}"`);
+                    }
+                  }
+                } else {
+                  console.log(`[Progress] No preset schedule or specialization found for learner ${learner._id} with mentor ${challenge.mentor}`);
+                }
+              } else {
+                console.log(`[Progress] Learner ${learner._id} has no specializations set`);
+              }
+            } else {
+              console.log(`[Progress] Learner not found for submission ${submission._id}`);
+            }
+          }
+        } catch (progressErr) {
+          console.error('Error updating learner skill progress on challenge approval:', progressErr);
+          console.error('Progress error stack:', progressErr.stack);
+        }
+
         return res.status(200).json({ message: 'Submission approved', submission, code: 200 });
     } catch (error) {
         console.error('approveSubmission error:', error);
@@ -342,10 +426,15 @@ exports.getAvailableChallenges = async (req, res) => {
         const challenges = await Challenge.find({
             mentor: { $in: mentorIds },
             isActive: true
+        }).select('-submissions').sort({ createdAt: -1 });
+
+        // Add learner's submission status (need to fetch with submissions to check)
+        const challengesWithSubmissions = await Challenge.find({
+            mentor: { $in: mentorIds },
+            isActive: true
         }).sort({ createdAt: -1 });
 
-        // Add learner's submission status
-        const challengesWithStatus = challenges.map(c => {
+        const challengesWithStatus = challengesWithSubmissions.map(c => {
             const learnerSubmission = c.submissions.find(s => String(s.learner) === String(learner._id));
             return {
                 _id: c._id,
@@ -355,10 +444,17 @@ exports.getAvailableChallenges = async (req, res) => {
                 difficulty: c.difficulty,
                 xpReward: c.xpReward,
                 requirements: c.requirements,
-                totalSubmissions: c.submissions.length,
+                specialization: c.specialization,
+                skill: c.skill,
                 hasSubmitted: !!learnerSubmission,
                 submissionStatus: learnerSubmission ? learnerSubmission.status : null,
-                learnerSubmission: learnerSubmission || null,
+                mySubmission: learnerSubmission ? {
+                    _id: learnerSubmission._id,
+                    submittedAt: learnerSubmission.submittedAt,
+                    status: learnerSubmission.status,
+                    feedback: learnerSubmission.feedback,
+                    reviewedAt: learnerSubmission.reviewedAt
+                } : null,
                 createdAt: c.createdAt
             };
         });
@@ -410,11 +506,28 @@ exports.getChallengeDetails = async (req, res) => {
         const learnerSubmission = challenge.submissions.find(s => String(s.learner) === String(learner._id));
 
         const challengeData = {
-            ...challenge.toObject(),
-            totalSubmissions: challenge.submissions.length,
+            _id: challenge._id,
+            title: challenge.title,
+            description: challenge.description,
+            mentorName: challenge.mentorName,
+            difficulty: challenge.difficulty,
+            xpReward: challenge.xpReward,
+            requirements: challenge.requirements,
+            specialization: challenge.specialization,
+            skill: challenge.skill,
+            isActive: challenge.isActive,
+            createdAt: challenge.createdAt,
             hasSubmitted: !!learnerSubmission,
             submissionStatus: learnerSubmission ? learnerSubmission.status : null,
-            learnerSubmission: learnerSubmission || null
+            mySubmission: learnerSubmission ? {
+                _id: learnerSubmission._id,
+                submittedAt: learnerSubmission.submittedAt,
+                status: learnerSubmission.status,
+                feedback: learnerSubmission.feedback,
+                reviewedAt: learnerSubmission.reviewedAt,
+                submissionUrl: learnerSubmission.submissionUrl,
+                submissionText: learnerSubmission.submissionText
+            } : null
         };
 
         return res.status(200).json({ challenge: challengeData, code: 200 });

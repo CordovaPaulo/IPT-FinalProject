@@ -18,6 +18,10 @@ const challengeSchema = new mongoose.Schema({
     mentor: { type: mongoose.Schema.Types.ObjectId, ref: 'Mentor', required: true },
     mentorName: { type: String, required: true },
     
+    // Specialization and skill tracking
+    specialization: { type: String },
+    skill: { type: String },
+    
     // Optional fields
     requirements: { type: [String], default: [] },
     difficulty: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'beginner' },
