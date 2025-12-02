@@ -142,7 +142,10 @@ exports.getMentorById = async (req, res) => {
       definition: defs[b.badgeKey] || null
     }));
 
-    res.status(200).json({ mentor, badges });
+    // Fetch preset schedules created by this mentor
+    const presetSchedules = await presetSched.find({ mentor: mentor._id }).lean();
+
+    res.status(200).json({ mentor, badges, presetSchedules });
   } catch (error) {
     console.error('getMentorById error:', error);
     res.status(500).json({ message: 'Server error', code: 500 });
@@ -1351,6 +1354,22 @@ exports.joinPresetSchedule = async (req, res) => {
       return res.status(404).json({ message: 'Learner not found', code: 404 });
     }
 
+    // Validate learner's specialization matches preset schedule's specialization
+    if (!learner.specialization || !learner.specialization.includes(sched.specialization)) {
+      return res.status(403).json({ 
+        message: `You can only join preset schedules matching your specializations. This schedule requires: ${sched.specialization}`, 
+        code: 403 
+      });
+    }
+
+    // Validate learner's course matches preset schedule's course
+    if (learner.program !== sched.course) {
+      return res.status(403).json({ 
+        message: `You can only join preset schedules matching your program. This schedule is for: ${sched.course}`, 
+        code: 403 
+      });
+    }
+
     // check if learner already joined
     const alreadyJoined = Array.isArray(sched.participants) && sched.participants.some(l => String(l) === String(learner._id));
     if (alreadyJoined) {
@@ -1365,6 +1384,41 @@ exports.joinPresetSchedule = async (req, res) => {
 
   } catch (error) {
     console.error('joinPresetSchedule error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+}
+
+exports.quitPresetSchedule = async (req, res) => {
+  const { presetId } = req.params;
+  const decoded = getValuesFromToken(req);
+  if (!decoded?.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  try {
+    const sched = await presetSched.findOne({_id: presetId});
+    if (!sched) {
+      return res.status(404).json({ message: 'Preset schedule not found', code: 404 });
+    }
+    const learner = await Learner.findOne({
+      $or: [{ _id: decoded.id }, { userId: decoded.id }]
+    });
+
+    if (!learner) {
+      return res.status(404).json({ message: 'Learner not found', code: 404 });
+    }
+
+    // check if learner is in participants
+    const index = Array.isArray(sched.participants) ? sched.participants.findIndex(l => String(l) === String(learner._id)) : -1;
+    if (index === -1) {
+      return res.status(409).json({ message: 'You are not part of this preset schedule', schedule: sched, code: 409 });
+    }
+
+    sched.participants.splice(index, 1);
+    await sched.save();
+    return res.status(200).json({ message: 'Successfully quit preset schedule', schedule: sched, code: 200 });
+  } catch (error) {
+    console.error('quitPresetSchedule error:', error);
     return res.status(500).json({ message: error.message, code: 500 });
   }
 }

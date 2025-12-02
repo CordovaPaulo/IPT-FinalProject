@@ -29,4 +29,7 @@ router.post('/offers/accept', learnerController.acceptOffer);
 // PATCH routes
 router.patch('/profile/edit', jwtService.authenticateToken('learner'), learnerController.editProfile);
 
+router.post('/preset/join/:presetId', jwtService.authenticateToken('learner'), learnerController.joinPresetSchedule);
+router.post('/preset/leave/:presetId', jwtService.authenticateToken('learner'), learnerController.quitPresetSchedule);
+
 module.exports = router;
