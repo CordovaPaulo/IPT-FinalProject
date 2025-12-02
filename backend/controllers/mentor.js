@@ -232,9 +232,7 @@ exports.cancelSched = async (req, res) => {
 
         const mailResult = await mailingController.sendCancellationByMentor(id, mentor._id || decoded.id, reason);
         
-        if (!mailResult) {
-            console.log('Error sending cancellation email (mentor):', mailResult);
-        }
+        console.log('[cancelSched] Cancellation email sent successfully:', mailResult);
 
         // Delete the schedule
         const scheduleFound = await Schedule.findByIdAndDelete(id);
@@ -794,9 +792,7 @@ exports.sendOffer = async (req, res) => {
         emailHtml
         );
 
-        if (!mailResult) {
-        return res.status(500).json({ message: 'Failed to send offer email', code: 500 });
-        }
+        console.log('[sendOffer] Email sent successfully:', mailResult);
 
         // Safe award badges
         await safeAwardMentorBadgesByUserId(mentor._id);
@@ -957,9 +953,7 @@ ${message ? `<p><strong>Message from mentor:</strong><br/>${message.replace(/\n/
       emailHtml
     );
 
-    if (!mailResult) {
-      return res.status(500).json({ message: 'Failed to send offer email', code: 500 });
-    }
+    console.log('[sendGroupSessionOffer] Email sent successfully:', mailResult);
 
     // notify via pusher if learner has a linked userId
     try {
@@ -1021,6 +1015,14 @@ exports.sendExistingGroupSessionOffer = async (req, res) => {
     // resolve learner document (allow either _id or userId)
     let learner = await Learner.findOne({ $or: [{ _id: learnerId }, { userId: learnerId }] });
     if (!learner) return res.status(404).json({ message: 'Learner not found', code: 404 });
+
+    // If the session has a maxParticipants set, ensure there's available capacity
+    if (typeof session.maxParticipants === 'number' && Number.isFinite(session.maxParticipants)) {
+      const current = Array.isArray(session.learners) ? session.learners.length : 0;
+      if (current >= Number(session.maxParticipants)) {
+        return res.status(409).json({ message: 'Group session is already full', code: 409 });
+      }
+    }
 
     // resolve recipient email
     let toEmail = learner.email;
@@ -1105,9 +1107,7 @@ ${req.body?.message ? `<p><strong>Message from mentor:</strong><br/>${req.body.m
       emailHtml
     );
 
-    if (!mailResult) {
-      return res.status(500).json({ message: 'Failed to send invite email', code: 500 });
-    }
+    console.log('[sendExistingGroupSessionOffer] Email sent successfully:', mailResult);
 
     // send pusher event to learner (best-effort)
     try {

@@ -802,6 +802,13 @@ exports.acceptOffer = async (req, res) => {
     }
 
     if (isGroupOffer) {
+      // Validate incoming maxParticipants if provided
+      if (payload.maxParticipants !== undefined && payload.maxParticipants !== null) {
+        const mp = Number(payload.maxParticipants);
+        if (!Number.isFinite(mp) || mp < 1) {
+          return res.status(400).json({ message: 'Invalid maxParticipants value in offer', code: 400 });
+        }
+      }
       // If payload references a specific scheduleId, join that schedule directly
       if (payload.scheduleId) {
         const groupSchedule = await Schedule.findById(payload.scheduleId);
@@ -815,9 +822,10 @@ exports.acceptOffer = async (req, res) => {
           return res.status(409).json({ message: 'You already joined this group session', schedule: groupSchedule, code: 409 });
         }
 
-        // enforce maxParticipants if present on schedule
-        const max = groupSchedule.maxParticipants || payload.maxParticipants;
-        if (max && Array.isArray(groupSchedule.learners) && groupSchedule.learners.length >= Number(max)) {
+        // enforce maxParticipants if present on schedule or payload (explicit null check)
+        const maxFromSchedule = (groupSchedule.maxParticipants !== undefined && groupSchedule.maxParticipants !== null) ? Number(groupSchedule.maxParticipants) : null;
+        const max = (maxFromSchedule !== null && Number.isFinite(maxFromSchedule)) ? maxFromSchedule : (payload.maxParticipants !== undefined && payload.maxParticipants !== null ? Number(payload.maxParticipants) : null);
+        if (max !== null && Array.isArray(groupSchedule.learners) && groupSchedule.learners.length >= Number(max)) {
           return res.status(409).json({ message: 'Group session is full', code: 409 });
         }
 
@@ -885,9 +893,10 @@ MindMate Team`
           return res.status(409).json({ message: 'You already joined this group session', schedule: groupSchedule, code: 409 });
         }
 
-        // enforce maxParticipants if present on schedule or payload
-        const max = groupSchedule.maxParticipants || payload.maxParticipants;
-        if (max && Array.isArray(groupSchedule.learners) && groupSchedule.learners.length >= Number(max)) {
+        // enforce maxParticipants if present on schedule or payload (explicit null check)
+        const maxFromSchedule = (groupSchedule.maxParticipants !== undefined && groupSchedule.maxParticipants !== null) ? Number(groupSchedule.maxParticipants) : null;
+        const max = (maxFromSchedule !== null && Number.isFinite(maxFromSchedule)) ? maxFromSchedule : (payload.maxParticipants !== undefined && payload.maxParticipants !== null ? Number(payload.maxParticipants) : null);
+        if (max !== null && Array.isArray(groupSchedule.learners) && groupSchedule.learners.length >= Number(max)) {
           return res.status(409).json({ message: 'Group session is full', code: 409 });
         }
 
