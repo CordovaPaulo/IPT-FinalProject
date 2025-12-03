@@ -279,6 +279,37 @@ exports.approveSubmission = async (req, res) => {
               note: `Challenge approved: ${challenge.title}`
             });
             console.log(`[Progress] Updated skill "${challenge.skill}" for learner ${learnerId} (+${xpReward} XP from challenge)`);
+            
+            // Also try to mark roadmap topic as completed if challenge title/description matches a topic
+            try {
+              const spec = await Specialization.findOne({ specialization: challenge.specialization }).lean();
+              if (spec && spec.roadmap) {
+                const challengeText = `${challenge.title} ${challenge.description}`.toLowerCase();
+                
+                // Search through roadmap stages for matching topics
+                for (const stageDef of spec.roadmap) {
+                  const matchingTopic = (stageDef.topics || []).find(topic => {
+                    const topicLower = topic.toLowerCase();
+                    return challengeText.includes(topicLower) || topicLower.includes(challenge.skill.toLowerCase());
+                  });
+                  
+                  if (matchingTopic) {
+                    await progressService.markTopicCompleted({
+                      userId: learnerId,
+                      specialization: challenge.specialization,
+                      stage: stageDef.stage,
+                      topic: matchingTopic,
+                      source: 'challenge_approved',
+                      sourceId: challenge._id
+                    });
+                    console.log(`[Roadmap] Marked topic "${matchingTopic}" complete in stage "${stageDef.stage}"`);
+                    break; // Only mark first matching topic
+                  }
+                }
+              }
+            } catch (roadmapErr) {
+              console.error('Error marking roadmap topic complete:', roadmapErr);
+            }
           } else {
             // Fallback: try to auto-match if specialization/skill not set on challenge
             const learner = await Learner.findById(submission.learner);

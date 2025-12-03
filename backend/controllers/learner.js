@@ -1374,6 +1374,35 @@ exports.editProfile = async (req, res) => {
   }
 }
 
+// exports.getPresetSchedules = async (req, res) => {
+//   const decoded = getValuesFromToken(req);
+//   const { mentid } = req.params;
+//   if (!decoded?.id) {
+//     return res.status(403).json({ message: 'Invalid token', code: 403 });
+//   }
+
+//   try {
+//     const learner = await Learner.findOne({
+//       $or: [{ _id: decoded.id }, { userId: decoded.id }]
+//     });
+
+//     if (!learner) {
+//       return res.status(404).json({ message: 'Learner not found', code: 404 });
+//     }
+
+//     const scheds = await presetSched.find({
+//       mentor: mentid,
+//       course: learner.program,
+//       specialization: { $in: learner.specialization || [] }
+//     }).lean();
+    
+//     return res.status(200).json({ schedules: scheds, code: 200 });
+//   } catch (error) {
+//     console.error('getPresetSchedules error:', error);
+//     return res.status(500).json({ message: error.message, code: 500 });
+//   }
+// }
+
 exports.joinPresetSchedule = async (req, res) => {
   const { presetId } = req.params;
   const decoded = getValuesFromToken(req);
