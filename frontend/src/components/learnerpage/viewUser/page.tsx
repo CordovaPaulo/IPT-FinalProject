@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Schedule from '@/components/learnerpage/schedule/page';
+import PresetSchedules from './PresetSchedules';
 import api from '@/lib/axios';
 import styles from './viewUser.module.css';
 
@@ -32,12 +33,26 @@ interface UserInfo {
   id: string;
 }
 
+interface PresetSchedule {
+  _id: string;
+  mentor: string;
+  mentorName: string;
+  days: string[];
+  time: string;
+  subject: string;
+  specialization: string;
+  course: string;
+  participants: string[];
+}
+
 export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   // was any[] but we set an object - use any (object) for schedule data
   const [userDeetsForSched, setUserDeetsForSched] = useState<any>(null);
+  const [presetSchedules, setPresetSchedules] = useState<PresetSchedule[]>([]);
+  const [expandedSubjects, setExpandedSubjects] = useState<{ [key: number]: boolean }>({});
 
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: '',
@@ -82,6 +97,14 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
       return str || "Not specified";
     }
   };
+
+  const toggleSubjectDropdown = (index: number) => {
+    setExpandedSubjects(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
   // Fetch mentor info from backend using MindMateToken
   const fetchUserInfo = async (id: string) => {
     try {
@@ -137,6 +160,11 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
     });
 
       setImageUrl(mentor.mentor.image || '');
+
+      // Store preset schedules if available
+      if (mentor.presetSchedules && Array.isArray(mentor.presetSchedules)) {
+        setPresetSchedules(mentor.presetSchedules);
+      }
 
       // Prepare data for schedule component - use more robust object structure
       const scheduleData = {
@@ -279,6 +307,14 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
 
           {/* Details Section */}
           <div className={styles.lowerLower}>
+            {/* Preset Schedules Section */}
+            {presetSchedules.length > 0 && (
+              <PresetSchedules
+                schedules={presetSchedules}
+                onScheduleUpdated={() => fetchUserInfo(userId)}
+              />
+            )}
+
             <div className={styles.detailsSection}>
               <div className={styles.detailsCard}>
                 <h4 className={styles.sectionTitle}>
@@ -327,44 +363,132 @@ export default function ViewUser({ user, onClose, isOpen }: ViewUserProps) {
                         {userInfo.subjects.map((subjectDoc: any, index: number) => {
                           const proficiency = (userInfo.proficiency || '').toLowerCase();
                           const difficulty = subjectDoc.difficulty || {};
+                          const isExpanded = expandedSubjects[index];
 
                           // build level arrays according to proficiency
                           const showBeginner = proficiency === 'beginner' || proficiency === 'intermediate' || proficiency === 'advanced';
                           const showIntermediate = proficiency === 'intermediate' || proficiency === 'advanced';
                           const showAdvanced = proficiency === 'advanced';
 
-                          // condense into a card-like block
                           return (
-                            <div key={index} style={{ background: '#fff', border: '1px solid #eef2f6', padding: 12, borderRadius: 8, marginBottom: 10 }}>
-                              <div style={{ fontWeight: 600, marginBottom: 6 }}>{subjectDoc.specialization}</div>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-                                {showBeginner && difficulty.beginner && difficulty.beginner.length > 0 && (
-                                  <div>
-                                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Beginner</div>
-                                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                                      {difficulty.beginner.map((s: string, si: number) => <li key={si} style={{ fontSize: 13 }}>{s}</li>)}
-                                    </ul>
-                                  </div>
-                                )}
+                            <div key={index} style={{ 
+                              background: '#fff', 
+                              border: '1px solid #e5e7eb', 
+                              borderRadius: 8, 
+                              marginBottom: 10,
+                              overflow: 'hidden'
+                            }}>
+                              {/* Dropdown Header */}
+                              <button
+                                onClick={() => toggleSubjectDropdown(index)}
+                                style={{
+                                  width: '100%',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  padding: '12px 16px',
+                                  background: isExpanded ? '#f9fafb' : '#fff',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  transition: 'background 0.2s',
+                                  textAlign: 'left'
+                                }}
+                              >
+                                <span style={{ fontWeight: 600, color: '#1f2937', fontSize: '0.95rem' }}>
+                                  {subjectDoc.specialization}
+                                </span>
+                                <i 
+                                  className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}
+                                  style={{ 
+                                    color: '#6b7280',
+                                    fontSize: '0.85rem',
+                                    transition: 'transform 0.2s'
+                                  }}
+                                ></i>
+                              </button>
 
-                                {showIntermediate && difficulty.intermediate && difficulty.intermediate.length > 0 && (
-                                  <div>
-                                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Intermediate</div>
-                                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                                      {difficulty.intermediate.map((s: string, si: number) => <li key={si} style={{ fontSize: 13 }}>{s}</li>)}
-                                    </ul>
-                                  </div>
-                                )}
+                              {/* Dropdown Content */}
+                              {isExpanded && (
+                                <div style={{ 
+                                  padding: '12px 16px',
+                                  borderTop: '1px solid #e5e7eb',
+                                  background: '#fafbfc'
+                                }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {showBeginner && difficulty.beginner && difficulty.beginner.length > 0 && (
+                                      <div>
+                                        <div style={{ 
+                                          fontSize: '0.85rem', 
+                                          fontWeight: 600, 
+                                          marginBottom: 6,
+                                          color: '#059669',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 6
+                                        }}>
+                                          <i className="fas fa-seedling" style={{ fontSize: '0.8rem' }}></i>
+                                          Beginner
+                                        </div>
+                                        <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                          {difficulty.beginner.map((s: string, si: number) => (
+                                            <li key={si} style={{ fontSize: '0.85rem', color: '#4b5563', marginBottom: 4 }}>
+                                              {s}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
 
-                                {showAdvanced && difficulty.advanced && difficulty.advanced.length > 0 && (
-                                  <div>
-                                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Advanced</div>
-                                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                                      {difficulty.advanced.map((s: string, si: number) => <li key={si} style={{ fontSize: 13 }}>{s}</li>)}
-                                    </ul>
+                                    {showIntermediate && difficulty.intermediate && difficulty.intermediate.length > 0 && (
+                                      <div>
+                                        <div style={{ 
+                                          fontSize: '0.85rem', 
+                                          fontWeight: 600, 
+                                          marginBottom: 6,
+                                          color: '#f59e0b',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 6
+                                        }}>
+                                          <i className="fas fa-chart-line" style={{ fontSize: '0.8rem' }}></i>
+                                          Intermediate
+                                        </div>
+                                        <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                          {difficulty.intermediate.map((s: string, si: number) => (
+                                            <li key={si} style={{ fontSize: '0.85rem', color: '#4b5563', marginBottom: 4 }}>
+                                              {s}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+
+                                    {showAdvanced && difficulty.advanced && difficulty.advanced.length > 0 && (
+                                      <div>
+                                        <div style={{ 
+                                          fontSize: '0.85rem', 
+                                          fontWeight: 600, 
+                                          marginBottom: 6,
+                                          color: '#dc2626',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 6
+                                        }}>
+                                          <i className="fas fa-fire" style={{ fontSize: '0.8rem' }}></i>
+                                          Advanced
+                                        </div>
+                                        <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                          {difficulty.advanced.map((s: string, si: number) => (
+                                            <li key={si} style={{ fontSize: '0.85rem', color: '#4b5563', marginBottom: 4 }}>
+                                              {s}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}

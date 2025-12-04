@@ -169,6 +169,39 @@ interface AnalyticsSchedule {
   status: string;
 }
 
+interface Challenge {
+  _id: string;
+  title: string;
+  description: string;
+  requirements: string[];
+  mentor: string;
+  mentorName: string;
+  specialization: string;
+  skill?: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  xpReward: number;
+  isActive: boolean;
+  submissions: Submission[];
+  hasSubmitted?: boolean;
+  submissionStatus?: 'pending' | 'approved' | 'rejected';
+  mySubmission?: Submission;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface Submission {
+  _id: string;
+  learner: string;
+  learnerName: string;
+  submittedAt: string;
+  submissionUrl?: string;
+  submissionText?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  feedback?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+}
+
 const transformSchedulesForReview = (schedules: any[]): any[] => {
   return schedules.map(schedule => ({
     id: schedule.id,
@@ -251,6 +284,7 @@ export default function LearnerPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [forumData, setForumData] = useState<ForumData[]>([]);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [isLoadingMentors, setIsLoadingMentors] = useState(false);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   
@@ -441,6 +475,28 @@ export default function LearnerPage() {
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       toast.error('Error fetching analytics data');
+    }
+  };
+
+  const fetchChallenges = async () => {
+    try {
+      console.log("Fetching challenges...");
+      const res = await api.get('/api/challenge/all/challenges', {
+        timeout: 50000,
+        withCredentials: true,
+      });
+      
+      console.log("Challenges API Response:", res.data);
+      if (res.data?.challenges && Array.isArray(res.data.challenges)) {
+        setChallenges(res.data.challenges);
+      } else {
+        setChallenges([]);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching challenges:', error);
+      toast.error('Error fetching challenges');
+      setChallenges([]);
     }
   };
 
@@ -722,7 +778,8 @@ export default function LearnerPage() {
           fetchMentors(),
           fetchSchedules(),
           fetchForumData(),
-          fetchAnalyticsData()
+          fetchAnalyticsData(),
+          fetchChallenges()
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -818,7 +875,14 @@ export default function LearnerPage() {
           />
         );
       case 'challenges':
-        return <ChallengesComponent userData={userData} />;
+        return (
+          <ChallengesComponent 
+            userData={userData} 
+            userSpecializations={userSpecializations}
+            challenges={challenges}
+            onChallengesUpdate={fetchChallenges}
+          />
+        );
       case 'community':
         return (
           <CommunityForumComponent 

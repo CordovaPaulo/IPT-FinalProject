@@ -2,64 +2,75 @@
 
 import { useState, useEffect } from 'react';
 import styles from './challenges.module.css';
+import { toast } from 'react-toastify';
+import api from '@/lib/axios';
 
 interface Challenge {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  instructions: string;
-  specialization: string;
-  points: number;
-  deadline?: string;
+  requirements: string[];
+  specialization?: string;
+  skill?: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  xpReward: number;
+  isActive: boolean;
+  mentor: string;
+  mentorName: string;
   createdAt: string;
+  updatedAt: string;
   submissions: Submission[];
+  totalSubmissions?: number;
+  pendingSubmissions?: number;
+  approvedSubmissions?: number;
 }
 
 interface Submission {
-  id: string;
+  _id: string;
+  learner: string;
   learnerName: string;
-  learnerId: string;
-  challengeId: string;
-  submissionDate: string;
+  submittedAt: string;
+  submissionUrl?: string;
+  submissionText?: string;
   status: 'pending' | 'approved' | 'rejected';
-  content: string;
   feedback?: string;
-  pointsAwarded?: number;
-  attachedFiles?: FileAttachment[];
+  reviewedAt?: string;
+  reviewedBy?: string;
+  challengeId?: string;
   challengeTitle?: string;
-  challengePoints?: number;
+  xpReward?: number;
   specialization?: string;
-}
-
-interface FileAttachment {
-  id: string;
-  name: string;
-  size: string;
-  url: string;
-  type: string;
-  uploadedBy: 'learner' | 'mentor';
-  uploadDate: string;
+  skill?: string;
 }
 
 interface UserData {
   _id: string;
   name: string;
   subjects: string[];
+  specializations?: string[];
 }
 
 interface ChallengesComponentProps {
   userData: UserData;
+  userSpecializations?: string[];
+  challenges: Challenge[];
+  onChallengesUpdate: () => Promise<void>;
 }
 
-export default function ChallengesComponent({ userData }: ChallengesComponentProps) {
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
+export default function ChallengesComponent({ 
+  userData, 
+  userSpecializations, 
+  challenges: challengesProp,
+  onChallengesUpdate 
+}: ChallengesComponentProps) {
+  const challenges = challengesProp || [];
   const [filteredChallenges, setFilteredChallenges] = useState<Challenge[]>([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState<Submission[]>([]);
   const [selectedSpecialization, setSelectedSpecialization] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedSubmissionSpecialization, setSelectedSubmissionSpecialization] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'challenges' | 'submissions'>('challenges');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -81,18 +92,21 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
   const [newChallenge, setNewChallenge] = useState({
     title: '',
     description: '',
-    instructions: '',
-    specialization: 'programming',
-    points: 100,
-    deadline: ''
+    requirements: [] as string[],
+    specialization: '',
+    skill: '',
+    difficulty: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
+    xpReward: 100,
+    isActive: true
   });
 
-  const specializations = ['all', 'programming', 'mathematics', 'science', 'language', 'business', 'design', 'data-science', 'cybersecurity'];
+  const availableSpecs = userSpecializations && userSpecializations.length > 0 
+    ? userSpecializations 
+    : (userData?.specializations || userData?.subjects || []);
+  
+  const specializations = ['all', ...availableSpecs];
+  const difficulties = ['beginner', 'intermediate', 'advanced'];
   const statuses = ['all', 'pending', 'approved', 'rejected'];
-
-  useEffect(() => {
-    loadChallenges();
-  }, []);
 
   useEffect(() => {
     filterChallenges();
@@ -101,147 +115,6 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
   useEffect(() => {
     filterSubmissions();
   }, [challenges, selectedStatus, selectedSubmissionSpecialization]);
-
-  const loadChallenges = async () => {
-    setIsLoading(true);
-    try {
-      const mockChallenges: Challenge[] = [
-        {
-          id: '1',
-          title: 'Algorithm Mastery Challenge',
-          description: 'Solve 10 complex algorithm problems within 48 hours.',
-          instructions: 'Please solve all problems using Python. Focus on time complexity optimization. Submit your solutions as a zip file containing both the code and a README explaining your approach. Make sure to include comments in your code and test cases for each solution.',
-          specialization: 'programming',
-          points: 500,
-          deadline: '2024-12-31',
-          createdAt: '2024-01-15',
-          submissions: [
-            {
-              id: 'sub1',
-              learnerName: 'Alice Johnson',
-              learnerId: 'learner1',
-              challengeId: '1',
-              submissionDate: '2024-01-20',
-              status: 'approved',
-              content: 'Completed all 10 problems with optimal solutions. The solutions demonstrate excellent understanding of data structures and algorithms. Implemented efficient solutions using dynamic programming and graph algorithms.',
-              feedback: 'Excellent work! All solutions are correct and well-optimized. Great job on the time complexity analysis.',
-              pointsAwarded: 500,
-              attachedFiles: [
-                {
-                  id: 'file1',
-                  name: 'solution_code.py',
-                  size: '2.1 KB',
-                  url: '#',
-                  type: 'python',
-                  uploadedBy: 'learner',
-                  uploadDate: '2024-01-20'
-                },
-                {
-                  id: 'file2',
-                  name: 'algorithm_explanation.pdf',
-                  size: '1.5 MB',
-                  url: '#',
-                  type: 'pdf',
-                  uploadedBy: 'learner',
-                  uploadDate: '2024-01-20'
-                }
-              ]
-            },
-            {
-              id: 'sub2',
-              learnerName: 'Bob Smith',
-              learnerId: 'learner2',
-              challengeId: '1',
-              submissionDate: '2024-01-22',
-              status: 'pending',
-              content: 'Completed 8 out of 10 problems. Struggled with the last two optimization problems but learned a lot in the process.',
-              attachedFiles: [
-                {
-                  id: 'file3',
-                  name: 'problem_solutions.zip',
-                  size: '3.2 MB',
-                  url: '#',
-                  type: 'zip',
-                  uploadedBy: 'learner',
-                  uploadDate: '2024-01-22'
-                }
-              ]
-            }
-          ]
-        },
-        {
-          id: '2',
-          title: 'Mathematics Problem Set',
-          description: 'Complete a series of calculus and linear algebra problems.',
-          instructions: 'Show all your work and provide step-by-step solutions. Include proofs where necessary. Submit as a PDF document with clear organization. Each problem should be clearly labeled and solutions should be easy to follow.',
-          specialization: 'mathematics',
-          points: 300,
-          createdAt: '2024-01-10',
-          submissions: [
-            {
-              id: 'sub3',
-              learnerName: 'Carol Davis',
-              learnerId: 'learner3',
-              challengeId: '2',
-              submissionDate: '2024-01-18',
-              status: 'approved',
-              content: 'Solved all problems with detailed explanations and step-by-step solutions. Included proofs for all theorems and derivations.',
-              feedback: 'Great mathematical reasoning and clear explanations. Excellent work on the proofs.',
-              pointsAwarded: 300,
-              attachedFiles: [
-                {
-                  id: 'file4',
-                  name: 'math_solutions.docx',
-                  size: '845 KB',
-                  url: '#',
-                  type: 'document',
-                  uploadedBy: 'learner',
-                  uploadDate: '2024-01-18'
-                }
-              ]
-            }
-          ]
-        },
-        {
-          id: '3',
-          title: 'Data Analysis Project',
-          description: 'Analyze a real-world dataset and create meaningful visualizations.',
-          instructions: 'Use Python with pandas, matplotlib, and seaborn. Include data cleaning steps, exploratory analysis, and insights. Submit your Jupyter notebook and a summary report. Focus on deriving actionable insights from the data.',
-          specialization: 'data-science',
-          points: 400,
-          createdAt: '2024-01-08',
-          submissions: [
-            {
-              id: 'sub4',
-              learnerName: 'David Wilson',
-              learnerId: 'learner4',
-              challengeId: '3',
-              submissionDate: '2024-01-25',
-              status: 'pending',
-              content: 'Completed data cleaning and exploratory analysis. Working on final visualizations and insights generation.',
-              attachedFiles: [
-                {
-                  id: 'file5',
-                  name: 'data_analysis.ipynb',
-                  size: '4.7 MB',
-                  url: '#',
-                  type: 'python',
-                  uploadedBy: 'learner',
-                  uploadDate: '2024-01-25'
-                }
-              ]
-            }
-          ]
-        }
-      ];
-      
-      setChallenges(mockChallenges);
-    } catch (error) {
-      console.error('Error loading challenges:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const filterChallenges = () => {
     let filtered = challenges;
@@ -264,124 +137,125 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
     const allSubmissions = challenges.flatMap(challenge => 
       challenge.submissions.map(submission => ({
         ...submission,
+        challengeId: challenge._id,
         challengeTitle: challenge.title,
-        challengePoints: challenge.points,
-        specialization: challenge.specialization
+        xpReward: challenge.xpReward,
+        specialization: challenge.specialization,
+        skill: challenge.skill
       }))
     );
 
     let filtered = allSubmissions;
 
     if (selectedStatus !== 'all') {
-      filtered = filtered.filter(submission => submission.status === selectedStatus);
+      filtered = filtered.filter(sub => sub.status === selectedStatus);
     }
 
     if (selectedSubmissionSpecialization !== 'all') {
-      filtered = filtered.filter(submission => submission.specialization === selectedSubmissionSpecialization);
+      filtered = filtered.filter(sub => sub.specialization === selectedSubmissionSpecialization);
     }
 
     setFilteredSubmissions(filtered);
   };
-
+  
   const handleCreateChallenge = async () => {
-    try {
-      const challenge: Challenge = {
-        id: Date.now().toString(),
-        title: newChallenge.title,
-        description: newChallenge.description,
-        instructions: newChallenge.instructions,
-        specialization: newChallenge.specialization,
-        points: newChallenge.points,
-        deadline: newChallenge.deadline || undefined,
-        createdAt: new Date().toISOString().split('T')[0],
-        submissions: [],
-      };
+    if (!newChallenge.title || !newChallenge.description) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
 
-      setChallenges(prev => [challenge, ...prev]);
+    setIsLoading(true);
+    try {
+      await api.post('/challenge/create', newChallenge);
+      toast.success('Challenge created successfully!');
       setShowCreateModal(false);
       resetNewChallenge();
-      
-      console.log('Creating challenge:', challenge);
-    } catch (error) {
+      await onChallengesUpdate();
+    } catch (error: any) {
       console.error('Error creating challenge:', error);
+      toast.error(error.response?.data?.message || 'Failed to create challenge');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEditChallenge = async () => {
     if (!selectedChallenge) return;
 
+    if (!newChallenge.title || !newChallenge.description) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      setChallenges(prev => 
-        prev.map(challenge => 
-          challenge.id === selectedChallenge.id 
-            ? { ...selectedChallenge, ...newChallenge }
-            : challenge
-        )
-      );
+      await api.patch(`/challenge/edit/${selectedChallenge._id}`, newChallenge);
+      toast.success('Challenge updated successfully!');
       setShowEditModal(false);
       setSelectedChallenge(null);
       resetNewChallenge();
-      
-      console.log('Updating challenge:', selectedChallenge.id);
-    } catch (error) {
+      await onChallengesUpdate();
+    } catch (error: any) {
       console.error('Error updating challenge:', error);
+      toast.error(error.response?.data?.message || 'Failed to update challenge');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDeleteChallenge = async () => {
     if (!confirmAction?.challengeId) return;
 
+    setIsLoading(true);
     try {
-      setChallenges(prev => prev.filter(challenge => challenge.id !== confirmAction.challengeId));
+      await api.delete(`/challenge/delete/${confirmAction.challengeId}`);
+      toast.success('Challenge deleted successfully!');
       setShowConfirmModal(false);
       setConfirmAction(null);
-      
-      console.log('Deleting challenge:', confirmAction.challengeId);
-    } catch (error) {
+      await onChallengesUpdate();
+    } catch (error: any) {
       console.error('Error deleting challenge:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete challenge');
+    } finally {
+      setIsLoading(false);
     }
   };
-
   const handleReviewSubmission = async () => {
     if (!confirmAction?.submission) return;
 
     const { submission, type, feedback } = confirmAction;
 
-    // Map action types ("approve" | "reject") to submission status values ("approved" | "rejected")
-    const actionToStatus = (action: 'approve' | 'reject'): 'approved' | 'rejected' => action === 'approve' ? 'approved' : 'rejected';
+    setIsLoading(true);
+    try {
+      const endpoint = type === 'approve' 
+        ? `/challenge/submission/approve/${submission.challengeId}/${submission._id}`
+        : `/challenge/submission/reject/${submission.challengeId}/${submission._id}`;
 
-    const updatedChallenges = challenges.map(challenge => {
-      if (challenge.id === submission.challengeId) {
-        const updatedSubmissions = challenge.submissions.map(sub =>
-          sub.id === submission.id
-            ? {
-                ...sub,
-                status: actionToStatus(type as 'approve' | 'reject'),
-                feedback: feedback || (type === 'approve' ? 'Great work! Challenge completed successfully.' : 'Submission needs improvement.'),
-                pointsAwarded: type === 'approve' ? challenge.points : 0,
-              }
-            : sub
-        );
-        return { ...challenge, submissions: updatedSubmissions };
-      }
-      return challenge;
-    });
-
-    setChallenges(updatedChallenges);
-    setShowConfirmModal(false);
-    setConfirmAction(null);
-
-    console.log('Reviewing submission:', submission.id, type);
+      await api.post(endpoint, { feedback: feedback || (type === 'approve' ? 'Approved' : 'Needs improvement') });
+      
+      toast.success(`Submission ${type === 'approve' ? 'approved' : 'rejected'} successfully!`);
+      setShowConfirmModal(false);
+      setConfirmAction(null);
+      setShowSubmissionsModal(false);
+      setSelectedSubmission(null);
+      await onChallengesUpdate();
+    } catch (error: any) {
+      console.error('Error reviewing submission:', error);
+      toast.error(error.response?.data?.message || `Failed to ${type} submission`);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
   const resetNewChallenge = () => {
     setNewChallenge({
       title: '',
       description: '',
-      instructions: '',
-      specialization: 'programming',
-      points: 100,
-      deadline: ''
+      requirements: [],
+      specialization: availableSpecs[0] || '',
+      skill: '',
+      difficulty: 'beginner',
+      xpReward: 100,
+      isActive: true
     });
   };
 
@@ -390,10 +264,11 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
     setNewChallenge({
       title: challenge.title,
       description: challenge.description,
-      instructions: challenge.instructions,
-      specialization: challenge.specialization,
-      points: challenge.points,
-      deadline: challenge.deadline || ''
+      requirements: challenge.requirements || [],
+      specialization: challenge.specialization || '',
+      skill: challenge.skill || '',
+      difficulty: challenge.difficulty as 'beginner' | 'intermediate' | 'advanced',
+      xpReward: challenge.xpReward
     });
     setShowEditModal(true);
   };
@@ -410,7 +285,7 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
 
   const openConfirmModal = (type: 'delete' | 'approve' | 'reject', challengeId?: string, submission?: Submission) => {
     if (type === 'delete' && challengeId) {
-      setConfirmAction({ type, challengeId });
+      setConfirmAction({ type: 'delete', challengeId });
       setShowConfirmModal(true);
     } else if ((type === 'approve' || type === 'reject') && submission) {
       if (type === 'reject') {
@@ -418,11 +293,13 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
         setRejectionFeedback('');
         setShowRejectionModal(true);
       } else {
-        setConfirmAction({ type, submission });
+        setConfirmAction({ type, submission, feedback: 'Great work!' });
         setShowConfirmModal(true);
       }
     }
   };
+  //   }
+  // };
 
   const handleRejectWithFeedback = () => {
     if (!submissionToReject) return;
@@ -434,11 +311,6 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
     });
     setShowRejectionModal(false);
     setShowConfirmModal(true);
-  };
-
-  const handleDownloadFile = (file: FileAttachment) => {
-    console.log('Downloading file:', file.name);
-    alert(`Downloading ${file.name}...`);
   };
 
   const getSpecializationIcon = (specialization: string) => {
@@ -461,18 +333,6 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
       case 'rejected': return '#F44336';
       case 'pending': return '#FF9800';
       default: return '#666';
-    }
-  };
-
-  const getFileIcon = (fileType: string) => {
-    switch (fileType) {
-      case 'pdf': return '📄';
-      case 'document': return '📝';
-      case 'python': return '🐍';
-      case 'zip': return '📦';
-      case 'image': return '🖼️';
-      case 'csv': return '📊';
-      default: return '📎';
     }
   };
 
@@ -590,10 +450,13 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                     <h3 className={styles.challengeTitle}>{challenge.title}</h3>
                     <div className={styles.challengeMeta}>
                       <span className={styles.points}>
-                        {challenge.points} pts
+                        {challenge.xpReward} XP
                       </span>
                       <span className={styles.specializationTag}>
-                        {formatSpecialization(challenge.specialization)}
+                        {formatSpecialization(challenge.specialization || '')}
+                      </span>
+                      <span className={styles.difficultyBadge}>
+                        {challenge.difficulty}
                       </span>
                     </div>
                   </div>
@@ -636,7 +499,7 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                     </button>
                     <button
                       className={styles.deleteButton}
-                      onClick={() => openConfirmModal('delete', challenge.id)}
+                      onClick={() => openConfirmModal('delete', challenge._id)}
                       title="Delete Challenge"
                     >
                       <svg className={styles.buttonIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -713,9 +576,9 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
 
           <div className={styles.submissionsList}>
             {filteredSubmissions.map(submission => {
-              const challenge = challenges.find(c => c.id === submission.challengeId);
+              const challenge = challenges.find(c => c._id === submission.challengeId);
               return (
-                <div key={submission.id} className={styles.submissionCardCompact}>
+                <div key={submission._id} className={styles.submissionCardCompact}>
                   <div className={styles.submissionHeaderCompact}>
                     <div className={styles.submissionInfoCompact}>
                       <h4>{submission.learnerName}</h4>
@@ -728,14 +591,14 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v14a2 2 0 002 2z" />
                             </svg>
-                            {new Date(submission.submissionDate).toLocaleDateString()}
+                            {new Date(submission.submittedAt).toLocaleDateString()}
                           </span>
-                          {submission.attachedFiles && submission.attachedFiles.length > 0 && (
+                          {(submission.submissionUrl || submission.submissionText) && (
                             <span className={styles.fileCount}>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
-                              {submission.attachedFiles.length} file(s)
+                              Submission
                             </span>
                           )}
                           <span className={styles.specializationBadge}>
@@ -810,14 +673,10 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                 <h3>Submissions for: {selectedChallenge.title}</h3>
                 <div className={styles.challengeMetaInfo}>
                   <span className={styles.specializationBadge}>
-                    {formatSpecialization(selectedChallenge.specialization)}
+                    {formatSpecialization(selectedChallenge.specialization || '')}
                   </span>
-                  <span className={styles.points}>{selectedChallenge.points} pts</span>
-                  {selectedChallenge.deadline && (
-                    <span className={styles.deadline}>
-                      Deadline: {new Date(selectedChallenge.deadline).toLocaleDateString()}
-                    </span>
-                  )}
+                  <span className={styles.points}>{selectedChallenge.xpReward} XP</span>
+                  <span className={styles.difficultyBadge}>{selectedChallenge.difficulty}</span>
                 </div>
               </div>
               <button 
@@ -831,20 +690,25 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
             </div>
             
             <div className={styles.modalContent}>
-              {/* Challenge Instructions Section */}
+              {/* Challenge Details Section */}
               <div className={styles.instructionsSection}>
                 <div className={styles.sectionHeader}>
-                  <h4>📋 Challenge Instructions</h4>
+                  <h4>📋 Challenge Details</h4>
                 </div>
                 <div className={styles.instructionsContent}>
                   <p><strong>Description:</strong> {selectedChallenge.description}</p>
-                  {selectedChallenge.instructions && (
+                  {selectedChallenge.requirements && selectedChallenge.requirements.length > 0 && (
                     <>
-                      <p><strong>Detailed Instructions:</strong></p>
-                      <div className={styles.instructionsText}>
-                        {selectedChallenge.instructions}
-                      </div>
+                      <p><strong>Requirements:</strong></p>
+                      <ul className={styles.requirementsList}>
+                        {selectedChallenge.requirements.map((req, index) => (
+                          <li key={index}>{req}</li>
+                        ))}
+                      </ul>
                     </>
+                  )}
+                  {selectedChallenge.skill && (
+                    <p><strong>Skill Focus:</strong> {selectedChallenge.skill}</p>
                   )}
                 </div>
               </div>
@@ -857,13 +721,13 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                 {selectedChallenge.submissions.length > 0 ? (
                   <div className={styles.submissionsListModal}>
                     {selectedChallenge.submissions.map(submission => (
-                      <div key={submission.id} className={styles.submissionItemModal}>
+                      <div key={submission._id} className={styles.submissionItemModal}>
                         <div className={styles.submissionHeaderModal}>
                           <div className={styles.submissionLearnerInfo}>
                             <div className={styles.learnerName}>
                               <strong>{submission.learnerName}</strong>
                               <span className={styles.submissionDate}>
-                                {new Date(submission.submissionDate).toLocaleDateString()}
+                                {new Date(submission.submittedAt).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
@@ -877,32 +741,16 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                         
                         <div className={styles.submissionContentModal}>
                           <div className={styles.submissionText}>
-                            <p>{submission.content}</p>
+                            {submission.submissionText && <p>{submission.submissionText}</p>}
+                            {submission.submissionUrl && (
+                              <p>
+                                <strong>Submission URL:</strong>{' '}
+                                <a href={submission.submissionUrl} target="_blank" rel="noopener noreferrer">
+                                  {submission.submissionUrl}
+                                </a>
+                              </p>
+                            )}
                           </div>
-                          
-                          {submission.attachedFiles && submission.attachedFiles.length > 0 && (
-                            <div className={styles.submissionFiles}>
-                              <strong>Submitted files ({submission.attachedFiles.length}):</strong>
-                              <div className={styles.fileList}>
-                                {submission.attachedFiles.map(file => (
-                                  <div key={file.id} className={styles.fileItem}>
-                                    <span className={styles.fileIcon}>{getFileIcon(file.type)}</span>
-                                    <span className={styles.fileName}>{file.name}</span>
-                                    <span className={styles.fileSize}>{file.size}</span>
-                                    <button 
-                                      className={styles.downloadButton}
-                                      onClick={() => handleDownloadFile(file)}
-                                      title="Download file"
-                                    >
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                           
                           {submission.feedback && (
                             <div className={styles.feedbackSection}>
@@ -911,11 +759,6 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                               </div>
                               <div className={styles.feedbackContent}>
                                 <p>{submission.feedback}</p>
-                                {submission.pointsAwarded && (
-                                  <div className={styles.pointsAwarded}>
-                                    <strong>Points Awarded:</strong> {submission.pointsAwarded}
-                                  </div>
-                                )}
                               </div>
                             </div>
                           )}
@@ -1004,12 +847,15 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
               </div>
 
               <div className={styles.formGroup}>
-                <label>Detailed Instructions</label>
+                <label>Requirements (Optional - one per line)</label>
                 <textarea
-                  value={newChallenge.instructions}
-                  onChange={(e) => setNewChallenge(prev => ({ ...prev, instructions: e.target.value }))}
-                  placeholder="Provide detailed instructions, requirements, and expectations for learners..."
-                  rows={5}
+                  value={newChallenge.requirements.join('\n')}
+                  onChange={(e) => setNewChallenge(prev => ({ 
+                    ...prev, 
+                    requirements: e.target.value.split('\n').filter(r => r.trim()) 
+                  }))}
+                  placeholder="Enter requirements, one per line...\ne.g., Complete within 2 weeks\nSubmit code with documentation"
+                  rows={4}
                 />
               </div>
               
@@ -1030,23 +876,41 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                 </div>
                 
                 <div className={styles.formGroup}>
-                  <label>Points</label>
+                  <label>Skill (Optional)</label>
                   <input
-                    type="number"
-                    value={newChallenge.points}
-                    onChange={(e) => setNewChallenge(prev => ({ ...prev, points: parseInt(e.target.value) || 0 }))}
-                    min="1"
+                    type="text"
+                    value={newChallenge.skill}
+                    onChange={(e) => setNewChallenge(prev => ({ ...prev, skill: e.target.value }))}
+                    placeholder="e.g., React, Python, etc."
                   />
                 </div>
               </div>
               
-              <div className={styles.formGroup}>
-                <label>Deadline (Optional)</label>
-                <input
-                  type="date"
-                  value={newChallenge.deadline}
-                  onChange={(e) => setNewChallenge(prev => ({ ...prev, deadline: e.target.value }))}
-                />
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>Difficulty</label>
+                  <select
+                    value={newChallenge.difficulty}
+                    onChange={(e) => setNewChallenge(prev => ({ ...prev, difficulty: e.target.value as 'beginner' | 'intermediate' | 'advanced' }))}
+                    className={styles.filterSelect}
+                  >
+                    {difficulties.map(diff => (
+                      <option key={diff} value={diff}>
+                        {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className={styles.formGroup}>
+                  <label>XP Reward</label>
+                  <input
+                    type="number"
+                    value={newChallenge.xpReward}
+                    onChange={(e) => setNewChallenge(prev => ({ ...prev, xpReward: parseInt(e.target.value) || 0 }))}
+                    min="1"
+                  />
+                </div>
               </div>
             </div>
             
@@ -1105,11 +969,15 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
               </div>
 
               <div className={styles.formGroup}>
-                <label>Detailed Instructions</label>
+                <label>Requirements (Optional - one per line)</label>
                 <textarea
-                  value={newChallenge.instructions}
-                  onChange={(e) => setNewChallenge(prev => ({ ...prev, instructions: e.target.value }))}
-                  rows={5}
+                  value={newChallenge.requirements.join('\n')}
+                  onChange={(e) => setNewChallenge(prev => ({ 
+                    ...prev, 
+                    requirements: e.target.value.split('\n').filter(r => r.trim()) 
+                  }))}
+                  placeholder="Enter requirements, one per line..."
+                  rows={4}
                 />
               </div>
               
@@ -1130,23 +998,41 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                 </div>
                 
                 <div className={styles.formGroup}>
-                  <label>Points</label>
+                  <label>Skill (Optional)</label>
                   <input
-                    type="number"
-                    value={newChallenge.points}
-                    onChange={(e) => setNewChallenge(prev => ({ ...prev, points: parseInt(e.target.value) || 0 }))}
-                    min="1"
+                    type="text"
+                    value={newChallenge.skill}
+                    onChange={(e) => setNewChallenge(prev => ({ ...prev, skill: e.target.value }))}
+                    placeholder="e.g., React, Python, etc."
                   />
                 </div>
               </div>
               
-              <div className={styles.formGroup}>
-                <label>Deadline (Optional)</label>
-                <input
-                  type="date"
-                  value={newChallenge.deadline}
-                  onChange={(e) => setNewChallenge(prev => ({ ...prev, deadline: e.target.value }))}
-                />
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>Difficulty</label>
+                  <select
+                    value={newChallenge.difficulty}
+                    onChange={(e) => setNewChallenge(prev => ({ ...prev, difficulty: e.target.value as 'beginner' | 'intermediate' | 'advanced' }))}
+                    className={styles.filterSelect}
+                  >
+                    {difficulties.map(diff => (
+                      <option key={diff} value={diff}>
+                        {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className={styles.formGroup}>
+                  <label>XP Reward</label>
+                  <input
+                    type="number"
+                    value={newChallenge.xpReward}
+                    onChange={(e) => setNewChallenge(prev => ({ ...prev, xpReward: parseInt(e.target.value) || 0 }))}
+                    min="1"
+                  />
+                </div>
               </div>
             </div>
             
@@ -1190,9 +1076,9 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                 <div className={styles.submissionHeader}>
                   <div className={styles.submissionInfo}>
                     <h4>{selectedSubmission.learnerName}</h4>
-                    <p>Submitted for: {challenges.find(c => c.id === selectedSubmission.challengeId)?.title}</p>
+                    <p>Submitted for: {challenges.find(c => c._id === selectedSubmission.challengeId)?.title}</p>
                     <span className={styles.submissionDate}>
-                      {new Date(selectedSubmission.submissionDate).toLocaleDateString()}
+                      {new Date(selectedSubmission.submittedAt).toLocaleDateString()}
                     </span>
                   </div>
                   <span 
@@ -1205,32 +1091,13 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                 
                 <div className={styles.submissionContentFull}>
                   <p><strong>Submission Content:</strong></p>
-                  <p>{selectedSubmission.content}</p>
-                  
-                  {selectedSubmission.attachedFiles && selectedSubmission.attachedFiles.length > 0 && (
-                    <div className={styles.attachedFiles}>
-                      <strong>Learner's Files ({selectedSubmission.attachedFiles.length}):</strong>
-                      <p style={{ fontSize: '0.8rem', color: '#666', margin: '4px 0' }}>
-                        Files uploaded by the learner for your review
-                      </p>
-                      <div className={styles.fileList}>
-                        {selectedSubmission.attachedFiles.map(file => (
-                          <div key={file.id} className={styles.fileItem}>
-                            <span className={styles.fileIcon}>{getFileIcon(file.type)}</span>
-                            <span className={styles.fileName}>{file.name}</span>
-                            <span className={styles.fileSize}>{file.size}</span>
-                            <button 
-                              className={styles.downloadButton}
-                              onClick={() => handleDownloadFile(file)}
-                              title="Download file"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                  {selectedSubmission.submissionText && <p>{selectedSubmission.submissionText}</p>}
+                  {selectedSubmission.submissionUrl && (
+                    <div style={{ marginTop: '8px' }}>
+                      <p><strong>Submission URL:</strong></p>
+                      <a href={selectedSubmission.submissionUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>
+                        {selectedSubmission.submissionUrl}
+                      </a>
                     </div>
                   )}
                   
@@ -1241,9 +1108,6 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
                         {selectedSubmission.feedback}
                       </p>
                     </div>
-                  )}
-                  {selectedSubmission.pointsAwarded && (
-                    <p style={{ marginTop: '8px' }}><strong>Points Awarded:</strong> {selectedSubmission.pointsAwarded}</p>
                   )}
                 </div>
 
@@ -1372,7 +1236,7 @@ export default function ChallengesComponent({ userData }: ChallengesComponentPro
             <div className={styles.modalContent}>
               <p>
                 {confirmAction.type === 'delete' && 'Are you sure you want to delete this challenge? This action cannot be undone.'}
-                {confirmAction.type === 'approve' && `Are you sure you want to approve ${confirmAction.submission?.learnerName}'s submission? This will award ${confirmAction.submission && challenges.find(c => c.id === confirmAction.submission?.challengeId)?.points} points.`}
+                {confirmAction.type === 'approve' && `Are you sure you want to approve ${confirmAction.submission?.learnerName}'s submission? This will award ${confirmAction.submission && challenges.find(c => c._id === confirmAction.submission?.challengeId)?.xpReward} XP.`}
                 {confirmAction.type === 'reject' && `Are you sure you want to reject ${confirmAction.submission?.learnerName}'s submission?`}
               </p>
               {confirmAction.type === 'reject' && confirmAction.feedback && (

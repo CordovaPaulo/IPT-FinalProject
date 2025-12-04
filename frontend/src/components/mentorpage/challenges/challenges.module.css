@@ -1,7 +1,8 @@
 .challengesContainer {
-  padding: 20px;
-  max-width: 1200px;
+  padding: 30px 40px 50px;
+  max-width: 1600px;
   margin: 0 auto;
+  min-height: calc(100vh - 100px);
 }
 
 .header {
@@ -120,6 +121,7 @@
   margin-bottom: 30px;
   gap: 20px;
   flex-wrap: wrap;
+  padding-bottom: 10px;
 }
 
 .searchBox {
@@ -231,6 +233,7 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
   margin-bottom: 30px;
+  padding-bottom: 10px;
 }
 
 .statCard {
@@ -265,20 +268,23 @@
 
 .challengesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+  padding: 10px 0;
 }
 
 .challengeCard {
   background: white;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 0;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  height: 260px;
+  min-height: 280px;
+  max-height: 310px;
   overflow: hidden;
 }
 
@@ -448,12 +454,14 @@
   padding: 25px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   border: 1px solid #e0e0e0;
+  margin-bottom: 30px;
 }
 
 .submissionsList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
+  margin-bottom: 20px;
 }
 
 .submissionCardCompact {
@@ -641,10 +649,10 @@
 
 .modal {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
+  max-width: 750px;
+  max-height: 85vh;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   display: flex;
@@ -667,9 +675,10 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px 24px;
+  padding: 26px 30px;
   border-bottom: 1px solid #e0e0e0;
-  background: white;
+  background: #fafbfc;
+  flex-shrink: 0;
 }
 
 .modalHeader h3 {
@@ -727,15 +736,31 @@
 }
 
 .modalContent {
-  padding: 24px;
+  padding: 30px;
   overflow-y: auto;
   flex: 1;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  max-height: calc(85vh - 160px);
+  min-height: 200px;
 }
 
 .modalContent::-webkit-scrollbar {
-  display: none;
+  width: 10px;
+}
+
+.modalContent::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 5px;
+  margin: 4px 0;
+}
+
+.modalContent::-webkit-scrollbar-thumb {
+  background: #b0b0b0;
+  border-radius: 5px;
+  border: 2px solid #f5f5f5;
+}
+
+.modalContent::-webkit-scrollbar-thumb:hover {
+  background: #909090;
 }
 
 /* Instructions Section */
@@ -994,10 +1019,10 @@
 .formGroup select,
 .formGroup textarea {
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   transition: all 0.3s ease;
   box-sizing: border-box;
   font-family: inherit;
@@ -1013,7 +1038,8 @@
 
 .formGroup textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 120px;
+  line-height: 1.6;
 }
 
 .rejectionTextarea {
@@ -1045,22 +1071,28 @@
 .modalActions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 20px 24px;
+  gap: 14px;
+  padding: 24px 30px;
   border-top: 1px solid #e0e0e0;
-  background: white;
+  background: #fafbfc;
+  flex-shrink: 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .cancelButton {
   background: #6c757d;
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: 500;
+  font-weight: 600;
+  min-width: 100px;
 }
 
 .cancelButton:hover {
@@ -1072,12 +1104,13 @@
   background: #006981;
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: 500;
+  font-weight: 600;
+  min-width: 100px;
 }
 
 .saveButton:hover:not(:disabled) {

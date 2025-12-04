@@ -35,8 +35,10 @@ router.get('/subjects', jwtService.authenticateToken('mentor'), mentorController
 
 // DELETE routes
 router.delete('/files/:fileId', jwtService.authenticateToken('mentor'), mentorController.deleteLearningMaterial);
+router.delete('/schedules/preset/:id', jwtService.authenticateToken('mentor'), mentorController.deletePresetSched);
 
-// PATCH routes (you can add editProfile later if needed)
+// PATCH routes
+router.patch('/schedules/preset/:id', jwtService.authenticateToken('mentor'), mentorController.updatePresetSched);
 // router.patch('/profile/edit', jwtService.authenticateToken('mentor'), mentorController.editProfile);
 
 module.exports = router;

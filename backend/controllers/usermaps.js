@@ -2,6 +2,7 @@ const learner = require('../models/Learner');
 const mentor = require('../models/Mentor');
 const specialization = require('../models/specializations');
 const UserSkillProgress = require('../models/userSkillProgress');
+const UserRoadmapProgress = require('../models/userRoadmapProgress');
 const mongoose = require('mongoose');
 const progressService = require('../service/progress');
 const { getValuesFromToken } = require('../service/jwt');
@@ -169,6 +170,129 @@ exports.updateLearnerProgress = async (req, res) => {
         return res.status(200).json({ updated });
     } catch (err) {
         console.error('updateLearnerProgress error:', err && (err.stack || err));
+        return res.status(500).json({ error: err.message || 'Internal server error' });
+    }
+};
+
+// GET /maps/insights/:specialization - Get detailed progress insights
+exports.getSpecializationInsights = async (req, res) => {
+    const decoded = getValuesFromToken(req);
+    if (!decoded) return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+
+    try {
+        const userId = decoded.id;
+        const userRole = decoded.role;
+        if (userRole !== 'learner') return res.status(403).json({ error: 'This feature is only available for learners' });
+
+        const specName = req.params.specialization;
+        if (!specName) return res.status(400).json({ error: 'specialization parameter is required' });
+
+        const insights = await progressService.getProgressInsights(userId, specName);
+        return res.status(200).json(insights);
+    } catch (err) {
+        console.error('getSpecializationInsights error:', err && (err.stack || err));
+        return res.status(500).json({ error: err.message || 'Internal server error' });
+    }
+};
+
+// POST /maps/roadmap/complete-topic - Mark a roadmap topic as completed
+exports.completeRoadmapTopic = async (req, res) => {
+    const decoded = getValuesFromToken(req);
+    if (!decoded) return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+
+    try {
+        const userId = decoded.id;
+        const userRole = decoded.role;
+        if (userRole !== 'learner') return res.status(403).json({ error: 'This feature is only available for learners' });
+
+        const { specialization, stage, topic, source, sourceId } = req.body || {};
+        if (!specialization || !stage || !topic) {
+            return res.status(400).json({ error: 'specialization, stage, and topic are required in body' });
+        }
+
+        const updated = await progressService.markTopicCompleted({ 
+            userId, 
+            specialization, 
+            stage, 
+            topic, 
+            source, 
+            sourceId 
+        });
+        return res.status(200).json({ success: true, roadmapProgress: updated });
+    } catch (err) {
+        console.error('completeRoadmapTopic error:', err && (err.stack || err));
+        return res.status(500).json({ error: err.message || 'Internal server error' });
+    }
+};
+
+// GET /maps/roadmap/:specialization - Get roadmap progress for a specialization
+exports.getRoadmapProgress = async (req, res) => {
+    const decoded = getValuesFromToken(req);
+    if (!decoded) return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+
+    try {
+        const userId = decoded.id;
+        const userRole = decoded.role;
+        if (userRole !== 'learner') return res.status(403).json({ error: 'This feature is only available for learners' });
+
+        const specName = req.params.specialization;
+        if (!specName) return res.status(400).json({ error: 'specialization parameter is required' });
+
+        // Normalize userId
+        let uid;
+        try {
+            uid = mongoose.Types.ObjectId(userId);
+        } catch (e) {
+            uid = userId;
+        }
+
+        // Fetch specialization
+        const spec = await specialization.findOne({ specialization: specName }).lean();
+        if (!spec) return res.status(404).json({ error: 'Specialization not found' });
+
+        // Fetch roadmap progress
+        const roadmapProgress = await UserRoadmapProgress.findOne({ 
+            userId: uid, 
+            specialization: specName 
+        }).lean();
+
+        // Build response with roadmap definition and user progress
+        const stages = (spec.roadmap || []).map(stageDef => {
+            const userStage = roadmapProgress?.stages.find(s => s.stage === stageDef.stage);
+            
+            return {
+                stage: stageDef.stage,
+                topics: (stageDef.topics || []).map(topicName => {
+                    const completedTopic = userStage?.completedTopics.find(ct => ct.topic === topicName);
+                    return {
+                        name: topicName,
+                        completed: !!completedTopic,
+                        completedAt: completedTopic?.completedAt || null,
+                        source: completedTopic?.source || null
+                    };
+                }),
+                isCompleted: userStage?.isCompleted || false,
+                completedAt: userStage?.completedAt || null,
+                progress: {
+                    completed: userStage?.completedTopics.length || 0,
+                    total: (stageDef.topics || []).length
+                }
+            };
+        });
+
+        const totalTopics = stages.reduce((sum, s) => sum + s.progress.total, 0);
+        const completedTopics = stages.reduce((sum, s) => sum + s.progress.completed, 0);
+        const overallCompletion = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+        return res.status(200).json({
+            specialization: spec.specialization,
+            course: spec.course,
+            stages,
+            completion: overallCompletion,
+            lastUpdated: roadmapProgress?.lastUpdated || null
+        });
+    } catch (err) {
+        console.error('getRoadmapProgress error:', err && (err.stack || err));
         return res.status(500).json({ error: err.message || 'Internal server error' });
     }
 };

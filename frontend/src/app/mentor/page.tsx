@@ -150,6 +150,36 @@ interface ForumData {
   userVote?: 'up' | 'down' | null;
 }
 
+interface Challenge {
+  _id: string;
+  title: string;
+  description: string;
+  requirements: string[];
+  mentor: string;
+  mentorName: string;
+  specialization: string;
+  skill?: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  xpReward: number;
+  isActive: boolean;
+  submissions: Submission[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface Submission {
+  _id: string;
+  learner: string;
+  learnerName: string;
+  submittedAt: string;
+  submissionUrl?: string;
+  submissionText?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  feedback?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+}
+
 // Constants
 const TOPBAR_ITEMS = [
   { key: 'main', label: 'Learners', icon: '/main.svg' },
@@ -231,6 +261,7 @@ export default function MentorPage() {
   const [forumData, setForumData] = useState<any[]>([]);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [badges, setBadges] = useState<EarnedBadge[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -734,6 +765,28 @@ export default function MentorPage() {
     }
   };
 
+  const fetchChallenges = async () => {
+    try {
+      console.log("Fetching challenges...");
+      const res = await api.get('/api/challenge/list', {
+        timeout: 50000,
+        withCredentials: true,
+      });
+      
+      console.log("Challenges API Response:", res.data);
+      if (res.data?.challenges && Array.isArray(res.data.challenges)) {
+        setChallenges(res.data.challenges);
+      } else {
+        setChallenges([]);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching challenges:', error);
+      toast.error('Error fetching challenges');
+      setChallenges([]);
+    }
+  };
+
   const getFiles = async () => {
     try {
       console.log("Fetching files...");
@@ -1000,7 +1053,12 @@ export default function MentorPage() {
             userData={userData}
           />;
         case 'challenges':
-          return <ChallengesComp userData={userData} />;
+          return <ChallengesComp 
+            userData={userData} 
+            userSpecializations={userSpecializations}
+            challenges={challenges}
+            onChallengesUpdate={fetchChallenges}
+          />;
         case 'community':
           return <CommunityForumComp 
             forumData={forumData}
@@ -1056,6 +1114,7 @@ export default function MentorPage() {
           getFiles(),
           fetchForumData(),
           fetchAnalyticsData(),
+          fetchChallenges(),
         ]);
       } catch (error) {
         console.error("Critical error during initialization:", error);
