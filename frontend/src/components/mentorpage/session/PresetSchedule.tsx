@@ -211,63 +211,64 @@ export default function PresetScheduleComponent({ userData, onUpdate }: PresetSc
 
   return (
     <div className={styles.presetWrapper}>
-      {/* Header with Analytics */}
-      <div className={styles.presetHeader}>
-        <div className={styles.presetHeaderContent}>
-          <h2 className={styles.presetTitle}>
-            <FontAwesomeIcon icon={faCalendarDays} className={styles.presetHeaderIcon} />
-            Preset Schedules
-          </h2>
-          <p className={styles.presetSubtitle}>Create recurring schedules for learners to join</p>
-        </div>
-        <button 
-          className={styles.createButton}
-          onClick={openCreateModal}
-          disabled={presetSchedules.length >= 3}
-          title={presetSchedules.length >= 3 ? 'Maximum 3 preset schedules allowed' : 'Create new preset schedule'}
-        >
-          <FontAwesomeIcon icon={faCalendarPlus} />
-          Create Schedule
-        </button>
-      </div>
-
-      {/* Analytics Cards */}
-      <div className={styles.analyticsGrid}>
-        <div className={styles.analyticsCard}>
-          <div className={styles.analyticsIcon} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-            <FontAwesomeIcon icon={faCalendarDays} />
+      <div className={styles.presetContent}>
+        {/* Header with Analytics */}
+        <div className={styles.presetHeader}>
+          <div className={styles.presetHeaderContent}>
+            <h2 className={styles.presetTitle}>
+              <FontAwesomeIcon icon={faCalendarDays} className={styles.presetHeaderIcon} />
+              Preset Schedules
+            </h2>
+            <p className={styles.presetSubtitle}>Create recurring schedules for learners to join</p>
           </div>
-          <div className={styles.analyticsInfo}>
-            <h3>Active Schedules</h3>
-            <p className={styles.analyticsValue}>{presetSchedules.length}/3</p>
-          </div>
+          <button 
+            className={styles.createButton}
+            onClick={openCreateModal}
+            disabled={presetSchedules.length >= 3}
+            title={presetSchedules.length >= 3 ? 'Maximum 3 preset schedules allowed' : 'Create new preset schedule'}
+          >
+            <FontAwesomeIcon icon={faCalendarPlus} />
+            Create Schedule
+          </button>
         </div>
 
-        <div className={styles.analyticsCard}>
-          <div className={styles.analyticsIcon} style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-            <FontAwesomeIcon icon={faUsers} />
+        {/* Analytics Cards */}
+        <div className={styles.analyticsGrid}>
+          <div className={styles.analyticsCard}>
+            <div className={styles.analyticsIcon} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+              <FontAwesomeIcon icon={faCalendarDays} />
+            </div>
+            <div className={styles.analyticsInfo}>
+              <h3>Active Schedules</h3>
+              <p className={styles.analyticsValue}>{presetSchedules.length}/3</p>
+            </div>
           </div>
-          <div className={styles.analyticsInfo}>
-            <h3>Total Participants</h3>
-            <p className={styles.analyticsValue}>{totalParticipants}</p>
+
+          <div className={styles.analyticsCard}>
+            <div className={styles.analyticsIcon} style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+              <FontAwesomeIcon icon={faUsers} />
+            </div>
+            <div className={styles.analyticsInfo}>
+              <h3>Total Participants</h3>
+              <p className={styles.analyticsValue}>{totalParticipants}</p>
+            </div>
+          </div>
+
+          <div className={styles.analyticsCard}>
+            <div className={styles.analyticsIcon} style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+              <FontAwesomeIcon icon={faChartLine} />
+            </div>
+            <div className={styles.analyticsInfo}>
+              <h3>Avg. Participants</h3>
+              <p className={styles.analyticsValue}>
+                {presetSchedules.length > 0 ? (totalParticipants / presetSchedules.length).toFixed(1) : '0'}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className={styles.analyticsCard}>
-          <div className={styles.analyticsIcon} style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-            <FontAwesomeIcon icon={faChartLine} />
-          </div>
-          <div className={styles.analyticsInfo}>
-            <h3>Avg. Participants</h3>
-            <p className={styles.analyticsValue}>
-              {presetSchedules.length > 0 ? (totalParticipants / presetSchedules.length).toFixed(1) : '0'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Preset Schedules List */}
-      <div className={styles.schedulesContainer}>
+        {/* Preset Schedules List */}
+        <div className={styles.schedulesContainer}>
         {isLoading && presetSchedules.length === 0 ? (
           <div className={styles.loadingMessage}>Loading preset schedules...</div>
         ) : presetSchedules.length === 0 ? (
@@ -340,6 +341,7 @@ export default function PresetScheduleComponent({ userData, onUpdate }: PresetSc
             ))}
           </div>
         )}
+      </div>
       </div>
 
       {/* Create Modal */}

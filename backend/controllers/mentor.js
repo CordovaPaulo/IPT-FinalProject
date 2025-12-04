@@ -177,16 +177,41 @@ exports.getFeedbacks = async (req, res) => {
     }
 
     try {
+      // Fetch feedbacks without populate
       const feedbacks = await Feedback.find({ mentor: mentor._id });
-    //   if(feedbacks.length === 0){
-    //     return res.status(404).json({message: 'No feedbacks found', code: 404})
-    //   }
+
+      // Manually fetch learner and schedule data for each feedback
+      const transformedFeedbacks = await Promise.all(feedbacks.map(async (fb) => {
+        // Fetch learner details
+        const learner = await Learner.findById(fb.learner);
+        
+        // Fetch schedule details
+        const schedule = await Schedule.findById(fb.schedule);
+
+        return {
+          _id: fb._id,
+          rating: fb.rating,
+          comments: fb.comments,
+          evaluation: fb.evaluation,
+          createdAt: fb.createdAt,
+          updatedAt: fb.updatedAt,
+          // Add learner information
+          learnerName: learner?.name || 'Unknown',
+          learnerProgram: learner?.program || 'N/A',
+          learnerYearLevel: learner?.yearLevel || 'N/A',
+          learnerImage: learner?.image || '',
+          // Add specialization from schedule subject
+          specialization: schedule?.subject || 'N/A',
+          sessionDate: schedule?.date || null
+        };
+      }));
 
       // Safe award badges
       await safeAwardMentorBadgesByUserId(mentor._id);
 
-      res.status(200).json(feedbacks);
+      res.status(200).json(transformedFeedbacks);
     } catch (error) {
+      console.error('getFeedbacks error:', error);
       res.status(500).json({message: 'Server error', code: 500})
     }
 }

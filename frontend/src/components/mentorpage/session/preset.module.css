@@ -6,8 +6,38 @@
   box-shadow: 0 8px 24px rgba(26, 79, 159, 0.5);
   width: 90%;
   margin: 2rem auto 2rem 2.5rem;
+  padding: 0;
+  height: 37.4rem;
+  max-height: 37.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.presetContent {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 2rem;
-  min-height: 500px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+}
+
+.presetContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.presetContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.presetContent::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.presetContent::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .presetHeader {

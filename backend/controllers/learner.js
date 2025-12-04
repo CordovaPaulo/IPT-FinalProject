@@ -302,7 +302,7 @@ exports.setSchedule = async (req, res) => {
 
 exports.setFeedback = async (req, res) => {
     const { id } = req.params;
-    const { rating, comments } = req.body;
+    const { rating, comments, evaluation } = req.body;
     const decoded = getValuesFromToken(req);
 
     if (!decoded || !decoded.id) {
@@ -340,17 +340,55 @@ exports.setFeedback = async (req, res) => {
             return res.status(404).json({ message: 'Mentor not found', code: 404 });
         }
 
+        // Validate evaluation data if provided
+        let evaluationData = null;
+        if (evaluation && typeof evaluation === 'object') {
+            const validCategories = ['knowledge', 'pacing', 'communication', 'engagement', 
+                                    'feedbackQuality', 'professionalism', 'resources', 
+                                    'accessibility', 'learningOutcomes'];
+            
+            evaluationData = {};
+            
+            // Validate numeric ratings (1-5)
+            for (const cat of validCategories) {
+                if (evaluation[cat] !== undefined) {
+                    const val = Number(evaluation[cat]);
+                    if (Number.isNaN(val) || val < 1 || val > 5) {
+                        return res.status(400).json({ 
+                            message: `Invalid ${cat} rating. Must be between 1 and 5.`, 
+                            code: 400 
+                        });
+                    }
+                    evaluationData[cat] = val;
+                }
+            }
+            
+            // Store open-ended responses
+            if (evaluation.whatHelped !== undefined) {
+                evaluationData.whatHelped = String(evaluation.whatHelped).trim();
+            }
+            if (evaluation.suggestions !== undefined) {
+                evaluationData.suggestions = String(evaluation.suggestions).trim();
+            }
+        }
+
         // create feedback
         const feedback = new Feedback({
             learner: learnerDoc._id,
             mentor: sched.mentor,
             schedule: sched._id,
             rating,
-            comments
+            comments,
+            evaluation: evaluationData
         });
 
-        // update average rating (simple average; adjust as needed)
-        const newRating = mentor.aveRating ? (mentor.aveRating + rating) / 2 : rating;
+        // Calculate mentor rating based on evaluation if available, else use simple rating
+        let effectiveRating = rating;
+        if (evaluationData && evaluationData.categoryAverage) {
+            effectiveRating = evaluationData.categoryAverage;
+        }
+        
+        const newRating = mentor.aveRating ? (mentor.aveRating + effectiveRating) / 2 : effectiveRating;
         mentor.aveRating = newRating;
 
         await feedback.save();
