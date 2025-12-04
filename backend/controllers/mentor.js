@@ -1318,6 +1318,111 @@ exports.getPresetScheds = async (req, res) => {
   }
 }
 
+exports.updatePresetSched = async (req, res) => {
+  const decoded = getValuesFromToken(req);
+  if (!decoded || !decoded.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  try {
+    const { id } = req.params;
+    const mentor = await Mentor.findOne({
+      $or: [
+        { _id: decoded.id },
+        { userId: decoded.id }
+      ]
+    });
+
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    }
+
+    const schedule = await presetSched.findById(id);
+    if (!schedule) {
+      return res.status(404).json({ message: 'Preset schedule not found', code: 404 });
+    }
+
+    // Verify ownership
+    if (String(schedule.mentor) !== String(mentor._id)) {
+      return res.status(403).json({ message: 'Not authorized to update this schedule', code: 403 });
+    }
+
+    const { days, time, subject, specialization, course } = req.body;
+
+    // Update fields if provided
+    if (days !== undefined) {
+      const dayArray = Array.isArray(days) ? days : (typeof days === 'string' ? [days] : []);
+      if (dayArray.length > 0) {
+        const schemaEnumValues = Array.isArray(presetSched.schema.path('days')?.enumValues)
+          ? presetSched.schema.path('days').enumValues
+          : ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+
+        const normalizedDays = [];
+        for (const d of dayArray) {
+          const match = schemaEnumValues.find(ev => String(ev).toLowerCase() === String(d).toLowerCase());
+          if (!match) {
+            return res.status(400).json({ message: `Invalid day value: ${d}`, code: 400 });
+          }
+          normalizedDays.push(match);
+        }
+        schedule.days = normalizedDays;
+      }
+    }
+    if (time) schedule.time = time;
+    if (subject) schedule.subject = subject;
+    if (specialization) schedule.specialization = specialization;
+    if (course) {
+      if (!['BSIT', 'BSCS', 'BSEMC'].includes(course)) {
+        return res.status(400).json({ message: 'course must be BSIT, BSCS, or BSEMC', code: 400 });
+      }
+      schedule.course = course;
+    }
+
+    await schedule.save();
+    return res.status(200).json({ message: 'Preset schedule updated', schedule, code: 200 });
+  } catch (error) {
+    console.error('updatePresetSched error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+}
+
+exports.deletePresetSched = async (req, res) => {
+  const decoded = getValuesFromToken(req);
+  if (!decoded || !decoded.id) {
+    return res.status(403).json({ message: 'Invalid token', code: 403 });
+  }
+
+  try {
+    const { id } = req.params;
+    const mentor = await Mentor.findOne({
+      $or: [
+        { _id: decoded.id },
+        { userId: decoded.id }
+      ]
+    });
+
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found', code: 404 });
+    }
+
+    const schedule = await presetSched.findById(id);
+    if (!schedule) {
+      return res.status(404).json({ message: 'Preset schedule not found', code: 404 });
+    }
+
+    // Verify ownership
+    if (String(schedule.mentor) !== String(mentor._id)) {
+      return res.status(403).json({ message: 'Not authorized to delete this schedule', code: 403 });
+    }
+
+    await schedule.deleteOne();
+    return res.status(200).json({ message: 'Preset schedule deleted', code: 200 });
+  } catch (error) {
+    console.error('deletePresetSched error:', error);
+    return res.status(500).json({ message: error.message, code: 500 });
+  }
+}
+
 exports.getSubjectsBySpecializations = async (req, res) => {
   try {
     const { specializations } = req.query;

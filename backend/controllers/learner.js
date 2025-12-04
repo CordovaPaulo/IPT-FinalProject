@@ -52,6 +52,44 @@ exports.getAllMentors = async (req, res) => {
       return res.status(404).json({ message: 'Learner not found', code: 404 });
     }
 
+    // Calculate learner progress for matching algorithm
+    let learnerProgress = null;
+    try {
+      const UserSkillProgress = require('../models/userSkillProgress');
+      const UserRoadmapProgress = require('../models/userRoadmapProgress');
+      
+      // Get all skill progress for this learner across their specializations
+      const skillProgresses = await UserSkillProgress.find({
+        userId: decoded.id,
+        specialization: { $in: learner.specialization || [] }
+      }).lean();
+      
+      // Calculate average skill level
+      let avgSkillLevel = 1;
+      if (skillProgresses && skillProgresses.length > 0) {
+        const totalLevel = skillProgresses.reduce((sum, sp) => sum + (sp.level || 1), 0);
+        avgSkillLevel = totalLevel / skillProgresses.length;
+      }
+      
+      // Get roadmap progress for learner's specializations
+      const roadmapProgresses = await UserRoadmapProgress.find({
+        userId: decoded.id,
+        specialization: { $in: learner.specialization || [] }
+      }).lean();
+      
+      // Calculate average roadmap completion
+      let roadmapCompletion = 0;
+      if (roadmapProgresses && roadmapProgresses.length > 0) {
+        const totalCompletion = roadmapProgresses.reduce((sum, rp) => sum + (rp.overallCompletion || 0), 0);
+        roadmapCompletion = totalCompletion / roadmapProgresses.length;
+      }
+      
+      learnerProgress = { avgSkillLevel, roadmapCompletion };
+    } catch (progressErr) {
+      console.error('Error calculating learner progress:', progressErr);
+      // Continue without progress data
+    }
+
     // dynamic import of ESM util (works in CommonJS file inside async function)
     let matchScores = null
     try {
@@ -80,7 +118,7 @@ exports.getAllMentors = async (req, res) => {
     const scored = mentors.map(m => {
       let score = 0;
       try {
-        score = calculateMatchScore(learner, m) ?? 0;
+        score = calculateMatchScore(learner, m, learnerProgress) ?? 0;
       } catch (scoreErr) {
         console.error('Error calculating score for mentor', String(m._id), scoreErr);
         score = 0;
